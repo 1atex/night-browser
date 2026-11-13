@@ -1,8 +1,8 @@
 {
-  "name": "Zen Browser",
-  "vendor": "Zen OSS Team",
-  "appId": "zen",
-  "binaryName": "zen",
+  "name": "Night Browser",
+  "vendor": "Night",
+  "appId": "night",
+  "binaryName": "night",
   "version": {
     "product": "firefox",
     "version": "160.0",
@@ -15,14 +15,14 @@
   "addons": {},
   "brands": {
     "release": {
-      "backgroundColor": "#282A33",
-      "brandShorterName": "Zen",
-      "brandShortName": "Zen",
-      "brandFullName": "Zen Browser",
+      "backgroundColor": "#17171A",
+      "brandShorterName": "Night",
+      "brandShortName": "Night",
+      "brandFullName": "Night Browser",
       "release": {
-        "displayVersion": "1.24.2b",
+        "displayVersion": "0.1.0a1",
         "github": {
-          "repo": "zen-browser/desktop"
+          "repo": "1atex/night-browser"
         },
         "archives": {
           "windows": "windows.mar",
@@ -35,14 +35,14 @@
       }
     },
     "twilight": {
-      "backgroundColor": "#282A33",
-      "brandShorterName": "Zen",
-      "brandShortName": "Twilight",
-      "brandFullName": "Zen Twilight",
+      "backgroundColor": "#17171A",
+      "brandShorterName": "Night",
+      "brandShortName": "Night",
+      "brandFullName": "Night Browser",
       "release": {
-        "displayVersion": "1.25t",
+        "displayVersion": "0.1.0a1",
         "github": {
-          "repo": "zen-browser/desktop"
+          "repo": "1atex/night-browser"
         }
       }
     }
@@ -53,5 +53,5 @@
     ],
     "licenseType": "MPL-2.0"
   },
-  "updateHostname": "updates.zen-browser.app"
+  "updateHostname": "updates.invalid"
 }
