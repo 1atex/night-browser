@@ -17,6 +17,8 @@ public static class NightWindowInfo {
   [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr window,IntPtr after,int x,int y,int width,int height,uint flags);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr window,int command);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr window);
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr extra);
   [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr window,uint message,IntPtr wparam,IntPtr lparam);
   public static string Property(IntPtr window,uint id) {
     Guid iid=typeof(Store).GUID;Store store;
@@ -112,11 +114,14 @@ try {
   $menuCondition = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,"Меню")
   $menuButton = [System.Windows.Automation.AutomationElement]::FromHandle($window).FindFirst([System.Windows.Automation.TreeScope]::Descendants,$menuCondition)
   if (-not $menuButton) { throw "Main menu button is missing" }
-  $invoke = $menuButton.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
-  $invoke.Invoke()
+  $menuBounds = $menuButton.Current.BoundingRectangle
+  if ($menuBounds.Width -le 0 -or $menuBounds.Height -le 0) { throw "Main menu button is not visible" }
+  [NightWindowInfo]::SetCursorPos([int]($menuBounds.Left+$menuBounds.Width/2),[int]($menuBounds.Top+$menuBounds.Height/2)) | Out-Null
+  [NightWindowInfo]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+  [NightWindowInfo]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
   Start-Sleep -Seconds 1
   $menuNames = @([System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | Where-Object { -not $_.Current.IsOffscreen } | ForEach-Object { $_.Current.Name })
-  if ($menuNames -notcontains "Меню браузера" -or $menuNames -notcontains "Масштаб") { throw "Own browser menu did not open" }
+  if ($menuNames -notcontains "Найти на странице" -or $menuNames -notcontains "Масштаб") { throw "Own browser menu did not open" }
   $bitmap = New-Object System.Drawing.Bitmap(($rect.right-$rect.left),($rect.bottom-$rect.top))
   $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
   try { $graphics.CopyFromScreen($rect.left,$rect.top,0,0,$bitmap.Size);$bitmap.Save((Join-Path $outputPath "night-menu-ordinary.png"),[System.Drawing.Imaging.ImageFormat]::Png) } finally { $graphics.Dispose();$bitmap.Dispose() }
