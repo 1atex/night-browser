@@ -107,3 +107,21 @@ The public ZIP passed SHA-256 and ZIP CRC verification: 145,494,322 bytes, 108 e
 SHA-256: `a30e4b65d854fec7a8d23f953908bd41a005fdf58882846ca02ca4e0bb54a008`.
 
 Published [first launch](https://github.com/1atex/night-browser/releases/download/v0.5.1-preview.1/night-first-launch.png) and [settings](https://github.com/1atex/night-browser/releases/download/v0.5.1-preview.1/night-settings.png) were visually inspected. Routine surfaces use functional labels and icons without repeated wordmarks, slogans or permanent preview badges. Windows identity, the native internal-page identity indicator and the About page remain identifiable.
+
+## Night 0.5.2 navigation checks
+
+The chrome test opens the custom main menu while toolbar autohide is enabled, verifies its anchor remains visible, moves focus with the keyboard and checks Escape returns focus to its button. It invokes actual zoom/reset, page-find and DevTools commands. Existing address navigation, favicon, full-window geometry, native fullscreen, reduced-motion and persisted-setting checks continue to run.
+
+The product fixture now has a real WebExtension action, icon, badge and popup. Pointer input opens the pinned action and its content, then the test unpins it and opens the unified extensions panel. This covers extension-owned UI alongside the browser's new controls. When every extension is pinned, Gecko deliberately opens the extensions manager instead of an empty panel.
+
+The ordinary Windows launch check locates the menu through Windows accessibility APIs and opens it with native pointer input, then captures the whole native window, including its popup. It also captures the address suggestion surface. These captures do not use headless mode or Marionette.
+
+## Published 0.5.2 result
+
+Windows release [v0.5.2-preview.1](https://github.com/1atex/night-browser/releases/tag/v0.5.2-preview.1), source `688cffb9e698f8c315734513bfc92c1c4815d6e7`, passed all 43 Node checks and every Windows runtime check in [run 43395201562](https://github.com/1atex/night-browser/actions/runs/43395201562). Packaging took 4m7s and publication 19s. The product and chrome checks also passed locally on Linux.
+
+The public ZIP passed SHA-256, ZIP CRC and source-content verification after download: 145,501,034 bytes, 108 entries, product version 0.5.2 and application BuildID `20261113083850`. The custom menu, toolbar modules, final suggestion geometry styles, home/settings documents and navigation icons match the source. Native executables/configuration are present, with no pre-created profile, old firefox.exe or Zen installer.
+
+SHA-256: `5987037642469900481d95c5f6970b00f7daf94f662eeebc9b0f7403771ad051`.
+
+Published evidence: [own menu](https://github.com/1atex/night-browser/releases/download/v0.5.2-preview.1/night-menu.png), [address suggestions](https://github.com/1atex/night-browser/releases/download/v0.5.2-preview.1/night-suggestions.png), [first launch](https://github.com/1atex/night-browser/releases/download/v0.5.2-preview.1/night-first-launch.png) and [chrome checks](https://github.com/1atex/night-browser/releases/download/v0.5.2-preview.1/chrome-result.json). The ordinary Windows menu and suggestion captures were visually inspected from the matching source artifact; the menu was inspected again from the public release. Closing with Alt+F4 and shortcut relaunch passed without forcing process termination.
