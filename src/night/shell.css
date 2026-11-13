@@ -11,7 +11,8 @@
 :root[night-browser] #urlbar[open] #urlbar-background { background: #25252b !important; }
 :root[night-browser] #browser { background: #17171a; padding: 0 8px 8px 0; }
 :root[night-browser] #tabbrowser-tabbox { border-radius: 14px; overflow: clip; border: 1px solid #ffffff0f; }
-:root[night-browser] .titlebar-buttonbox-container { display: flex !important; -moz-window-dragging: no-drag; }
+:root[night-browser] #navigator-toolbox .titlebar-buttonbox-container { display: none !important; }
+:root[night-browser] #nav-bar > .titlebar-buttonbox-container { display: flex !important; -moz-window-dragging: no-drag; }
 :root[night-browser] #night-sidebar-toggle .toolbarbutton-text { display: flex; font-size: 21px; }
 :root[night-browser] #night-sidebar-toggle .toolbarbutton-icon { display: none; }
 #night-sidebar { box-sizing: border-box; width: 232px; min-width: 232px; display: flex; flex-direction: column; gap: 12px; padding: 20px 13px 5px; color: #ececf0; font: 12px system-ui, sans-serif; overflow: hidden; }

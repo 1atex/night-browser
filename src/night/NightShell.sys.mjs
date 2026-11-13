@@ -94,8 +94,6 @@ export class NightShell {
     toggle.setAttribute("tooltiptext", "Боковая панель · Alt+B");
     toggle.addEventListener("command", () => this.toggleSidebar());
     doc.getElementById("nav-bar-customization-target").prepend(toggle);
-    const controls = doc.querySelector("#TabsToolbar .titlebar-buttonbox-container");
-    if (controls) doc.getElementById("nav-bar").append(controls);
   }
 
   toggleSidebar() {

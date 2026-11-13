@@ -1,6 +1,7 @@
 import argparse
 import base64
 import json
+import sys
 import tempfile
 import threading
 import zipfile
@@ -25,6 +26,10 @@ def run(binary, app_ini, output):
         browser.set_context("chrome")
         wait_for(lambda: browser.execute_script(f"return !!{WIN}?.gNightBrowser?.shell;"))
         browser.set_window_rect(width=1360, height=900)
+        if sys.platform == "win32":
+            controls = browser.execute_script(f"return [...{WIN}.document.querySelectorAll('.titlebar-close')].filter(b => b.getBoundingClientRect().width > 0).length;")
+            assert controls == 1, controls
+            print("PASS: one visible set of Windows caption controls", flush=True)
         browser.set_context("content")
         browser.navigate("about:home")
         assert browser.execute_script("return document.querySelector('h1')?.textContent;") == "night."

@@ -75,6 +75,7 @@ jobs:
         run: python -u tests/native/launcher.py --launcher dist/Night/Night.exe
       - name: Create download archive
         run: |
+          Copy-Item test-artifacts/memory.json dist/memory.json
           7z a -tzip dist/night-browser-0.2.0-preview-windows-x64.zip ./dist/Night
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $hash = (Get-FileHash dist/night-browser-0.2.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
@@ -86,6 +87,7 @@ jobs:
           path: |
             dist/night-browser-0.2.0-preview-windows-x64.zip
             dist/SHA256SUMS.txt
+            dist/memory.json
           compression-level: 0
           retention-days: 30
           if-no-files-found: error
@@ -118,6 +120,7 @@ jobs:
           gh release create "$RELEASE_TAG" \
             release-assets/night-browser-0.2.0-preview-windows-x64.zip \
             release-assets/SHA256SUMS.txt \
+            release-assets/memory.json \
             --verify-tag --prerelease \
             --title "Night Browser $RELEASE_TAG" \
             --notes-file docs/night/PREVIEW_RELEASE.md

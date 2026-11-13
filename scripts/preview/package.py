@@ -92,7 +92,8 @@ def package(runtime, output, archive, platform):
     }}, indent=2))
     shutil.copy2(ROOT / "LICENSE", output / "LICENSE")
     (output / "BUILD.json").write_text(json.dumps({
-        "night_revision": revision, "upstream": PIN, "platform": platform,
+        "night_revision": revision, "night_version": json.loads((ROOT / "package.json").read_text())["version"],
+        "upstream": PIN, "platform": platform,
         "type": "Night shell and services on a pinned Mozilla Firefox native runtime",
         "source": f"https://github.com/1atex/night-browser/tree/{revision}",
     }, indent=2))
