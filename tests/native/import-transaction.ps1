@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $root = Join-Path $env:RUNNER_TEMP ("Night transaction " + [Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory $root | Out-Null
 Copy-Item $Launcher (Join-Path $root "Night.exe")
+Copy-Item "$Launcher.config" (Join-Path $root "Night.exe.config")
 function Apply-Import {
   $process = Start-Process (Join-Path $root "Night.exe") -ArgumentList "--apply-import" -PassThru -Wait
   return $process.ExitCode

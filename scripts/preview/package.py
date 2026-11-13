@@ -112,6 +112,11 @@ def package(runtime, output, archive, platform):
         "DisableAppUpdate": True, "DontCheckDefaultBrowser": True, "DisableTelemetry": True,
     }}, indent=2))
     shutil.copy2(ROOT / "LICENSE", output / "LICENSE")
+    if platform == "windows_x64":
+        (output / "Night.exe.config").write_text(
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            '<configuration><runtime><AppContextSwitchOverrides value="Switch.System.IO.UseLegacyPathHandling=false;Switch.System.IO.BlockLongPaths=false" /></runtime></configuration>\n',
+            encoding="utf-8")
     (output / "BUILD.json").write_text(json.dumps({
         "night_revision": revision, "night_version": json.loads((ROOT / "package.json").read_text())["version"], "night_build_id": build_id,
         "upstream": PIN, "platform": platform,

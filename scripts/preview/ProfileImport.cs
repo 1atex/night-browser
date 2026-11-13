@@ -98,7 +98,7 @@ internal static class ProfileImport
         catch (Exception error)
         {
             try { if (Directory.Exists(LongPath(stage))) Directory.Delete(LongPath(stage), true); } catch { }
-            Write(report, new { status = "error", message = "Не удалось скопировать профиль. Закрой Zen и проверь свободное место и доступ к папке. " + error.Message });
+            Write(report, new { status = "error", message = "Не удалось скопировать профиль. Закрой Zen и проверь свободное место и доступ к папке. " + error.Message, detail = error.StackTrace });
             return 1;
         }
     }
