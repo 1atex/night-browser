@@ -96,8 +96,25 @@ try {
   if (-not $command.Contains($profile) -or -not $command.Contains("-app")) { throw "Shortcut relaunched the wrong profile or application" }
   [ordered]@{name=$version.ProductName;description=$version.FileDescription;originalFilename=$version.OriginalFilename;windowTitle=$browser.MainWindowTitle;appId=$identity;relaunch=$relaunch;taskbarLabel=$label;icon=$icon;shortcutRelaunch=$true;ordinaryLaunch=$true;visibleNames=$names} | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $outputPath "windows-identity.json") -Encoding utf8
   Write-Output "PASS: ordinary first launch without automation, native Night identity, no Firefox promotion, taskbar relaunch metadata and Unicode shortcut relaunch"
+} catch {
+  $_ | Out-String | Set-Content (Join-Path $outputPath "ordinary-launch-error.txt") -Encoding utf8
+  Write-Output ($_ | Out-String)
+  if ($browser) {
+    [ordered]@{label=$label;relaunch=$relaunch;icon=$icon;identity=$identity;title=$browser.MainWindowTitle;names=$names} | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $outputPath "ordinary-launch-state.json") -Encoding utf8
+    try {
+      $rect = New-Object NightWindowInfo+Rect
+      [NightWindowInfo]::GetWindowRect($browser.MainWindowHandle,[ref]$rect) | Out-Null
+      $bitmap = New-Object System.Drawing.Bitmap(($rect.right-$rect.left),($rect.bottom-$rect.top))
+      $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+      try { $graphics.CopyFromScreen($rect.left,$rect.top,0,0,$bitmap.Size);$bitmap.Save((Join-Path $outputPath "ordinary-launch-failure.png"),[System.Drawing.Imaging.ImageFormat]::Png) } finally { $graphics.Dispose();$bitmap.Dispose() }
+    } catch { Write-Output $_ }
+  }
+  throw
 } finally {
-  if ($browser -and -not $browser.HasExited) { Close-Night $browser }
+  if ($browser -and -not $browser.HasExited) {
+    [NightWindowInfo]::PostMessage($browser.MainWindowHandle,0x10,[IntPtr]::Zero,[IntPtr]::Zero) | Out-Null
+    $browser.WaitForExit(5000) | Out-Null
+  }
   Get-Process NightBrowser -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $runtimeExe } | Stop-Process -Force
   Remove-ItemProperty "HKCU:/Software/Mozilla/Night/TaskBarIDs" -Name $runtime -ErrorAction SilentlyContinue
   Remove-Item $testRoot -Recurse -Force -ErrorAction SilentlyContinue
