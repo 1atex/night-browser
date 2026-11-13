@@ -97,3 +97,13 @@ The public ZIP was downloaded and passed SHA-256 and ZIP CRC verification: 145,4
 SHA-256: `662c69cea23b6b68d954181bcc2fd67a27f919dabd1ed71447dd356725318352`.
 
 Published evidence: [first launch](https://github.com/1atex/night-browser/releases/download/v0.5.0-preview.1/night-first-launch.png), [focus mode](https://github.com/1atex/night-browser/releases/download/v0.5.0-preview.1/night-focus.png), [address overlay](https://github.com/1atex/night-browser/releases/download/v0.5.0-preview.1/night-address.png) and [chrome checks](https://github.com/1atex/night-browser/releases/download/v0.5.0-preview.1/chrome-result.json). Ordinary focus-mode/overlay captures were visually inspected from the Windows artifact, and first launch was inspected again from the public release.
+
+## Published 0.5.1 result
+
+Windows release [v0.5.1-preview.1](https://github.com/1atex/night-browser/releases/tag/v0.5.1-preview.1), source `1b062062ccc3cb53ea9967e575c92962ec82f49c`, passed all 43 Node checks and the Windows runtime checks in [run 43389903326](https://github.com/1atex/night-browser/actions/runs/43389903326). Product, settings and chrome checks also passed locally on Linux. The product check now exercises clearing an empty tab-search result before continuing with the existing workspace and session checks.
+
+The public ZIP passed SHA-256 and ZIP CRC verification: 145,494,322 bytes, 108 entries, version 0.5.1 and application BuildID `20261113075953`. Native executables, source revision and the bundled home/settings documents were checked after download.
+
+SHA-256: `a30e4b65d854fec7a8d23f953908bd41a005fdf58882846ca02ca4e0bb54a008`.
+
+Published [first launch](https://github.com/1atex/night-browser/releases/download/v0.5.1-preview.1/night-first-launch.png) and [settings](https://github.com/1atex/night-browser/releases/download/v0.5.1-preview.1/night-settings.png) were visually inspected. Routine surfaces use functional labels and icons without repeated wordmarks, slogans or permanent preview badges. Windows identity, the native internal-page identity indicator and the About page remain identifiable.
