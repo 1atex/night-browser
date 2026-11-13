@@ -106,9 +106,8 @@ def run(package, zen, extension, output):
           }})().then(done,e=>done({{error:String(e)}}));
         """, script_args=[url])
         assert 'error' not in result, result
-        browser.set_context('content')
-        wait_for(lambda: browser.get_url() == url+'/workspace')
         browser.set_context('chrome')
+        wait_for(lambda: browser.execute_script(f"return [...{WIN}.gBrowser.tabs].some(t=>t.linkedBrowser.currentURI.spec===arguments[0]+'/workspace'&&!t.hasAttribute('busy'));",script_args=[url]))
         source_tabs = browser.execute_script(f"return [...{WIN}.gBrowser.tabs].filter(t=>!t.hasAttribute('zen-empty-tab')).map(t=>({{url:t.linkedBrowser.currentURI.spec,workspace:t.getAttribute('zen-workspace-id')}}));")
         assert sum(item['url'].startswith(url) for item in source_tabs) >= 2, source_tabs
         (output/'zen-import-source-tabs.json').write_text(json.dumps(source_tabs,indent=2))
