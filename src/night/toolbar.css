@@ -94,6 +94,8 @@
   outline: none !important;
   border-radius: 11px !important;
   clip-path: none !important;
+  inset: 0 !important;
+  box-shadow: none !important;
 }
 :root[night-browser] #urlbar .urlbar-input-container {
   outline: none !important;

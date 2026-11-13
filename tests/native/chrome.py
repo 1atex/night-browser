@@ -113,6 +113,9 @@ def run(binary, app_ini, output):
         keys(Keys.CONTROL, 'l')
         wait_for(visible)
         chrome("w.gURLBar.value=arguments[0];w.gURLBar.inputField.dispatchEvent(new w.Event('input',{bubbles:true}));", origin+'/next')
+        wait_for(lambda: chrome("return w.gURLBar.view.isOpen;"))
+        suggestion_geometry = chrome("const input=d.querySelector('#urlbar .urlbar-input-container').getBoundingClientRect(),background=d.querySelector('#urlbar .urlbar-background').getBoundingClientRect(),view=d.querySelector('#urlbar .urlbarView').getBoundingClientRect();return {gap:view.top-input.bottom,backgroundExtra:background.bottom-input.bottom};")
+        assert suggestion_geometry['gap'] >= 6 and suggestion_geometry['backgroundExtra'] <= 1, suggestion_geometry
         keys(Keys.RETURN)
         wait_for(lambda: chrome("return w.gBrowser.selectedBrowser.currentURI.spec===arguments[0];", origin+'/next'))
         move(650, 400)

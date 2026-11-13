@@ -50,9 +50,9 @@ function Wait-Night {
   } while ([DateTime]::UtcNow -lt $deadline)
   throw "Ordinary Night window did not start with its own identity"
 }
-function Close-Night($process) {
-  $process.Refresh()
-  [NightWindowInfo]::PostMessage($process.MainWindowHandle,0x10,[IntPtr]::Zero,[IntPtr]::Zero) | Out-Null
+function Close-Night($process,$handle) {
+  [NightWindowInfo]::SetForegroundWindow($handle) | Out-Null
+  [System.Windows.Forms.SendKeys]::SendWait("%{F4}")
   if (-not $process.WaitForExit(20000)) { throw "Night did not close normally" }
 }
 try {
@@ -142,7 +142,7 @@ try {
   [System.Windows.Forms.SendKeys]::SendWait("{ESC}%+f")
   if (-not (Test-Path (Join-Path $testRoot "Night.lnk"))) { throw "Night shortcut was not created" }
   $firstPid = $browser.Id
-  Close-Night $browser
+  Close-Night $browser $window
   $browser = $null
   Start-Process (Join-Path $testRoot "Night.lnk")
   $browser = Wait-Night
