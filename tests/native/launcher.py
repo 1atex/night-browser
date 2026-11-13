@@ -15,7 +15,7 @@ def run(launcher):
     with tempfile.TemporaryDirectory(prefix="night-launcher-") as temporary:
         package = Path(temporary) / "Night проверка пути"
         shutil.copytree(launcher.resolve().parent, package)
-        environment = {**os.environ, "MOZ_HEADLESS": "1", "MOZ_MARIONETTE": "1"}
+        environment = {**os.environ, "MOZ_HEADLESS": "1", "MOZ_MARIONETTE": "1", "MOZ_REMOTE_ALLOW_SYSTEM_ACCESS": "1"}
         process = subprocess.Popen([str(package / "Night.exe")], env=environment)
         browser = Marionette(host="127.0.0.1", port=2828)
         connected = False
