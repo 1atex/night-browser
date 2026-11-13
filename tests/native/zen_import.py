@@ -108,7 +108,7 @@ def run(package, zen, extension, output):
         assert 'error' not in result, result
         browser.set_context('chrome')
         wait_for(lambda: browser.execute_script(f"return [...{WIN}.gBrowser.tabs].some(t=>t.linkedBrowser.currentURI.spec===arguments[0]+'/workspace'&&!t.hasAttribute('busy'));",script_args=[url]))
-        source_tabs = browser.execute_script(f"return [...{WIN}.gBrowser.tabs].filter(t=>!t.hasAttribute('zen-empty-tab')).map(t=>({{url:t.linkedBrowser.currentURI.spec,workspace:t.getAttribute('zen-workspace-id')}}));")
+        source_tabs = browser.execute_script(f"return [...{WIN}.gZenWorkspaces.allStoredTabs].filter(t=>!t.hasAttribute('zen-empty-tab')).map(t=>({{url:t.linkedBrowser.currentURI.spec,workspace:t.getAttribute('zen-workspace-id')}}));")
         assert sum(item['url'].startswith(url) for item in source_tabs) >= 2, source_tabs
         (output/'zen-import-source-tabs.json').write_text(json.dumps(source_tabs,indent=2))
         Addons(browser).install(str(extension), temp=False)
@@ -182,6 +182,8 @@ def run(package, zen, extension, output):
             return {{bookmark:bookmark?.title,login:logins.some(l=>l.username==='fixture-user'&&l.password==='fixture-password'),addon:!!addon?.isActive,addonStorage:stored['night-import-fixture'],spaces:w.gNightBrowser.shell.workspaces.items.map(x=>x.name),tabs:[...w.gBrowser.tabs].map(t=>t.linkedBrowser.currentURI.spec),zenStyle:Services.prefs.getBoolPref('toolkit.legacyUserProfileCustomizations.stylesheets',false),signatureRequired:Services.prefs.getBoolPref('xpinstall.signatures.required',true)}};
           }})().then(done,e=>done({{error:String(e)}}));
         """, script_args=[url])
+        (output/'zen-import-restored.json').write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding='utf-8')
+        assert 'error' not in state, state
         assert state['bookmark'] == 'Night import bookmark', state
         assert state['login'] and state['addon'] and state['signatureRequired'], state
         assert state['addonStorage'] == 'addon-value', state
