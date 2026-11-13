@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: ["feature/night-workspace", main]
+    tags: ["v*-preview.*"]
     paths:
       - "src/zen/night/**"
       - "src/zen/common/ZenPreloadedScripts.js"
@@ -85,3 +86,28 @@ jobs:
           name: windows-preview-tests
           path: test-artifacts/
           retention-days: 14
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: night-browser-windows-x64-preview
+          path: release-assets
+      - name: Publish tested preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            release-assets/night-browser-0.1.0-preview-windows-x64.zip \
+            release-assets/SHA256SUMS.txt \
+            --verify-tag --prerelease \
+            --title "Night Browser $RELEASE_TAG" \
+            --notes-file docs/night/PREVIEW_RELEASE.md
