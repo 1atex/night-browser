@@ -175,7 +175,7 @@ export class NightShell {
     row.addEventListener("drop", event => {
       event.preventDefault();
       row.removeAttribute("data-drag-over");
-      if (this.#dragged && this.#dragged.pinned === tab.pinned) browser.moveTabTo(this.#dragged, { tabIndex: tab._tPos });
+      if (this.#dragged && this.#dragged.pinned === tab.pinned) browser.moveTabTo(this.#dragged, { tabIndex: tab.index });
       this.#dragged = null;
     });
     row.addEventListener("dragend", () => { this.#dragged = null; });

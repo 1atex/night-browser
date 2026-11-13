@@ -89,6 +89,24 @@ def run(binary, app_ini, output):
         state = browser.execute_script(f"""
           const w = {WIN}, s = w.gNightBrowser.shell;
           s.split();
+          s.render();
+          const tabs = s.workspaces.tabs.filter(t => !t.pinned);
+          const rows = [...w.document.getElementById('night-tab-list').children];
+          const source = rows[tabs.indexOf(w.productSecond)], target = rows[tabs.indexOf(w.productOriginal)];
+          const transfer = new w.DataTransfer();
+          source.dispatchEvent(new w.DragEvent('dragstart', {{dataTransfer: transfer, bubbles: true}}));
+          target.dispatchEvent(new w.DragEvent('drop', {{dataTransfer: transfer, bubbles: true, cancelable: true}}));
+          const moved = w.productSecond.index < w.productOriginal.index;
+          w.document.getElementById('night-tools-button').click();
+          w.document.getElementById('night-network-button').click();
+          const network = !!w.document.querySelector('#night-tools select');
+          w.gNightBrowser.close();
+          return {{moved, network}};
+        """)
+        assert state == {"moved": True, "network": True}, state
+        print("PASS: sidebar drag ordering and direct switching between memory and request panels", flush=True)
+        state = browser.execute_script(f"""
+          const w = {WIN}, s = w.gNightBrowser.shell;
           const id = s.workspaces.create('Исследования');
           s.workspaces.rename('Работа');
           s.workspaces.remove();

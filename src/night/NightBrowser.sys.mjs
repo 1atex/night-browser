@@ -11,6 +11,7 @@ const XHTML = "http://www.w3.org/1999/xhtml";
 class NightWindow {
   #window;
   #panel = null;
+  #section = "memory";
   #network = null;
   #destroyed = false;
   #refreshNetwork = () => {};
@@ -70,9 +71,14 @@ class NightWindow {
   toggle(section = "memory") {
     if (this.#destroyed) return;
     if (this.#panel) {
+      if (section !== this.#section) {
+        this.#panel.querySelector(`[data-section="${section}"]`).click();
+        return;
+      }
       this.close();
       return;
     }
+    this.#section = "memory";
     this.#panel = this.#element("section", "", {
       id: "night-tools",
       "aria-label": "Night tools",
@@ -90,15 +96,19 @@ class NightWindow {
     });
     navigation.append(
       this.#button("Память", () => {
+        this.#section = "memory";
         memory.hidden = false;
         network.hidden = true;
       }),
       this.#button("Запросы", async () => {
+        this.#section = "network";
         memory.hidden = true;
         network.hidden = false;
         if (!network.childElementCount) await this.#buildNetwork(network);
       }),
     );
+    navigation.children[0].dataset.section = "memory";
+    navigation.children[1].dataset.section = "network";
     this.#panel.append(
       heading,
       navigation,
