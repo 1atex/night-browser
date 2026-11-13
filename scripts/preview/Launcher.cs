@@ -126,6 +126,8 @@ internal static class Launcher
     {
         try
         {
+            AppContext.SetSwitch("Switch.System.IO.UseLegacyPathHandling", false);
+            AppContext.SetSwitch("Switch.System.IO.BlockLongPaths", false);
             string identity = Identity();
             if (args.Length == 2 && args[0] == "--identity")
                 return ApplyWindows(int.Parse(args[1]), identity) ? 0 : 2;

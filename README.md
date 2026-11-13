@@ -12,15 +12,19 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 - Таймер выгрузки неактивных страниц, исключения по домену и по вкладке. Активные страницы, split view, аудио, PiP, звонки и перехватываемые запросы защищены.
 - Repeater и перехват HTTP(S) в выбранной вкладке: изменение URL в пределах origin, метода, заголовков и текстового тела; просмотр ответа и сравнение последних ответов.
 - Расширения и DevTools Firefox. Адресная строка, проверка сертификатов, разрешения и изоляция сайтов остаются механизмами Firefox.
+- Локальный импорт профиля Zen: закладки, история, пароли, cookies, расширения, вкладки и области, с резервной копией Night.
+- Короткие анимации вкладок, областей и меню; поддержка уменьшения движения без фоновой анимации.
 - Собственные настройки, три палитры, плотность и ширина панели; русская локализация.
 - Стартовая страница с часами, поиском и быстрыми ссылками, без Activity Stream.
 - Имя, значок, ресурсы EXE и идентичность окна Windows — Night.
 
 ## Запуск и разработка
 
-[Скачать Night 0.3 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.3.0-preview.2/night-browser-0.3.0-preview-windows-x64.zip) · [Релиз и контрольная сумма](https://github.com/1atex/night-browser/releases/tag/v0.3.0-preview.2)
+[Скачать Night 0.4 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.4.0-preview.1/night-browser-0.4.0-preview-windows-x64.zip) · [Релиз и контрольная сумма](https://github.com/1atex/night-browser/releases/tag/v0.4.0-preview.1)
 
 Windows ZIP выпускается через [GitHub Actions](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml). Распаковать всю папку и запустить `Night.exe`; профиль создаётся рядом в `profile`. Старое закрепление от 0.2 нужно заменить: новый ярлык `Night.lnk` создаётся рядом с приложением.
+
+[Импорт из Zen](docs/night/ZEN_IMPORT.md) · [О дизайне и лицензиях](docs/night/DESIGN_PROVENANCE.md)
 
 [Инструкция по сборке](docs/night/CONTRIBUTING.md) · [Проверки](docs/night/VALIDATION.md) · [Архитектура](docs/night/PRODUCT.md)
 

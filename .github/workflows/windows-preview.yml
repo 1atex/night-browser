@@ -102,6 +102,9 @@ jobs:
           Copy-Item test-artifacts/memory.json dist/memory.json
           Copy-Item test-artifacts/night-first-launch.png dist/night-first-launch.png
           Copy-Item test-artifacts/night-settings-ordinary.png dist/night-settings.png
+          Copy-Item test-artifacts/night-import.png dist/night-import.png
+          Copy-Item test-artifacts/zen-import-result.json dist/zen-import-result.json
+          Copy-Item test-artifacts/motion.json dist/motion.json
           7z a -tzip dist/night-browser-0.4.0-preview-windows-x64.zip ./dist/Night
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $hash = (Get-FileHash dist/night-browser-0.4.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
@@ -116,6 +119,9 @@ jobs:
             dist/memory.json
             dist/night-first-launch.png
             dist/night-settings.png
+            dist/night-import.png
+            dist/zen-import-result.json
+            dist/motion.json
           compression-level: 0
           retention-days: 30
           if-no-files-found: error
@@ -151,6 +157,9 @@ jobs:
             release-assets/memory.json \
             release-assets/night-first-launch.png \
             release-assets/night-settings.png \
+            release-assets/night-import.png \
+            release-assets/zen-import-result.json \
+            release-assets/motion.json \
             --verify-tag --prerelease \
             --title "Night Browser $RELEASE_TAG" \
             --notes-file docs/night/PREVIEW_RELEASE.md

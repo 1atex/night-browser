@@ -30,6 +30,11 @@ internal static class ProfileImport
         if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
             throw new IOException("Импорт не следует по символическим ссылкам. Выбери обычную папку профиля.");
     }
+    private static string LongPath(string path)
+    {
+        if (path.StartsWith(@"\\?\")) return path;
+        return path.StartsWith(@"\\") ? @"\\?\UNC\" + path.Substring(2) : @"\\?\" + path;
+    }
     private static bool Contains(string parent, string child)
     {
         return child.Equals(parent, StringComparison.OrdinalIgnoreCase) || child.StartsWith(parent.TrimEnd('\\', '/') + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
@@ -58,16 +63,18 @@ internal static class ProfileImport
             {
                 if (EngineVersion(Path.Combine(source, "compatibility.ini"), "LastVersion") > EngineVersion(Path.Combine(root, "runtime", "browser", "application.ini"), "MaxVersion"))
                     throw new IOException("Профиль Zen новее движка Night. Сначала обнови Night.");
-                Directory.CreateDirectory(stage);
+                string sourceTree = LongPath(source);
+                string stageTree = LongPath(stage);
+                Directory.CreateDirectory(stageTree);
                 var pending = new Stack<KeyValuePair<string, string>>();
-                pending.Push(new KeyValuePair<string, string>(source, stage));
+                pending.Push(new KeyValuePair<string, string>(sourceTree, stageTree));
                 while (pending.Count != 0)
                 {
                     var directory = pending.Pop();
                     foreach (string path in Directory.EnumerateFileSystemEntries(directory.Key))
                     {
                         string name = Path.GetFileName(path);
-                        if (directory.Key == source && Excluded.Contains(name)) continue;
+                        if (directory.Key == sourceTree && Excluded.Contains(name)) continue;
                         Regular(path);
                         string target = Path.Combine(directory.Value, name);
                         if (Directory.Exists(path))
@@ -90,7 +97,7 @@ internal static class ProfileImport
         }
         catch (Exception error)
         {
-            try { if (Directory.Exists(stage)) Directory.Delete(stage, true); } catch { }
+            try { if (Directory.Exists(LongPath(stage))) Directory.Delete(LongPath(stage), true); } catch { }
             Write(report, new { status = "error", message = "Не удалось скопировать профиль. Закрой Zen и проверь свободное место и доступ к папке. " + error.Message });
             return 1;
         }

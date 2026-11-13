@@ -1,6 +1,6 @@
 # Windows preview
 
-Use the Night 0.3 release ZIP or the successful `Windows preview` Actions artifact. Extract the entire `Night` directory into a writable location and run `Night.exe`. A local `Night.lnk` shortcut and a separate `profile` directory are created beside it.
+Use the Night 0.4 release ZIP or the successful `Windows preview` Actions artifact. Extract the entire `Night` directory into a writable location and run `Night.exe`. A local `Night.lnk` shortcut and a separate `profile` directory are created beside it.
 
 The Windows executable, icon, version resource, taskbar grouping and relaunch metadata identify Night. Pin the new Night window or use the new shortcut. A pin created for 0.2 still points at the old executable; remove that old pin yourself. Night does not alter pins belonging to other browsers.
 
@@ -13,3 +13,5 @@ Settings open as a page: appearance, tabs, memory, privacy, search and about. Pa
 The request workbench opens below the page. Capture starts explicitly and is scoped to a selected tab. Closing capture or the workbench cancels held requests. Night is not a system proxy.
 
 This portable preview is unsigned and has no automatic updater or default-browser installer. Gecko remains the official Firefox engine; Windows resources are changed to Night and the upstream certificate is removed from the modified EXE. Legal notices and exact upstream source references are retained in about:license, the Night about section and BUILD.json.
+
+For migration from Zen, use **Переехать из Zen** or **Настройки → Переезд из Zen**. See [the import guide](ZEN_IMPORT.md) for what transfers, the replacement/backup behavior and recovery.
