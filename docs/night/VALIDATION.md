@@ -33,6 +33,8 @@ cd engine
 ## Experimental request tools
 
 Set `night.network.enabled` to `true` in `about:config` for development testing.
+The portable Windows preview already enables this setting; capture still requires
+an explicit click on **Начать**.
 Open **Night → Запросы**, select a web tab and explicitly start capture.
 Starting another capture clears the previous history. Closing the panel cancels
 held requests and clears history; nothing is saved to disk.
