@@ -1,40 +1,33 @@
 # Development
 
-Use `main` for reviewed changes and `feature/<name>` or `fix/<name>` for work.
-Keep commits scoped to one change. Run `npm run test:night` before sharing a branch.
-Do not commit profiles, browsing history, captured traffic, credentials or build output.
+Use `feature/<topic>` and `fix/<topic>` branches. Keep changes in focused commits. The repository is MPL-2.0; preserve upstream license notices.
 
-Night is a source fork of Zen and Firefox, covered by the existing MPL-2.0 license.
-Keep upstream license notices. The initial source revision is recorded in
-`upstream.json`; engine sources are downloaded into the ignored `engine/` directory.
+## Fast checks
 
-## Setup
-
-See the upstream [build guide](https://docs.zen-browser.app/contribute/desktop/building).
-Windows requires MozillaBuild, Visual Studio's Desktop C++ workload, 7-Zip,
-Node.js, Python and Rust. Reserve at least 30 GB for source, tools and build output.
+Node 22 or newer, Python 3.12:
 
 ```sh
-npm ci
-npm run surfer -- set brand release
-npm run init
-npm run build
-npm start
+npm test
+python -m pip install -r tests/native/requirements.txt
 ```
 
-`npm run test:night` runs standalone logic and source-integration checks without
-compiling Gecko. Native browser tests are separate and are not implied by these
-checks. After an initial build, JavaScript/CSS iterations can use `npm run build:ui`.
-See [validation](VALIDATION.md) for native smoke tests and Windows memory measurements.
+There are no npm dependencies. The test suite covers memory decisions, request validation and channel lifecycle. Real Gecko integration is checked separately.
 
-## Updating upstream
+## Package locally
 
-Fetch Zen into an `upstream` remote and review the difference from the revision
-in `upstream.json`. Apply upstream changes in a dedicated branch, resolve the
-Night integration points, update the pin, and rerun native tests. The initial
-import is a source snapshot, not a copy of Zen's historical binary artifacts.
+Download the exact platform archive from `scripts/preview/runtime.json`, verify its SHA-256 and extract it. For Windows, extract the installer with 7-Zip; the runtime is its `core` directory. For Linux, extract the tar.xz; the runtime is `firefox`.
 
-The inherited release and scheduled workflows are archived under
-`.github/upstream-workflows/`. Do not enable them unchanged: they target Zen's
-release infrastructure. Night releases and automatic updates need their own
-tested, signed distribution pipeline.
+```sh
+python scripts/preview/package.py --runtime /path/to/firefox --archive /path/to/firefox.tar.xz --platform linux_x64 --output dist/Night
+./dist/Night/runtime/firefox -app "$PWD/dist/Night/runtime/browser/application.ini" -no-remote -profile /path/to/test-profile
+```
+
+Output must be a new directory. Use a separate test profile. Changing JS/CSS only requires repackaging, not compiling Gecko. Packaging uses Python's standard library and records the Git revision in `BUILD.json`.
+
+On Windows, the workflow compiles `scripts/preview/Launcher.cs` with the .NET Framework C# compiler and the Night icon. It then runs native tests, the minimized-memory comparison and the portable launcher test from a Unicode path. See `.github/workflows/windows-preview.yml` for exact commands. No Mozilla signing credentials are needed for this portable preview; the launcher is currently unsigned.
+
+## Upstream updates
+
+Update the official Firefox URLs, source revision and hashes together. Review the changed browser chrome and Gecko APIs. Package and run every native test on Windows before publishing. Never allow the stock updater to replace Night resources. Keep Firefox's process/sandbox defaults unless an independently reviewed change has measured evidence.
+
+Push a `v*-preview.*` tag to publish only after the Windows job passes. The publish job requires the passing test job and attaches the ZIP and checksum to a prerelease. Normal branch pushes provide Actions artifacts.

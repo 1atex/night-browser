@@ -36,43 +36,41 @@ def package(runtime, output, archive, platform):
     shutil.copytree(runtime, target)
     browser = read_jar(target / "browser/omni.ja")
     toolkit = read_jar(target / "omni.ja")
-    source = ROOT / "src/zen/night"
+    if any("ZenStartup" in name or "ZenPreloadedScripts" in name for name in browser):
+        raise ValueError("Night requires an unmodified Firefox runtime")
+    source = ROOT / "src/night"
     for module in source.glob("*.mjs"):
         browser[f"modules/night/{module.name}"] = module.read_bytes()
-    browser["chrome/browser/content/browser/night/night.css"] = (source / "night.css").read_bytes()
-    browser["chrome/browser/content/browser/ZenPreloadedScripts.js"] = (ROOT / "src/zen/common/ZenPreloadedScripts.js").read_bytes()
-    browser["chrome/browser/content/browser/ZenStartup.mjs"] = (ROOT / "src/zen/common/modules/ZenStartup.mjs").read_bytes()
-    replace_once(browser, "chrome/browser/content/browser/browser.xhtml",
-                 '<script type="text/javascript" src="chrome://browser/content/ZenPreloadedScripts.js"></script>',
-                 '<link rel="stylesheet" type="text/css" href="chrome://browser/content/night/night.css" />\n'
-                 '<script type="text/javascript" src="chrome://browser/content/ZenPreloadedScripts.js"></script>')
+    for name in ["night.css", "shell.css", "bootstrap.js"]:
+        browser[f"chrome/browser/content/browser/night/{name}"] = (source / name).read_bytes()
+    replace_once(browser, "chrome/browser/content/browser/browser.xhtml", "</head>",
+                 '<link rel="stylesheet" href="chrome://browser/content/night/night.css" />\n'
+                 '<script src="chrome://browser/content/night/bootstrap.js" defer="defer"></script>\n</head>')
     replace_once(toolkit, "moz-src/browser/components/tabbrowser/TabUnloader.sys.mjs",
-                 "tab.undiscardable || tab.selected || tab.zenModeActive",
-                 "tab.undiscardable || tab.selected || tab.linkedBrowser?.zenModeActive || tab.ownerDocument?.defaultView?.gNightBrowser?.memory.shouldKeepLoaded(tab)")
+                 "tab.undiscardable || tab.selected",
+                 "tab.undiscardable || tab.selected || tab.ownerDocument?.defaultView?.gNightBrowser?.memory.shouldKeepLoaded(tab)")
+    newtab = "chrome/browser/builtin-addons/newtab/prerendered/"
+    for name in ["activity-stream.html", "activity-stream-noscripts.html"]:
+        if newtab + name not in browser:
+            raise ValueError("Firefox new-tab integration point changed")
+        browser[newtab + name] = (source / "start.html").read_bytes()
+    browser[newtab + "night-start.css"] = (source / "start.css").read_bytes()
     for name, data in list(browser.items()):
         if name.endswith("/branding/brand.ftl") or name.endswith("/branding/brand.properties"):
             text = data.decode("utf-8")
             text = re.sub(r"(?m)^(-?brand(?:ShorterName|ShortName|FullName|ProductName|-shorter-name|-short-name|-full-name|-product-name)\s*=).*$", r"\1 Night", text)
             text = re.sub(r"(?m)^(-?vendor(?:ShortName|-short-name)\s*=).*$", r"\1 Night", text)
             browser[name] = text.encode("utf-8")
-    defaults = {}
-    current = None
-    for line in (ROOT / "prefs/zen/night.yaml").read_text().splitlines():
-        if line.startswith("- name: "):
-            current = line.removeprefix("- name: ")
-        elif line.startswith("  value: "):
-            defaults[current] = json.loads(line.removeprefix("  value: "))
-    defaults.update({
-        "night.preview": True,
-        "night.network.enabled": True,
-        "zen.welcome-screen.seen": True,
-        "browser.aboutwelcome.enabled": False,
-        "browser.shell.checkDefaultBrowser": False,
-        "browser.startup.homepage": "about:blank",
-        "browser.startup.homepage_override.mstone": "ignore",
-        "browser.startup.firstrunSkipsHomepage": False,
-        "app.update.auto": False,
-    })
+    for name in list(browser):
+        match = re.search(r"/branding/(?:icon|default|about-logo)(\d+)\.png$", name)
+        if match and (source / f"branding/icon{match[1]}.png").exists():
+            browser[name] = (source / f"branding/icon{match[1]}.png").read_bytes()
+    icon_directory = target / "browser/chrome/icons/default"
+    icon_directory.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source / "branding/night.ico", icon_directory / "main-window.ico")
+    for size in [16, 32, 48, 64, 128]:
+        shutil.copy2(source / f"branding/icon{size}.png", icon_directory / f"default{size}.png")
+    defaults = json.loads((ROOT / "config/preferences.json").read_text())
     browser["defaults/preferences/night.js"] = "\n".join(
         f"pref({json.dumps(name)}, {json.dumps(value)});" for name, value in defaults.items()
     ).encode()
@@ -80,10 +78,11 @@ def package(runtime, output, archive, platform):
     write_jar(target / "omni.ja", toolkit)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     config["App"].update({"Name": "Night", "Vendor": "Night", "RemotingName": "night-preview",
-                          "Profile": "NightPreview", "Version": "0.1.0a1",
+                          "Profile": "NightPreview",
                           "SourceRepository": "https://github.com/1atex/night-browser", "SourceStamp": revision})
     config["AppUpdate"]["URL"] = "https://updates.invalid/"
     config["XRE"]["EnableProfileMigrator"] = "0"
+    config["Crash Reporter"]["Enabled"] = "0"
     with (target / "browser/application.ini").open("w", encoding="utf-8") as stream:
         config.write(stream, space_around_delimiters=False)
     distribution = target / "distribution"
@@ -94,21 +93,24 @@ def package(runtime, output, archive, platform):
     shutil.copy2(ROOT / "LICENSE", output / "LICENSE")
     (output / "BUILD.json").write_text(json.dumps({
         "night_revision": revision, "upstream": PIN, "platform": platform,
-        "type": "Night preview using an unchanged prebuilt Zen native engine and Night chrome modules",
+        "type": "Night shell and services on a pinned Mozilla Firefox native runtime",
         "source": f"https://github.com/1atex/night-browser/tree/{revision}",
     }, indent=2))
     (output / "README.txt").write_text(
-        "Night Browser 0.1 Preview\n\n"
+        "Night Browser 0.2 Preview\n\n"
         "Распакуй всю папку в доступное для записи место и запусти Night.exe.\n"
         "Профиль хранится в папке profile рядом с Night.exe.\n"
-        "Night → Память: таймер выгрузки и исключения.\n"
-        "Night → Запросы: захват и перехват включаются кнопкой Начать.\n\n"
+        "Боковая панель: рабочие области, закреплённые вкладки, поиск.\n"
+        "Правый клик по вкладке: закрепление, перенос в область, исключение из выгрузки.\n"
+        "Alt+P: найти вкладку. Alt+B: скрыть панель. Alt+S: разделить экран.\n"
+        "Кнопки внизу панели: split view, запросы, память, настройки.\n"
+        "Перехват включается вручную для выбранной вкладки.\n\n"
         "Это тестовая portable-версия. Автоматическое обновление отключено.\n"
-        "Нативное ядро: Zen 1.24.2b / Gecko 160.0, без изменений бинарного кода.\n"
-        "Интерфейс и модули Night упакованы из исходников этого репозитория.\n"
-        "Некоторые значки и системные сведения пока сохраняют брендинг Zen.\n"
+        "Нативное ядро: Mozilla Firefox / Gecko 160.0.\n"
+        "Оболочка, рабочие области, управление памятью и сетевые инструменты: Night.\n"
+        "Бинарные файлы Firefox сохраняют подпись и системные сведения Mozilla.\n"
         "Night: https://github.com/1atex/night-browser\n"
-        "Upstream source: https://github.com/zen-browser/desktop/tree/" + PIN["revision"] + "\n",
+        "Firefox source: " + PIN["source"] + "\n",
         encoding="utf-8-sig")
     print(f"Packaged Night preview: {output}")
 

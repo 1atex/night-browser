@@ -3,15 +3,14 @@ name: Windows preview
 on:
   workflow_dispatch:
   push:
-    branches: ["feature/night-workspace", main]
+    branches: ["feature/night-product", main]
     tags: ["v*-preview.*"]
     paths:
-      - "src/zen/night/**"
-      - "src/zen/common/ZenPreloadedScripts.js"
-      - "src/zen/common/modules/ZenStartup.mjs"
-      - "prefs/zen/night.yaml"
+      - "src/night/**"
+      - "config/**"
       - "scripts/preview/**"
       - "tests/native/**"
+      - "tests/night/**"
       - ".github/workflows/windows-preview.yml"
 
 permissions:
@@ -39,42 +38,53 @@ jobs:
       - name: Download pinned native runtime
         run: |
           $pin = Get-Content scripts/preview/runtime.json -Raw | ConvertFrom-Json
-          $installer = Join-Path $env:RUNNER_TEMP "zen-upstream.exe"
+          $installer = Join-Path $env:RUNNER_TEMP "firefox-upstream.exe"
           Invoke-WebRequest -Uri $pin.windows_x64.url -OutFile $installer
           if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLower() -ne $pin.windows_x64.sha256) {
             throw "Upstream checksum mismatch"
           }
-          7z x -y "-o$env:RUNNER_TEMP\zen-upstream" $installer
+          7z x -y "-o$env:RUNNER_TEMP\firefox-upstream" $installer
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Assemble Night preview
         run: |
-          python scripts/preview/package.py --runtime "$env:RUNNER_TEMP/zen-upstream/core" --output dist/Night --archive "$env:RUNNER_TEMP/zen-upstream.exe" --platform windows_x64
+          python scripts/preview/package.py --runtime "$env:RUNNER_TEMP/firefox-upstream/core" --output dist/Night --archive "$env:RUNNER_TEMP/firefox-upstream.exe" --platform windows_x64
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
           $source = (Resolve-Path scripts/preview/Launcher.cs).Path
           $executable = Join-Path (Resolve-Path dist/Night).Path "Night.exe"
-          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll "/out:$executable" $source
+          $icon = (Resolve-Path src/night/branding/night.ico).Path
+          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll "/win32icon:$icon" "/out:$executable" $source
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test packaged browser on Windows
         run: |
           New-Item -ItemType Directory -Force test-artifacts | Out-Null
           $output = (Resolve-Path dist/Night).Path
-          python -u tests/native/smoke.py --binary "$output/runtime/zen.exe" --app-ini "$output/runtime/browser/application.ini" --preview --screenshot test-artifacts/preview.png --log test-artifacts/gecko.log 2>&1 | Tee-Object -FilePath test-artifacts/native-results.log
+          python -u tests/native/smoke.py --binary "$output/runtime/firefox.exe" --app-ini "$output/runtime/browser/application.ini" --preview --screenshot test-artifacts/preview.png --log test-artifacts/gecko.log 2>&1 | Tee-Object -FilePath test-artifacts/native-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test Night product and session restoration
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/product.py --binary "$output/runtime/firefox.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/product-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Measure minimized browser memory
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/memory.py --stock "$env:RUNNER_TEMP/firefox-upstream/core/firefox.exe" --night "$output/runtime/firefox.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/memory-results.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test portable launcher
         run: python -u tests/native/launcher.py --launcher dist/Night/Night.exe
       - name: Create download archive
         run: |
-          7z a -tzip dist/night-browser-0.1.0-preview-windows-x64.zip ./dist/Night
+          7z a -tzip dist/night-browser-0.2.0-preview-windows-x64.zip ./dist/Night
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $hash = (Get-FileHash dist/night-browser-0.1.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
-          "$hash  night-browser-0.1.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          $hash = (Get-FileHash dist/night-browser-0.2.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  night-browser-0.2.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
       - name: Upload Windows preview
         uses: actions/upload-artifact@v4
         with:
           name: night-browser-windows-x64-preview
           path: |
-            dist/night-browser-0.1.0-preview-windows-x64.zip
+            dist/night-browser-0.2.0-preview-windows-x64.zip
             dist/SHA256SUMS.txt
           compression-level: 0
           retention-days: 30
@@ -106,7 +116,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           gh release create "$RELEASE_TAG" \
-            release-assets/night-browser-0.1.0-preview-windows-x64.zip \
+            release-assets/night-browser-0.2.0-preview-windows-x64.zip \
             release-assets/SHA256SUMS.txt \
             --verify-tag --prerelease \
             --title "Night Browser $RELEASE_TAG" \

@@ -2,11 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
 import { readFile } from "node:fs/promises";
-import * as model from "../../src/zen/night/RequestModel.mjs";
+import * as model from "../../src/night/RequestModel.mjs";
 
 const source = (
   await readFile(
-    new URL("../../src/zen/night/NightNetwork.sys.mjs", import.meta.url),
+    new URL("../../src/night/NightNetwork.sys.mjs", import.meta.url),
     "utf8",
   )
 )

@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Night Browser Preview")]
 [assembly: AssemblyProduct("Night Browser")]
-[assembly: AssemblyVersion("0.1.0.0")]
+[assembly: AssemblyVersion("0.2.0.0")]
 
 internal static class Launcher
 {
@@ -17,7 +17,7 @@ internal static class Launcher
         {
             string root = AppDomain.CurrentDomain.BaseDirectory;
             string runtime = Path.Combine(root, "runtime");
-            string executable = Path.Combine(runtime, "zen.exe");
+            string executable = Path.Combine(runtime, "firefox.exe");
             string application = Path.Combine(runtime, "browser", "application.ini");
             string profile = Path.Combine(root, "profile");
             if (!File.Exists(executable) || !File.Exists(application))

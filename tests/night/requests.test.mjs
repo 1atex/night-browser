@@ -7,7 +7,7 @@ import {
   RequestHistory,
   compareResponses,
   MAX_BODY_BYTES,
-} from "../../src/zen/night/RequestModel.mjs";
+} from "../../src/night/RequestModel.mjs";
 
 const input = {
   method: "POST",

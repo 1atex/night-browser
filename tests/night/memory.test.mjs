@@ -4,7 +4,7 @@ import {
   parseSiteRules,
   matchesSite,
   unloadDecision,
-} from "../../src/zen/night/MemoryPolicy.mjs";
+} from "../../src/night/MemoryPolicy.mjs";
 
 const settings = {
   enabled: true,

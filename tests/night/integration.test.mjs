@@ -4,11 +4,10 @@ import { readFile, readdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const source = new URL("../../src/zen/night/", import.meta.url);
+const source = new URL("../../src/night/", import.meta.url);
 const files = (await readdir(source)).filter((name) => name.endsWith(".mjs"));
 
-test("Night modules are syntactically valid and included in the native build", async () => {
-  const manifest = await readFile(new URL("moz.build", source), "utf8");
+test("Night modules are syntactically valid with complete module imports", async () => {
   for (const name of files) {
     const file = new URL(name, source);
     const result = spawnSync(
@@ -17,10 +16,6 @@ test("Night modules are syntactically valid and included in the native build", a
       { encoding: "utf8" },
     );
     assert.equal(result.status, 0, `${name}: ${result.stderr}`);
-    assert.ok(
-      manifest.includes(`"${name}"`),
-      `${name} is missing from moz.build`,
-    );
     const content = await readFile(file, "utf8");
     for (const match of content.matchAll(
       /resource:\/\/\/modules\/night\/([^"']+)/g,
@@ -32,20 +27,11 @@ test("Night modules are syntactically valid and included in the native build", a
   }
 });
 
-test("native startup and stylesheet packaging include Night", async () => {
-  const read = (path) =>
-    readFile(new URL(`../../${path}`, import.meta.url), "utf8");
-  assert.match(await read("src/zen/moz.build"), /"night"/);
-  assert.match(
-    await read("src/zen/common/ZenPreloadedScripts.js"),
-    /NightBrowser\.sys\.mjs/,
-  );
-  assert.match(
-    await read("src/browser/base/content/zen-assets.jar.inc.mn"),
-    /night\/jar\.inc\.mn/,
-  );
-  assert.match(
-    await read("src/browser/base/content/zen-assets.inc.xhtml"),
-    /night\/night\.css/,
-  );
+test("packaging accepts Firefox and injects Night startup", async () => {
+  const packager = await readFile(new URL("../../scripts/preview/package.py", import.meta.url), "utf8");
+  assert.match(packager, /src\/night/);
+  assert.match(packager, /night\/bootstrap.js/);
+  const pin = JSON.parse(await readFile(new URL("../../scripts/preview/runtime.json", import.meta.url), "utf8"));
+  assert.equal(pin.product, "Mozilla Firefox");
+  assert.ok(pin.windows_x64.url.startsWith("https://archive.mozilla.org/pub/firefox/"));
 });

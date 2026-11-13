@@ -1,23 +1,27 @@
 # Night Browser
 
-Firefox-based desktop browser for Windows, built on the Zen source foundation.
-Night Island graphite styling, vertical tabs, workspaces, pinned sites and split view.
+Night — браузер для Windows на Firefox/Gecko, со своей оболочкой и инструментами для работы с запросами. Графитовый интерфейс, рабочие области, вертикальные вкладки, разделение экрана и управляемая выгрузка страниц.
 
-This repository contains an early preview. The Windows preview workflow packages
-Night with a pinned Zen native runtime and uploads a portable archive after native
-startup and launcher tests pass. No measured memory improvement is established yet.
+Night 0.2 использует Mozilla Firefox напрямую. Код оболочки, патчи, сборочные инструменты и модули Zen удалены. История первого прототипа сохранена в Git.
 
-- [Download and run the Windows preview](docs/night/PREVIEW.md)
+## Что работает
 
-- [Product requirements and acceptance](docs/night/PRODUCT.md)
-- [Build and contribution guide](docs/night/CONTRIBUTING.md)
-- [Validation and memory comparison](docs/night/VALIDATION.md)
-- [License](LICENSE)
+- Рабочие области с отдельными вкладками и восстановлением после перезапуска.
+- Общие закреплённые сайты, поиск вкладок, перенос между областями и перетаскивание для сортировки.
+- Две страницы рядом: `Alt+S`. Скрытие боковой панели: `Alt+B`. Поиск вкладки: `Alt+P`.
+- Таймер выгрузки неактивных страниц, исключения по домену и по вкладке. Активные страницы, split view, аудио, PiP, звонки и перехватываемые запросы защищены.
+- Repeater и перехват HTTP(S) в выбранной вкладке: изменение URL в пределах origin, метода, заголовков и текстового тела; просмотр ответа и сравнение последних ответов.
+- Расширения и DevTools Firefox. Адресная строка, проверка сертификатов, разрешения и изоляция сайтов остаются механизмами Firefox.
+- Собственная стартовая страница без скриптов Activity Stream.
 
-```sh
-npm ci
-npm run test:night
-```
+## Запуск и разработка
 
-Building the native browser additionally requires the Mozilla toolchain; see the
-build guide. `engine/`, profiles and generated binaries are not committed.
+Windows ZIP выпускается через [GitHub Actions](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml). Распаковать всю папку и запустить `Night.exe`; профиль создаётся рядом в `profile`. Не переносить профиль из прототипа 0.1.
+
+[Инструкция по сборке](docs/night/CONTRIBUTING.md) · [Проверки](docs/night/VALIDATION.md) · [Архитектура](docs/night/PRODUCT.md)
+
+Сборка проверяет SHA-256 официального Firefox, добавляет исходники Night, собирает launcher и запускает тесты на Windows. Нативный Gecko используется готовым; его исходники и точная ревизия указаны в `scripts/preview/runtime.json`. Это позволяет менять продукт без компиляции движка при каждой правке интерфейса.
+
+Экономия памяти проверяется отдельным воспроизводимым тестом. Его синтетические результаты не являются замером YouTube, ChatGPT или Censys; ускорение рендеринга пока не заявляется.
+
+Тестовая portable-версия пока без автоматических обновлений. MPL-2.0.

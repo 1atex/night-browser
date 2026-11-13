@@ -1,45 +1,11 @@
 # Windows preview
 
-Download [Preview 1](https://github.com/1atex/night-browser/releases/tag/v0.1.0-preview.1)
-from Releases for a direct ZIP download without signing in.
+Download the Night 0.2 ZIP from Releases or the successful `Windows preview` Actions artifact. Extract the entire `Night` folder into a writable location and run `Night.exe`. The launcher creates `profile` beside itself. Keep the whole folder together; use a fresh profile for 0.2.
 
-The [Windows preview workflow](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml)
-builds a portable Windows x64 package. Choose a successful run and download the
-`night-browser-windows-x64-preview` artifact. GitHub requires signing in to download
-workflow artifacts.
+The dropdown changes workspaces. The plus beside it creates one. Right-click a tab for pinning, moving, muting and memory protection. Pins appear in every workspace. Alt+P searches tabs, Alt+B toggles the sidebar, Alt+S splits or separates pages. The footer buttons open split view, request tools, memory settings and browser settings.
 
-1. Extract the downloaded artifact, then extract `night-browser-0.1.0-preview-windows-x64.zip`.
-2. Put the complete `Night` folder somewhere writable, such as your Downloads folder.
-3. Launch `Night.exe`. Node.js, Rust, Visual Studio and MozillaBuild are not needed.
+Memory defaults to ten idle minutes with YouTube excluded. Configure the timeout and domain exceptions in the memory panel. Active tabs, visible split panes, media/calls and interception remain loaded.
 
-The `profile` folder beside `Night.exe` stores this preview's tabs, extensions,
-settings and sign-ins. Keep it when moving the preview. The launcher does not use
-an existing Firefox or Zen profile. Launch the top-level `Night.exe`, not the
-upstream executable under `runtime`.
+The request panel captures only after clicking Start. It edits and forwards selected held requests or sends an explicit copy. Closing the panel cancels held requests. It is not a system proxy.
 
-The **Night** button at the bottom of the sidebar opens memory settings and request
-tools. In this preview, request tools are available without an `about:config`
-change. They only start capturing after you press **Начать** for a selected web tab.
-
-## What is in the archive
-
-The package uses the unchanged native executable and libraries from Zen 1.24.2b,
-based on Gecko 160.0. Its revision exactly matches the source foundation recorded
-in `upstream.json`. `scripts/preview/runtime.json` pins the download and SHA-256.
-Night's JS modules, startup integration, memory hooks, styles and labels are
-assembled from this repository. `Night.exe` is a small Windows launcher compiled
-by the workflow. Some upstream icons and executable metadata still say Zen.
-
-This workflow does not recompile Gecko. Changes to native C++ or Rust code require
-the full source build described in [CONTRIBUTING.md](CONTRIBUTING.md).
-
-The workflow runs the standalone checks, launches the packaged browser on Windows,
-checks the visible Night button and panel, and exercises real interception, replay,
-URL editing, cancellation and tab unloading. It also launches `Night.exe` from a
-path containing spaces and Cyrillic characters and checks the portable profile.
-Only successful builds upload a downloadable archive. The `windows-preview-tests`
-artifact contains the screenshot and native test output.
-
-This is an unsigned test preview with automatic application updates disabled.
-Use a newer preview to update the application. See [VALIDATION.md](VALIDATION.md)
-for current request-tool limits and the memory measurement procedure.
+This preview uses pinned Firefox native binaries and Night's own browser chrome. Firefox executable metadata and some inherited dialogs remain upstream. The launcher is unsigned, no installer/default-browser integration is provided, and automatic updates are disabled. `BUILD.json` identifies Night and Firefox source revisions; the runtime's about:license retains dependency notices.
