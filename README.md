@@ -9,6 +9,8 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 - Рабочие области с отдельными вкладками и восстановлением после перезапуска.
 - Общие закреплённые сайты, поиск вкладок, перенос между областями и перетаскивание для сортировки.
 - Две страницы рядом: `Alt+S`. Скрытие боковой панели: `Alt+B`. Поиск вкладки: `Alt+P`.
+- Автоскрытие верхней панели и режим «Только сайт»: `Alt+Shift+F`. Адресная строка появляется поверх страницы по `Ctrl+L` или у верхнего края окна.
+- Favicon сайтов и страниц Night во вкладках и закреплениях; спокойный фокус в адресной строке и поиске.
 - Таймер выгрузки неактивных страниц, исключения по домену и по вкладке. Активные страницы, split view, аудио, PiP, звонки и перехватываемые запросы защищены.
 - Repeater и перехват HTTP(S) в выбранной вкладке: изменение URL в пределах origin, метода, заголовков и текстового тела; просмотр ответа и сравнение последних ответов.
 - Расширения и DevTools Firefox. Адресная строка, проверка сертификатов, разрешения и изоляция сайтов остаются механизмами Firefox.
@@ -20,7 +22,7 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 
 ## Запуск и разработка
 
-[Скачать Night 0.4 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.4.0-preview.1/night-browser-0.4.0-preview-windows-x64.zip) · [Релиз и контрольная сумма](https://github.com/1atex/night-browser/releases/tag/v0.4.0-preview.1)
+[Скачать Night 0.5 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.5.0-preview.1/night-browser-0.5.0-preview-windows-x64.zip) · [Релиз и контрольная сумма](https://github.com/1atex/night-browser/releases/tag/v0.5.0-preview.1)
 
 Windows ZIP выпускается через [GitHub Actions](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml). Распаковать всю папку и запустить `Night.exe`; профиль создаётся рядом в `profile`. Старое закрепление от 0.2 нужно заменить: новый ярлык `Night.lnk` создаётся рядом с приложением.
 

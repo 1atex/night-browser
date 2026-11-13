@@ -1,0 +1,180 @@
+:root[night-browser] #urlbar {
+  --urlbar-background-color: color-mix(in srgb, var(--night-background), white 4%);
+  --urlbar-background-color-focus: var(--night-surface);
+  --urlbar-border-radius: 11px;
+  --urlbar-background-border-radius: 11px;
+  --urlbar-background-border-top-radius-open: 11px;
+  --urlbar-background-border: 1px solid #ffffff0e;
+  --urlbar-background-border-focused: 1px solid #c3ccd93d;
+  --urlbar-background-border-open: 1px solid #c3ccd92b;
+  --urlbar-background-outline-focused: none;
+  --urlbar-input-container-outline-open: none;
+  --urlbar-input-container-outline-open-focused: none;
+  --urlbar-background-box-shadow-open: 0 12px 32px #0005;
+  --urlbar-background-overhang-open: 0px;
+  --urlbar-input-growth-open-block: 0px;
+  --urlbar-input-growth-open-inline: 0px;
+  --toolbar-field-text-color: #dce0e8;
+  --toolbar-field-text-color-focus: #f0f1f5;
+  --urlbar-box-background-color: transparent;
+  --urlbar-box-background-color-focus: #c3ccd90c;
+  --urlbar-box-background-color-hover: #c3ccd914;
+  --urlbar-box-background-color-active: #c3ccd922;
+  --urlbarView-highlight-background: #c3ccd914;
+  --urlbarView-highlight-color: #f0f1f5;
+  font: 12px "Segoe UI", system-ui, sans-serif;
+}
+:root[night-browser] #urlbar .urlbar-background {
+  outline: none !important;
+}
+:root[night-browser] #urlbar .urlbar-input-container {
+  outline: none !important;
+}
+:root[night-browser] #urlbar-input {
+  font: inherit;
+  caret-color: #c3ccd9;
+}
+:root[night-browser] #urlbar-input::placeholder {
+  color: #979eac;
+  opacity: 1;
+}
+:root[night-browser] #urlbar .searchmode-switcher {
+  --button-border-radius: 7px;
+  --button-background-color-muted: transparent;
+  --button-background-color-muted-hover: #c3ccd913;
+  --button-background-color-muted-active: #c3ccd922;
+}
+:root[night-browser] #urlbar .searchmode-switcher::part(button) {
+  box-shadow: none;
+  background-image: none;
+}
+:root[night-browser] #urlbar .urlbarView-row-inner {
+  border-radius: 8px;
+}
+:root[night-browser] #urlbar .urlbarView-row[selected] .urlbarView-row-inner {
+  background: #c3ccd914;
+  color: #f0f1f5;
+}
+#night-focus-button {
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  background: url("chrome://browser/content/night/icons/focus.svg") center/15px no-repeat !important;
+  opacity: 0.55;
+  -moz-window-dragging: no-drag;
+}
+#night-focus-button:hover,
+#night-focus-button:focus-visible {
+  opacity: 1;
+  background-color: #c3ccd90d !important;
+}
+#night-autohide-button {
+  list-style-image: url("chrome://browser/content/night/icons/toolbar.svg");
+}
+#night-focus-exit {
+  list-style-image: url("chrome://browser/content/night/icons/focus.svg");
+}
+:root:not([night-focus-mode]) #night-focus-exit {
+  display: none;
+}
+#night-toolbar-trigger {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  z-index: 100;
+  -moz-window-dragging: no-drag;
+}
+#night-toolbar-trigger:focus-visible {
+  outline: none;
+  background: #c3ccd970;
+}
+:root[night-toolbar-auto] #night-toolbar-trigger {
+  display: block;
+}
+:root[night-toolbar-auto] #navigator-toolbox {
+  position: fixed;
+  top: 7px;
+  left: 8px;
+  right: 8px;
+  z-index: 101;
+  border: 1px solid #ffffff16 !important;
+  border-radius: 14px;
+  box-shadow: 0 14px 42px #0007;
+  transform: translateY(calc(-100% - 15px));
+  opacity: 0;
+  pointer-events: none;
+}
+:root[night-toolbar-auto] #nav-bar {
+  border-radius: 14px;
+}
+:root[night-toolbar-auto][night-toolbar-visible] #navigator-toolbox {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+:root[night-toolbar-popup] #navigator-toolbox {
+  transition: none !important;
+}
+:root[night-toolbar-auto] #browser {
+  padding-top: 8px;
+}
+:root[night-focus-mode] #night-sidebar {
+  display: none;
+}
+:root[night-focus-mode] #browser {
+  padding: 0;
+}
+:root[night-focus-mode] #tabbrowser-tabbox {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[inDOMFullscreen] #night-toolbar-trigger,
+:root[inFullscreen] #night-toolbar-trigger {
+  display: none;
+}
+.night-tab-icon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  position: relative;
+  opacity: 1;
+}
+.night-tab-icon img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+.night-tab-icon:empty {
+  background: url("chrome://browser/content/night/icons/globe.svg") center/16px no-repeat;
+}
+.night-tab[data-pinned] .night-tab-icon,
+.night-tab[data-pinned] .night-tab-icon img {
+  width: 20px;
+  height: 20px;
+}
+.night-tab[data-loading] .night-tab-icon::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -2px;
+  width: 5px;
+  height: 5px;
+  border: 2px solid var(--night-background);
+  border-radius: 50%;
+  background: var(--night-accent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[night-motion][night-toolbar-auto] #navigator-toolbox {
+    transition: transform 170ms cubic-bezier(.2,.7,.2,1), opacity 130ms ease;
+  }
+}

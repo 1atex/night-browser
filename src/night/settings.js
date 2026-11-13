@@ -207,6 +207,14 @@ window.addEventListener(
         "night.ui.animations",
         true,
       );
+      toggle(
+        layout,
+        "Скрывать верхнюю панель",
+        "Появляется у верхнего края окна или по Ctrl+L. Сайт занимает освободившееся место.",
+        "night.ui.toolbar-autohide",
+      );
+      row(layout, "Только сайт", "Скрыть обе панели. Вернуть интерфейс: Alt+Shift+F или кнопкой в раскрытой верхней панели.",
+        button("Включить", () => browserWindow.gNightBrowser.shell.toolbar.toggleFocus()));
     }
     function tabs() {
       const startup = card("При запуске");
@@ -235,6 +243,8 @@ window.addEventListener(
         ["Найти вкладку", "Alt + P"],
         ["Разделить экран", "Alt + S"],
         ["Скрыть боковую панель", "Alt + B"],
+        ["Только сайт / вернуть интерфейс", "Alt + Shift + F"],
+        ["Адресная строка", "Ctrl + L"],
         ["Вернуть закрытую вкладку", "Ctrl + Shift + T"],
       ])
         row(shortcuts, name, "", element("kbd", keys));
@@ -631,7 +641,7 @@ window.addEventListener(
           height: "72",
         }),
         element("h2", "Night Browser"),
-        element("p", "0.4 · Preview"),
+        element("p", "0.5 · Preview"),
       );
       info.append(identity);
       row(

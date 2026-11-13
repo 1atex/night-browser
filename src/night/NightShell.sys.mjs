@@ -1,4 +1,5 @@
 import { NightWorkspaces } from "resource:///modules/night/NightWorkspaces.sys.mjs";
+import { NightToolbar } from "resource:///modules/night/NightToolbar.sys.mjs";
 
 const XHTML = "http://www.w3.org/1999/xhtml";
 const EVENTS = [
@@ -33,12 +34,14 @@ export class NightShell {
   #rows = new Map();
   #renderedWorkspace = null;
   workspaces;
+  toolbar;
 
   constructor(window, owner) {
     this.#window = window;
     this.#owner = owner;
     this.workspaces = new NightWorkspaces(window);
     this.#build();
+    this.toolbar = new NightToolbar(window);
     Services.prefs.addObserver("night.ui.", this);
     this.observe();
     for (const event of EVENTS) window.addEventListener(event, this);
@@ -93,6 +96,10 @@ export class NightShell {
       }),
       this.#element("strong", "night"),
       this.#element("span", "", { class: "night-wordmark" }),
+      this.#button("", "Только сайт · Alt+Shift+F", () => this.toolbar.toggleFocus(), {
+        id: "night-focus-button",
+        "aria-pressed": "false",
+      }),
     );
     const workspace = this.#element("div", "", {
       class: "night-workspace-row",
@@ -217,6 +224,20 @@ export class NightShell {
     toggle.setAttribute("tooltiptext", "Боковая панель · Alt+B");
     toggle.addEventListener("command", () => this.toggleSidebar());
     doc.getElementById("nav-bar-customization-target").prepend(toggle);
+    const autohide = doc.createXULElement("toolbarbutton");
+    autohide.id = "night-autohide-button";
+    autohide.className = "toolbarbutton-1";
+    autohide.setAttribute("tooltiptext", "Автоматически скрывать верхнюю панель");
+    autohide.setAttribute("aria-label", "Автоматически скрывать верхнюю панель");
+    autohide.addEventListener("command", () => this.toolbar.toggleAutohide());
+    doc.getElementById("nav-bar-customization-target").append(autohide);
+    const focusExit = doc.createXULElement("toolbarbutton");
+    focusExit.id = "night-focus-exit";
+    focusExit.className = "toolbarbutton-1";
+    focusExit.setAttribute("tooltiptext", "Вернуть интерфейс · Alt+Shift+F");
+    focusExit.setAttribute("aria-label", "Вернуть интерфейс · Alt+Shift+F");
+    focusExit.addEventListener("command", () => this.toolbar.toggleFocus());
+    doc.getElementById("nav-bar-customization-target").prepend(focusExit);
   }
 
   observe() {
@@ -503,6 +524,7 @@ export class NightShell {
         this.#rows.set(tab, parts);
       }
       const { row, main, icon, title, state, close } = parts;
+      row.toggleAttribute("data-loading", tab.hasAttribute("busy"));
       row.toggleAttribute("data-selected", tab.selected);
       row.toggleAttribute("data-split", !!tab.splitview);
       row.toggleAttribute("data-sleeping", tab.hasAttribute("pending"));
@@ -512,29 +534,29 @@ export class NightShell {
         tab.label + (tab.hasAttribute("pending") ? " · выгружена" : "");
       main.setAttribute("aria-label", main.title);
       title.textContent = tab.label === "New Tab" ? "Новая вкладка" : tab.label;
-      const image = tab.hasAttribute("busy") ? "" : tab.getAttribute("image");
+      const internal = /^about:(?:home|newtab|preferences|blank)(?:[?#]|$)/.test(tab.linkedBrowser.currentURI.spec);
+      const image = internal
+        ? "chrome://browser/content/night/branding/icon32.png"
+        : tab.getAttribute("image");
       if (
         image &&
-        /^(data:image\/|https?:|page-icon:|moz-anno:favicon:)/.test(image)
+        /^(data:image\/|https?:|page-icon:|moz-anno:favicon:|chrome:|resource:|moz-extension:)/.test(image)
       ) {
         if (icon.dataset.image !== image) {
-          icon.replaceChildren(
-            this.#element("img", "", {
+          const favicon = this.#element("img", "", {
               src: image,
               alt: "",
               width: "16",
               height: "16",
-            }),
-          );
+              referrerpolicy: "no-referrer",
+            });
+          favicon.addEventListener("error", () => favicon.remove(), { once: true });
+          icon.replaceChildren(favicon);
           icon.dataset.image = image;
         }
       } else {
         delete icon.dataset.image;
-        icon.textContent = tab.hasAttribute("busy")
-          ? "◌"
-          : tab.pinned
-            ? (tab.label || "N").slice(0, 1).toUpperCase()
-            : "◈";
+        icon.replaceChildren();
       }
       state.textContent = tab.soundPlaying
         ? "♪"
@@ -643,6 +665,7 @@ export class NightShell {
   }
 
   destroy() {
+    this.toolbar.destroy();
     for (const event of EVENTS) this.#window.removeEventListener(event, this);
     this.#window.removeEventListener("keydown", this, true);
     this.#window.removeEventListener("click", this);
@@ -651,6 +674,8 @@ export class NightShell {
     this.workspaces.destroy();
     this.#sidebar.remove();
     this.#window.document.getElementById("night-sidebar-toggle")?.remove();
+    this.#window.document.getElementById("night-autohide-button")?.remove();
+    this.#window.document.getElementById("night-focus-exit")?.remove();
   }
 }
 

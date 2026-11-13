@@ -7,6 +7,7 @@ The 0.2 tree contains no Zen shell or Zen build dependency. The earlier Zen-base
 ## Components
 
 - `NightShell.sys.mjs`: DOM-based chrome, keyed tab rows, search, pin/context actions, drag ordering, workspace controls and native split-view control. No framework or additional UI process.
+- `NightToolbar.sys.mjs`: optional toolbar autohide and per-window focus mode. The native address bar appears as an overlay on pointer/keyboard focus; menus and permission panels keep it visible. Focus mode gives the entire browser content area to the website. No polling loop or separate URL input is introduced.
 - `NightWorkspaces.sys.mjs`: per-window workspace catalogue, per-tab membership, visibility and last selection. SessionStore persists both tab and window metadata. Pinned tabs are shared; deleting an area moves its tabs rather than closing them.
 - `NightMemory.sys.mjs` and `MemoryPolicy.mjs`: one configurable idle policy, native safe discard, persistent per-tab exceptions, domain exceptions, media/call/intercept/split protections. Background session tabs restore on demand. No sandbox reduction or forced working-set trimming.
 - `NightBrowser.sys.mjs`: lazy three-column request workbench below the page.

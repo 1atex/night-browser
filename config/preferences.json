@@ -37,6 +37,8 @@
   "night.ui.density": "comfortable",
   "night.ui.sidebar-width": 232,
   "night.ui.animations": true,
+  "night.ui.toolbar-autohide": false,
+  "browser.urlbar.suggest.topsites": false,
   "browser.newtabpage.activity-stream.asrouter.providers.onboarding": "{\"id\":\"onboarding\",\"enabled\":false}",
   "browser.newtabpage.activity-stream.asrouter.providers.cfr": "{\"id\":\"cfr\",\"enabled\":false}",
   "browser.newtabpage.activity-stream.asrouter.providers.messaging-experiments": "{\"id\":\"messaging-experiments\",\"enabled\":false}",

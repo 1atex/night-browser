@@ -94,6 +94,7 @@ form svg {
   flex-shrink: 0;
 }
 input {
+  appearance: none;
   min-width: 0;
   flex: 1;
   background: none;
@@ -203,6 +204,22 @@ i {
 :focus-visible {
   outline: 2px solid #a8bad4;
   outline-offset: 4px;
+}
+input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+form:focus-within {
+  border-color: #c3ccd94d;
+  box-shadow: 0 0 0 3px #c3ccd907, 0 8px 24px #00000015;
+}
+.tile-icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.tile-icon.github img {
+  filter: brightness(0) invert(0.86);
 }
 @media (max-width: 700px) {
   header {

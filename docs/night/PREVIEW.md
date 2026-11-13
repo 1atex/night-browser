@@ -1,6 +1,6 @@
 # Windows preview
 
-Use the Night 0.4 release ZIP or the successful `Windows preview` Actions artifact. Extract the entire `Night` directory into a writable location and run `Night.exe`. A local `Night.lnk` shortcut and a separate `profile` directory are created beside it.
+Use the Night 0.5 release ZIP or the successful `Windows preview` Actions artifact. Extract the entire `Night` directory into a writable location and run `Night.exe`. A local `Night.lnk` shortcut and a separate `profile` directory are created beside it.
 
 The Windows executable, icon, version resource, taskbar grouping and relaunch metadata identify Night. Pin the new Night window or use the new shortcut. A pin created for 0.2 still points at the old executable; remove that old pin yourself. Night does not alter pins belonging to other browsers.
 

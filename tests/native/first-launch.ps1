@@ -102,6 +102,20 @@ try {
   [System.Windows.Forms.SendKeys]::SendWait("^l")
   [System.Windows.Forms.SendKeys]::SendWait("about:home{ENTER}")
   Start-Sleep -Seconds 1
+  [System.Windows.Forms.SendKeys]::SendWait("%+f")
+  Start-Sleep -Seconds 1
+  foreach ($capture in @("night-focus-ordinary.png", "night-address-ordinary.png")) {
+    if ($capture -eq "night-address-ordinary.png") {
+      [System.Windows.Forms.SendKeys]::SendWait("^l")
+      Start-Sleep -Seconds 1
+      $overlayNames = @([System.Windows.Automation.AutomationElement]::FromHandle($window).FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | Where-Object { -not $_.Current.IsOffscreen } | ForEach-Object { $_.Current.Name })
+      if ($overlayNames -notcontains "Вернуть интерфейс · Alt+Shift+F") { throw "Focus mode did not expose its exit control" }
+    }
+    $bitmap = New-Object System.Drawing.Bitmap(($rect.right-$rect.left),($rect.bottom-$rect.top))
+    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    try { $graphics.CopyFromScreen($rect.left,$rect.top,0,0,$bitmap.Size);$bitmap.Save((Join-Path $outputPath $capture),[System.Drawing.Imaging.ImageFormat]::Png) } finally { $graphics.Dispose();$bitmap.Dispose() }
+  }
+  [System.Windows.Forms.SendKeys]::SendWait("{ESC}%+f")
   if (-not (Test-Path (Join-Path $testRoot "Night.lnk"))) { throw "Night shortcut was not created" }
   $firstPid = $browser.Id
   Close-Night $browser

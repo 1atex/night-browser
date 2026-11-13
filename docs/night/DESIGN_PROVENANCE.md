@@ -8,6 +8,10 @@ Zen is published under [MPL-2.0](https://github.com/zen-browser/desktop/blob/sta
 
 Firefox/Gecko remains the underlying engine. Its license, source revision and attribution are preserved in the package, about:license and Night's about page. The existing Zen-based prototype remains in Git history; the current product does not ship that shell.
 
+Night 0.5 styles the current Gecko URL component rather than replacing its navigation, suggestion or site-identity logic. Toolbar autohide, focus mode and the window-edge reveal behavior are implemented in Night. The focus, toolbar and fallback globe icons are original graphics.
+
+Site favicons identify linked third-party websites, not the Night product. The YouTube favicon and ChatGPT mark in `src/night/sites/` come from the pinned Mozilla distribution (`activity-stream/data/content/tippytop/favicons/youtube-com.png` and `browser/genai/assets/brands/chatgpt.svg`); the latter's context-fill was replaced with a fixed light fill for an ordinary image element, and its trademark notice is retained. The GitHub favicon was downloaded from https://github.com/favicon.ico. These marks remain their owners' property. They are bundled locally so opening a new tab does not contact those sites to load icons. Censys keeps a text fallback on the start page; visited tabs use the actual site favicon supplied by Gecko.
+
 ## Motion
 
 Transitions last 115–230 ms and run on interaction. Tab opening/closing, workspace changes, context menus, settings cards and the request workbench use opacity and transform animations. There is no decorative animation loop or resident helper process. Native reduced-motion preferences and Night's animation setting disable these effects. Motion tests verify active transitions, their completion, absence of idle animation and both disabling modes.
