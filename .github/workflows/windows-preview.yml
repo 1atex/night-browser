@@ -77,6 +77,7 @@ jobs:
         run: ./tests/native/first-launch.ps1 -Package dist/Night -Output test-artifacts
       - name: Test migration from an actual Zen profile
         run: |
+          ./tests/native/import-transaction.ps1 -Launcher dist/Night/Night.exe
           $fixtures = Get-Content tests/native/import-fixtures.json -Raw | ConvertFrom-Json
           $zen = Join-Path $env:RUNNER_TEMP "zen-import.exe"
           $extension = Join-Path $env:RUNNER_TEMP "import-extension.xpi"

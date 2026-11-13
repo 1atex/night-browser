@@ -138,7 +138,8 @@ internal static class Launcher
             }
             using (var gate = new Mutex(false, "Local\\" + identity + ".Import"))
             {
-                if (!gate.WaitOne(10000)) throw new IOException("Другой запуск Night ещё завершает импорт.");
+                try { if (!gate.WaitOne(10000)) throw new IOException("Другой запуск Night ещё завершает импорт."); }
+                catch (AbandonedMutexException) { }
                 try { ProfileImport.Apply(Root); }
                 finally { gate.ReleaseMutex(); }
             }

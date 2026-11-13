@@ -34,6 +34,12 @@ internal static class ProfileImport
     {
         return child.Equals(parent, StringComparison.OrdinalIgnoreCase) || child.StartsWith(parent.TrimEnd('\\', '/') + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
+    private static Version EngineVersion(string path, string key)
+    {
+        var match = Regex.Match(File.ReadAllText(path), "(?m)^" + key + "=(\\d+)\\.(\\d+)(?:\\.(\\d+))?");
+        if (!match.Success) throw new IOException("Не удалось определить версию профиля или Night.");
+        return new Version(int.Parse(match.Groups[1].Value), int.Parse(match.Groups[2].Value), match.Groups[3].Success ? int.Parse(match.Groups[3].Value) : 0);
+    }
     public static int Copy(string root, string source, string stageName)
     {
         string stage = Child(root, stageName, "import-stage-");
@@ -50,6 +56,8 @@ internal static class ProfileImport
             if (Directory.Exists(stage)) throw new IOException("Папка импорта уже существует.");
             using (var profileLock = new FileStream(Path.Combine(source, "parent.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
             {
+                if (EngineVersion(Path.Combine(source, "compatibility.ini"), "LastVersion") > EngineVersion(Path.Combine(root, "runtime", "browser", "application.ini"), "MaxVersion"))
+                    throw new IOException("Профиль Zen новее движка Night. Сначала обнови Night.");
                 Directory.CreateDirectory(stage);
                 var pending = new Stack<KeyValuePair<string, string>>();
                 pending.Push(new KeyValuePair<string, string>(source, stage));
