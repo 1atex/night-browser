@@ -22,7 +22,7 @@ export class NightWorkspaces {
   #restore() {
     try {
       const state = JSON.parse(SessionStore.getCustomWindowValue(this.#window, STATE));
-      if (!Array.isArray(state.items) || !state.items.length || state.items.length > 20) return;
+      if (!Array.isArray(state.items) || !state.items.length || state.items.length > 1000) return;
       if (state.items.some(item => typeof item.id !== "string" || typeof item.name !== "string" || !item.name.trim())) return;
       if (new Set(state.items.map(item => item.id)).size !== state.items.length) return;
       this.items = state.items.map(item => ({ id: item.id, name: item.name.slice(0, 40) }));

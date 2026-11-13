@@ -31,6 +31,7 @@ export class NightShell {
   #frame = null;
   #dragged = null;
   #rows = new Map();
+  #renderedWorkspace = null;
   workspaces;
 
   constructor(window, owner) {
@@ -190,6 +191,15 @@ export class NightShell {
     });
     this.#status.addEventListener("click", () => this.#owner.toggle("memory"));
     footer.append(actions, this.#status);
+    if (!Services.prefs.getBoolPref("night.import.completed", false))
+      footer.append(
+        this.#button(
+          "Переехать из Zen",
+          "Импортировать данные Zen",
+          () => this.#owner.openSettings("import"),
+          { id: "night-import-button" },
+        ),
+      );
     this.#sidebar.append(
       brand,
       this.#filter,
@@ -236,6 +246,46 @@ export class NightShell {
   toggleSidebar() {
     const root = this.#window.document.documentElement;
     root.toggleAttribute("night-sidebar-collapsed");
+    if (!root.hasAttribute("night-sidebar-collapsed"))
+      this.#animate(
+        this.#sidebar,
+        [
+          { opacity: 0, transform: "translateX(-14px)" },
+          { opacity: 1, transform: "none" },
+        ],
+        190,
+      );
+  }
+
+  #animate(node, frames, duration = 170) {
+    if (
+      !this.#window.document.documentElement.hasAttribute("night-motion") ||
+      this.#window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return null;
+    return node.animate(frames, {
+      duration,
+      easing: "cubic-bezier(.2,.7,.2,1)",
+    });
+  }
+
+  async #closeTab(tab) {
+    const row = this.#rows.get(tab)?.row;
+    if (row?.hasAttribute("data-closing")) return;
+    row?.setAttribute("data-closing", "true");
+    const animation =
+      row &&
+      this.#animate(
+        row,
+        [
+          { opacity: 1, transform: "none" },
+          { opacity: 0, transform: "translateX(10px) scale(.98)" },
+        ],
+        115,
+      );
+    if (animation) await animation.finished.catch(() => {});
+    if (!tab.closing) this.#window.gBrowser.removeTab(tab, { animate: false });
+    row?.removeAttribute("data-closing");
   }
 
   #showMenu(anchor, actions) {
@@ -262,6 +312,14 @@ export class NightShell {
     this.#menu.style.top = `${Math.min(rect.bottom, this.#window.innerHeight - this.#menu.offsetHeight - 12)}px`;
     this.#menu.style.left = `${Math.min(rect.left, this.#window.innerWidth - this.#menu.offsetWidth - 12)}px`;
     this.#menu.querySelector("button")?.focus();
+    this.#animate(
+      this.#menu,
+      [
+        { opacity: 0, transform: "translateY(-5px) scale(.97)" },
+        { opacity: 1, transform: "none" },
+      ],
+      150,
+    );
   }
 
   #workspaceMenu(anchor) {
@@ -312,7 +370,7 @@ export class NightShell {
             () => this.workspaces.move(tab, item.id),
           ]);
       }
-    items.push(["Закрыть", () => browser.removeTab(tab, { animate: false })]);
+    items.push(["Закрыть", () => this.#closeTab(tab)]);
     this.#showMenu(anchor, items);
   }
 
@@ -368,14 +426,14 @@ export class NightShell {
     const close = this.#button(
       "×",
       "Закрыть вкладку",
-      () => browser.removeTab(tab, { animate: false }),
+      () => this.#closeTab(tab),
       { class: "night-tab-close" },
     );
     row.append(main, close);
     row.addEventListener("auxclick", (event) => {
       if (event.button === 1) {
         event.preventDefault();
-        browser.removeTab(tab, { animate: false });
+        this.#closeTab(tab);
       }
     });
     row.addEventListener("contextmenu", (event) => {
@@ -492,6 +550,26 @@ export class NightShell {
     }
     this.#syncChildren(this.#pins, pins);
     this.#syncChildren(this.#list, normal);
+    if (this.#renderedWorkspace !== this.workspaces.active) {
+      this.#renderedWorkspace = this.workspaces.active;
+      const colors = ["#c3ccd9", "#adbfe0", "#b7ccb9", "#d4b9b1", "#c6badb"];
+      this.#sidebar.style.setProperty(
+        "--workspace-color",
+        colors[
+          this.workspaces.items.findIndex(
+            (item) => item.id === this.workspaces.active,
+          ) % colors.length
+        ],
+      );
+      this.#animate(
+        this.#list,
+        [
+          { opacity: 0.35, transform: "translateY(6px)" },
+          { opacity: 1, transform: "none" },
+        ],
+        190,
+      );
+    }
     const all = [...browser.tabs].filter((tab) => !tab.closing);
     const sleeping = all.filter((tab) => tab.hasAttribute("pending")).length;
     this.#status.textContent = `${all.length - sleeping} активных · ${sleeping} спят`;
@@ -505,8 +583,18 @@ export class NightShell {
     for (const child of [...parent.children])
       if (!wanted.has(child)) child.remove();
     children.forEach((child, index) => {
+      const entering = !child.isConnected;
       if (parent.children[index] !== child)
         parent.insertBefore(child, parent.children[index] ?? null);
+      if (entering && index < 20)
+        this.#animate(
+          child,
+          [
+            { opacity: 0, transform: "translateY(-5px) scale(.985)" },
+            { opacity: 1, transform: "none" },
+          ],
+          180,
+        );
     });
   }
 

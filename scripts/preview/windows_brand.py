@@ -18,13 +18,13 @@ def block(key, value=b'', children=(), text=False):
 
 
 def version_info():
-    values = {'CompanyName': 'Night', 'FileDescription': 'Night Browser', 'FileVersion': '0.3.0.0',
+    values = {'CompanyName': 'Night', 'FileDescription': 'Night Browser', 'FileVersion': '0.4.0.0',
               'InternalName': 'NightBrowser', 'OriginalFilename': 'NightBrowser.exe',
-              'ProductName': 'Night Browser', 'ProductVersion': '0.3.0',
+              'ProductName': 'Night Browser', 'ProductVersion': '0.4.0',
               'LegalCopyright': 'Night contributors; Mozilla contributors. MPL-2.0.'}
     strings = [block(key, (value + '\0').encode('utf-16le'), text=True) for key, value in values.items()]
     table = block('040904B0', children=strings, text=True)
-    fixed = struct.pack('<13I', 0xFEEF04BD, 0x10000, 3, 0, 3, 0, 0x3F, 0, 0x40004, 1, 0, 0, 0)
+    fixed = struct.pack('<13I', 0xFEEF04BD, 0x10000, 4, 0, 4, 0, 0x3F, 0, 0x40004, 1, 0, 0, 0)
     return block('VS_VERSION_INFO', fixed, [block('StringFileInfo', children=[table], text=True), block('VarFileInfo', children=[block('Translation', struct.pack('<HH', 0x409, 1200))])])
 
 

@@ -6,6 +6,23 @@ window.addEventListener(
     );
     const XHTML = "http://www.w3.org/1999/xhtml";
     const browserWindow = window.browsingContext.topChromeWindow;
+    const updateTheme = () => {
+      document.documentElement.setAttribute(
+        "data-palette",
+        Services.prefs.getStringPref("night.ui.palette", "graphite"),
+      );
+      document.documentElement.toggleAttribute(
+        "data-motion",
+        Services.prefs.getBoolPref("night.ui.animations", true),
+      );
+    };
+    Services.prefs.addObserver("night.ui.", updateTheme);
+    window.addEventListener(
+      "unload",
+      () => Services.prefs.removeObserver("night.ui.", updateTheme),
+      { once: true },
+    );
+    updateTheme();
     const sections = {
       appearance: ["Внешний вид", "Сделай Night своим.", "appearance"],
       tabs: [
@@ -24,6 +41,11 @@ window.addEventListener(
         "shield",
       ],
       search: ["Поиск", "Твой привычный способ находить нужное.", "search"],
+      import: [
+        "Переезд из Zen",
+        "Твои сайты, привычки и данные — уже в Night.",
+        "import",
+      ],
       about: ["О Night", "Своё пространство в интернете.", "moon"],
     };
     const element = (tag, text = "", attributes = {}) => {
@@ -441,6 +463,163 @@ window.addEventListener(
         true,
       );
     }
+    async function importData() {
+      const { NightImport } = ChromeUtils.importESModule(
+        "resource:///modules/night/NightImport.sys.mjs",
+      );
+      const intro = card(
+        "Продолжи с того же места",
+        "Закладки и история · пароли · cookies и данные сайтов · расширения · вкладки и области",
+      );
+      intro.classList.add("import-hero");
+      intro.append(
+        element(
+          "p",
+          "Импорт создаёт отдельную копию. Профиль Zen останется на месте, а текущий профиль Night сохранится рядом в папке profile-backup-….",
+          { class: "card-caption" },
+        ),
+      );
+      if (!NightImport.supported) {
+        intro.append(
+          element("p", "Быстрый импорт доступен в Windows-сборке Night."),
+        );
+        return;
+      }
+      const pending = await NightImport.pending();
+      if (pending) {
+        const ready = card(
+          "Данные готовы к переносу",
+          "Закрой остальные окна Night и перезапусти браузер. При закрытии можно отменить выход; копия сохранится до следующего запуска.",
+        );
+        ready.append(
+          button(
+            "Перезапустить Night",
+            () => NightImport.restart(),
+            "button primary",
+          ),
+        );
+        return;
+      }
+      const selection = card("Выбери профиль Zen");
+      const profiles = await NightImport.discover();
+      const select = element("select", "", {
+        id: "zen-profile",
+        "aria-label": "Профиль Zen",
+      });
+      for (const profile of profiles)
+        select.append(element("option", profile.name, { value: profile.path }));
+      const path = element("p", "", { class: "profile-path" });
+      const update = () => {
+        path.textContent =
+          select.value ||
+          "Профиль не найден автоматически. Укажи папку вручную.";
+      };
+      update();
+      select.addEventListener("change", update);
+      row(
+        selection,
+        "Профиль",
+        "Закрой Zen перед копированием данных.",
+        select,
+      );
+      selection.append(
+        path,
+        button("Указать папку…", async () => {
+          const picker = Cc["@mozilla.org/filepicker;1"].createInstance(
+            Ci.nsIFilePicker,
+          );
+          picker.init(
+            browserWindow.browsingContext,
+            "Папка профиля Zen",
+            Ci.nsIFilePicker.modeGetFolder,
+          );
+          const result = await new Promise((resolve) => picker.open(resolve));
+          if (result !== Ci.nsIFilePicker.returnOK) return;
+          await NightImport.inspect(picker.file.path);
+          select.append(
+            element("option", picker.file.leafName, {
+              value: picker.file.path,
+            }),
+          );
+          select.value = picker.file.path;
+          update();
+          select.dispatchEvent(new Event("change"));
+        }),
+      );
+      const details = card("Что изменится");
+      details.append(
+        element(
+          "p",
+          "Данные Zen заменят текущие данные Night, а не смешаются с ними. Резервная копия Night позволит вернуться назад.",
+          { class: "card-caption" },
+        ),
+        element(
+          "p",
+          "Закреплённые сайты станут общими для областей. Папки и split view развернутся во вкладки. Zen Mods, оформление и привязки клавиш Zen не переносятся. Основной пароль остаётся прежним; отдельные сайты и расширения могут запросить повторный вход.",
+          { class: "card-caption" },
+        ),
+      );
+      const consent = element("input", "", {
+        type: "checkbox",
+        id: "import-consent",
+      });
+      const label = element("label", "", { class: "import-consent" });
+      label.append(
+        consent,
+        element(
+          "span",
+          "Перенести данные Zen и сохранить резервную копию Night",
+        ),
+      );
+      const progress = element("p", "", {
+        id: "import-progress",
+        role: "status",
+      });
+      const action = button(
+        "Импортировать из Zen",
+        async () => {
+          if (!consent.checked || !select.value) return;
+          action.disabled = true;
+          select.disabled = true;
+          consent.disabled = true;
+          const refresh = () => {
+            const state = NightImport.status;
+            progress.textContent =
+              state.phase === "preparing"
+                ? "Готовим вкладки и настройки…"
+                : `Копирование: ${state.files || 0} файлов · ${Math.round((state.bytes || 0) / 1048576)} МБ`;
+          };
+          refresh();
+          const timer = window.setInterval(refresh, 500);
+          try {
+            const report = await NightImport.stage(select.value);
+            progress.textContent = `Готово: ${report.tabs} вкладок, ${report.workspaces} областей. ${report.warnings.join(" ")}`;
+            details.append(
+              button(
+                "Перезапустить Night",
+                () => NightImport.restart(),
+                "button primary",
+              ),
+            );
+          } catch (error) {
+            progress.textContent = error.message;
+            action.disabled = false;
+            select.disabled = false;
+            consent.disabled = false;
+          } finally {
+            window.clearInterval(timer);
+          }
+        },
+        "button primary",
+      );
+      action.disabled = true;
+      const enable = () => {
+        action.disabled = !consent.checked || !select.value;
+      };
+      consent.addEventListener("change", enable);
+      select.addEventListener("change", enable);
+      details.append(label, action, progress);
+    }
     function about() {
       const info = card("");
       const identity = element("div", "", { class: "about-identity" });
@@ -452,7 +631,7 @@ window.addEventListener(
           height: "72",
         }),
         element("h2", "Night Browser"),
-        element("p", "0.3 · Preview"),
+        element("p", "0.4 · Preview"),
       );
       info.append(identity);
       row(
@@ -487,7 +666,15 @@ window.addEventListener(
         ),
       );
     }
-    const renderers = { appearance, tabs, memory, privacy, search, about };
+    const renderers = {
+      appearance,
+      tabs,
+      memory,
+      privacy,
+      search,
+      import: importData,
+      about,
+    };
     async function render() {
       const raw = location.hash.slice(1);
       const aliases = {

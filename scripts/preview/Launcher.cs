@@ -14,7 +14,7 @@ using System.Runtime.InteropServices.ComTypes;
 [assembly: AssemblyDescription("Night Browser")]
 [assembly: AssemblyCompany("Night")]
 [assembly: AssemblyProduct("Night Browser")]
-[assembly: AssemblyVersion("0.3.0.0")]
+[assembly: AssemblyVersion("0.4.0.0")]
 
 internal static class Launcher
 {
@@ -129,6 +129,20 @@ internal static class Launcher
             string identity = Identity();
             if (args.Length == 2 && args[0] == "--identity")
                 return ApplyWindows(int.Parse(args[1]), identity) ? 0 : 2;
+            if (args.Length == 3 && args[0] == "--copy-zen")
+                return ProfileImport.Copy(Root, args[1], args[2]);
+            if (args.Length == 2 && args[0] == "--finish-import")
+            {
+                try { using (var previous = Process.GetProcessById(int.Parse(args[1]))) if (!previous.WaitForExit(60000)) return 2; }
+                catch (ArgumentException) { }
+            }
+            using (var gate = new Mutex(false, "Local\\" + identity + ".Import"))
+            {
+                if (!gate.WaitOne(10000)) throw new IOException("Другой запуск Night ещё завершает импорт.");
+                try { ProfileImport.Apply(Root); }
+                finally { gate.ReleaseMutex(); }
+            }
+            if (args.Length == 1 && args[0] == "--apply-import") return 0;
             string runtime = Path.Combine(Root, "runtime");
             string executable = Path.Combine(runtime, "NightBrowser.exe");
             string application = Path.Combine(runtime, "browser", "application.ini");
@@ -158,7 +172,7 @@ internal static class Launcher
         }
         catch (Exception error)
         {
-            if (args.Length == 0) MessageBox.Show(error.Message, "Night Browser", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            if (args.Length == 0 || args[0] == "--finish-import") MessageBox.Show(error.Message, "Night Browser", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return 1;
         }
     }

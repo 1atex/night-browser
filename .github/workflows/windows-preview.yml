@@ -49,11 +49,11 @@ jobs:
         run: |
           python scripts/preview/package.py --runtime "$env:RUNNER_TEMP/firefox-upstream/core" --output dist/Night --archive "$env:RUNNER_TEMP/firefox-upstream.exe" --platform windows_x64
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.40319\csc.exe"
           $source = (Resolve-Path scripts/preview/Launcher.cs).Path
           $executable = Join-Path (Resolve-Path dist/Night).Path "Night.exe"
           $icon = (Resolve-Path src/night/branding/night.ico).Path
-          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll "/win32icon:$icon" "/out:$executable" $source
+          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll "/win32icon:$icon" "/out:$executable" $source scripts/preview/ProfileImport.cs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test packaged browser on Windows
         run: |
@@ -73,6 +73,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Inspect ordinary first launch and Windows identity
         run: ./tests/native/first-launch.ps1 -Package dist/Night -Output test-artifacts
+      - name: Test migration from an actual Zen profile
+        run: |
+          $fixtures = Get-Content tests/native/import-fixtures.json -Raw | ConvertFrom-Json
+          $zen = Join-Path $env:RUNNER_TEMP "zen-import.exe"
+          $extension = Join-Path $env:RUNNER_TEMP "import-extension.xpi"
+          Invoke-WebRequest $fixtures.zen.url -OutFile $zen
+          Invoke-WebRequest $fixtures.extension.url -OutFile $extension
+          if ((Get-FileHash $zen -Algorithm SHA256).Hash.ToLower() -ne $fixtures.zen.sha256) { throw "Zen fixture checksum mismatch" }
+          if ((Get-FileHash $extension -Algorithm SHA256).Hash.ToLower() -ne $fixtures.extension.sha256) { throw "Extension fixture checksum mismatch" }
+          7z x -y "-o$env:RUNNER_TEMP/zen-import" $zen
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -u tests/native/zen_import.py --package dist/Night --zen "$env:RUNNER_TEMP/zen-import/core/zen.exe" --extension $extension --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/zen-import-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Measure minimized browser memory
         run: |
           $output = (Resolve-Path dist/Night).Path
@@ -85,16 +98,16 @@ jobs:
           Copy-Item test-artifacts/memory.json dist/memory.json
           Copy-Item test-artifacts/night-first-launch.png dist/night-first-launch.png
           Copy-Item test-artifacts/night-settings-ordinary.png dist/night-settings.png
-          7z a -tzip dist/night-browser-0.3.0-preview-windows-x64.zip ./dist/Night
+          7z a -tzip dist/night-browser-0.4.0-preview-windows-x64.zip ./dist/Night
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $hash = (Get-FileHash dist/night-browser-0.3.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
-          "$hash  night-browser-0.3.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          $hash = (Get-FileHash dist/night-browser-0.4.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  night-browser-0.4.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
       - name: Upload Windows preview
         uses: actions/upload-artifact@v4
         with:
           name: night-browser-windows-x64-preview
           path: |
-            dist/night-browser-0.3.0-preview-windows-x64.zip
+            dist/night-browser-0.4.0-preview-windows-x64.zip
             dist/SHA256SUMS.txt
             dist/memory.json
             dist/night-first-launch.png
@@ -129,7 +142,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           gh release create "$RELEASE_TAG" \
-            release-assets/night-browser-0.3.0-preview-windows-x64.zip \
+            release-assets/night-browser-0.4.0-preview-windows-x64.zip \
             release-assets/SHA256SUMS.txt \
             release-assets/memory.json \
             release-assets/night-first-launch.png \
