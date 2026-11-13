@@ -76,7 +76,7 @@ try {
   if ($relaunch -ne "`"$launcher`"" -or $label -ne "Night Browser" -or $icon -ne "$launcher,0") { throw "Taskbar relaunch metadata does not point to Night" }
   $element = [System.Windows.Automation.AutomationElement]::FromHandle($window)
   $names = @($element.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { $_.Current.Name } | Where-Object { $_ } | Select-Object -Unique)
-  $foreign = @($names | Where-Object { $_ -match 'Firefox|Mozilla|[Pp]in.+taskbar|[Зз]акреп.+панел' })
+  $foreign = @($names | Where-Object { $_ -match 'Firefox|Mozilla|spotlight\.html|Добро пожаловать|[Pp]in.+taskbar|[Зз]акреп.+панел' })
   if ($foreign.Count) { throw "Foreign first-run UI: $($foreign -join ' | ')" }
   if ($browser.MainWindowTitle -notmatch 'Night') { throw "Window has no Night identity" }
   $rect = New-Object NightWindowInfo+Rect

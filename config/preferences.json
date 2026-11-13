@@ -67,5 +67,10 @@
   "browser.newtabpage.activity-stream.telemetry": false,
   "browser.newtabpage.activity-stream.feeds.snippets": false,
   "intl.locale.requested": "ru",
-  "browser.download.panel.shown": true
+  "browser.download.panel.shown": true,
+  "browser.preonboarding.enabled": false,
+  "browser.aboutwelcome.experimentsGate.enabled": false,
+  "termsofuse.bypassNotification": true,
+  "browser.bypassAutoTriggerActions": true,
+  "browser.toolbars.bookmarks.visibility": "never"
 }
