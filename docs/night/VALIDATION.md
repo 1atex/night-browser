@@ -71,3 +71,13 @@ The 43 Node checks include session conversion, duplicate tab identities, workspa
 `tests/native/import-transaction.ps1` exercises incomplete staging, a locked Night profile, retained backups, and recovery from interruptions before and after the profile swap. Windows copying handles extended-length paths used by extension storage.
 
 The full Windows checks passed for source `81ba7e49edc269af767e3562f3fccf81f0f8e1fc` in [run 43382324509](https://github.com/1atex/night-browser/actions/runs/43382324509). The migration fixture copied 72 files and restored both tabs and both workspaces. The motion result recorded six active opening animations, two workspace-switch animations, and zero for idle, disabled and system-reduced modes. Ordinary Windows settings and the migration page were visually inspected from the downloaded test artifact.
+
+## Published 0.4 result
+
+Windows release [v0.4.0-preview.1](https://github.com/1atex/night-browser/releases/tag/v0.4.0-preview.1), source `3462e97b0354850b3213bba52dabacefbb3641fc`, passed all 43 Node checks and every Windows runtime check in [run 43383005899](https://github.com/1atex/night-browser/actions/runs/43383005899). Both packaging and publication completed successfully. The actual Zen migration test passed again, including its signed extension data and operation after the source path was moved.
+
+The public 145,488,767-byte ZIP was downloaded and passed SHA-256 and ZIP CRC verification. Its 108 entries include Night.exe, the long-path configuration Night.exe.config and runtime/NightBrowser.exe, with no firefox.exe, pre-created profile or Zen test installer. BUILD.json identifies version 0.4.0, the source above and application BuildID `20261113070333`. The packaged browser archive includes both import modules, the updated settings and shell, and `00-night.js`.
+
+SHA-256: `24ac77f33fdab4459410b99777c9b70bf27a702bd6df91d4da9488fb1d06dae1`.
+
+Published evidence: [ordinary Windows settings](https://github.com/1atex/night-browser/releases/download/v0.4.0-preview.1/night-settings.png), [import page](https://github.com/1atex/night-browser/releases/download/v0.4.0-preview.1/night-import.png), [migration result](https://github.com/1atex/night-browser/releases/download/v0.4.0-preview.1/zen-import-result.json) and [motion result](https://github.com/1atex/night-browser/releases/download/v0.4.0-preview.1/motion.json). The ordinary settings screenshot was visually inspected after downloading the release.
