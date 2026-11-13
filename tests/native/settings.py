@@ -39,6 +39,7 @@ def run(binary, app_ini, output):
         browser.set_context('content')
         wait_for(lambda: browser.execute_script("return location.hash === '#memory' && !!document.querySelector('#idle-minutes');"))
         browser.execute_script("const input=document.getElementById('idle-minutes');input.value=7;input.dispatchEvent(new Event('change'));document.getElementById('site-exception').value='chatgpt.com';document.querySelector('.add-site').requestSubmit();")
+        assert browser.execute_script("return document.querySelector('.metrics > :last-child strong').textContent;") == '7'
         browser.set_context('chrome')
         state = browser.execute_script("return {minutes:Services.prefs.getIntPref('night.memory.idle-minutes'),sites:Services.prefs.getStringPref('night.memory.excluded-sites')};")
         assert state['minutes'] == 7 and 'chatgpt.com' in state['sites'], state

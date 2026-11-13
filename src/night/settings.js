@@ -221,20 +221,30 @@ window.addEventListener(
       const memory = browserWindow.gNightBrowser.memory;
       const settings = memory.settings;
       const summary = card("Память под контролем");
-      const tabs = [...browserWindow.gBrowser.tabs].filter(
-        (tab) => !tab.closing,
-      );
-      const sleeping = tabs.filter((tab) => tab.hasAttribute("pending")).length;
       const metrics = element("div", "", { class: "metrics" });
-      for (const [value, label] of [
-        [tabs.length - sleeping, "загружено"],
-        [sleeping, "спят"],
-        [settings.idleMinutes, "минут до сна"],
-      ]) {
-        const metric = element("div");
-        metric.append(element("strong", String(value)), element("span", label));
-        metrics.append(metric);
-      }
+      const updateMetrics = () => {
+        const tabs = [...browserWindow.gBrowser.tabs].filter(
+          (tab) => !tab.closing,
+        );
+        const sleeping = tabs.filter((tab) =>
+          tab.hasAttribute("pending"),
+        ).length;
+        metrics.replaceChildren(
+          ...[
+            [tabs.length - sleeping, "загружено"],
+            [sleeping, "спят"],
+            [memory.settings.idleMinutes, "минут до сна"],
+          ].map(([value, label]) => {
+            const metric = element("div");
+            metric.append(
+              element("strong", String(value)),
+              element("span", label),
+            );
+            return metric;
+          }),
+        );
+      };
+      updateMetrics();
       summary.append(metrics);
       const policy = card("Неактивные вкладки");
       toggle(
@@ -264,6 +274,7 @@ window.addEventListener(
             idleMinutes: Number(minutes.value),
             excludedSites: memory.settings.excludedSites.join("\n"),
           });
+          updateMetrics();
           status("Сохранено");
         } catch (error) {
           status(error.message);
@@ -350,6 +361,7 @@ window.addEventListener(
         "Применить выбранное время неактивности.",
         button("Проверить", async () => {
           status(`Выгружено вкладок: ${await memory.checkNow()}`);
+          updateMetrics();
         }),
       );
     }
