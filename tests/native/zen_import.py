@@ -121,6 +121,13 @@ def run(package, zen, extension, output):
         wait_for(lambda: target.execute_script(f'return !!{WIN}?.gNightBrowser;'))
         (night/'profile'/'keep-before-import.txt').write_text('preserve Night backup')
         target.execute_script("ChromeUtils.importESModule('resource:///modules/night/NightImport.sys.mjs');")
+        future = root/'Zen future'
+        future.mkdir()
+        (future/'prefs.js').write_text('')
+        (future/'places.sqlite').write_bytes(b'')
+        (future/'compatibility.ini').write_text('[Compatibility]\nLastVersion=999.0_test\n')
+        newer = subprocess.run([str(night/'Night.exe'),'--copy-zen',str(future),'import-stage-'+'b'*32],timeout=30)
+        assert newer.returncode != 0 and not (night/('import-stage-'+'b'*32)).exists(), 'Downgrade guard failed'
         prepared = target.execute_async_script("const done=arguments[arguments.length-1];const {NightImport}=ChromeUtils.importESModule('resource:///modules/night/NightImport.sys.mjs');NightImport.stage(arguments[0]).then(done,e=>done({error:String(e),stack:e.stack}));", script_args=[str(source)])
         (output/'zen-import-stage.json').write_text(json.dumps(prepared,ensure_ascii=False,indent=2),encoding='utf-8')
         assert 'error' not in prepared, prepared
@@ -134,6 +141,8 @@ def run(package, zen, extension, output):
         (output/'night-import-ready.png').write_bytes(base64.b64decode(target.screenshot()))
         stop(target_instance)
         instances.remove(target_instance)
+        archived = root/'Zen original preserved'
+        source.rename(archived)
         imported_instance = start([night/'Night.exe'], 2828, output/'zen-import-result.log')
         instances.append(imported_instance)
         imported = imported_instance[0]
@@ -159,10 +168,10 @@ def run(package, zen, extension, output):
         assert (night/prepared['backup']/'keep-before-import.txt').read_text() == 'preserve Night backup'
         assert not (night/'profile'/'chrome').exists()
         assert not (night/'profile'/'user.js').exists()
-        assert hashes(source) == original
+        assert hashes(archived) == original
         stop(imported_instance)
         instances.remove(imported_instance)
-        (output/'zen-import-result.json').write_text(json.dumps({'source':'Zen 1.24.2b','gecko':result['version'],'copied_files':prepared['files'],'tabs':prepared['tabs'],'workspaces':prepared['workspaces'],'source_unchanged':True,'backup_preserved':True,'password_decrypted':True,'cookies_and_storage':True,'signed_extension_active':True,'locked_source_rejected':True},indent=2))
+        (output/'zen-import-result.json').write_text(json.dumps({'source':'Zen 1.24.2b','gecko':result['version'],'copied_files':prepared['files'],'tabs':prepared['tabs'],'workspaces':prepared['workspaces'],'source_unchanged':True,'backup_preserved':True,'password_decrypted':True,'cookies_and_storage':True,'signed_extension_active':True,'locked_source_rejected':True,'newer_engine_rejected':True,'works_without_source_path':True},indent=2))
         print('PASS: actual Zen profile; encrypted login, bookmark, cookies/localStorage, signed extension, workspaces and tabs; source unchanged, live-profile lock and Night backup',flush=True)
     finally:
         for instance in reversed(instances):
