@@ -89,7 +89,7 @@ def package(runtime, output, archive, platform):
         if name.endswith("global/in-content/common.css"):
             toolkit[name] += b"\n" + (source / "internal.css").read_bytes()
     defaults = json.loads((ROOT / "config/preferences.json").read_text())
-    browser["defaults/preferences/night.js"] = "\n".join(
+    browser["defaults/preferences/00-night.js"] = "\n".join(
         f"pref({json.dumps(name)}, {json.dumps(value)});" for name, value in defaults.items()
     ).encode()
     write_jar(target / "browser/omni.ja", browser)

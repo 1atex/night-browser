@@ -76,6 +76,10 @@ try {
   if ($relaunch -ne "`"$launcher`"" -or $label -ne "Night Browser" -or $icon -ne "$launcher,0") { throw "Taskbar relaunch metadata does not point to Night" }
   $element = [System.Windows.Automation.AutomationElement]::FromHandle($window)
   $names = @($element.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { $_.Current.Name } | Where-Object { $_ } | Select-Object -Unique)
+  $desktopNames = @([System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { $_.Current.Name } | Where-Object { $_ } | Select-Object -Unique)
+  $desktopNames | ConvertTo-Json | Set-Content (Join-Path $outputPath "ordinary-desktop-ui.json") -Encoding utf8
+  $pinPrompts = @($desktopNames | Where-Object { $_ -match '(?i)pin (Firefox|Night).*(taskbar)|request is coming from Firefox|закрепить (Firefox|Night)' })
+  if ($pinPrompts.Count) { throw "Unrequested desktop pin prompt: $($pinPrompts -join ' | ')" }
   $foreign = @($names | Where-Object { $_ -match 'Firefox|Mozilla|spotlight\.html|Добро пожаловать|[Pp]in.+taskbar|[Зз]акреп.+панел' })
   if ($foreign.Count) { throw "Foreign first-run UI: $($foreign -join ' | ')" }
   if ($browser.MainWindowTitle -notmatch 'Night') { throw "Window has no Night identity" }

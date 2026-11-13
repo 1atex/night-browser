@@ -1,5 +1,6 @@
 import argparse
 import base64
+import json
 from pathlib import Path
 from marionette_driver.marionette import Marionette
 from smoke import wait_for
@@ -15,6 +16,14 @@ def run(binary, app_ini, output):
         browser.set_context('chrome')
         wait_for(lambda: browser.execute_script("return !!Services.wm.getMostRecentWindow('navigator:browser')?.gNightBrowser;"))
         assert browser.execute_script("return Services.appinfo.appBuildID !== Services.appinfo.platformBuildID;")
+        defaults = json.loads((Path(__file__).resolve().parents[2] / 'config/preferences.json').read_text())
+        actual = browser.execute_script("""
+          const branch = Services.prefs.getDefaultBranch('');
+          return Object.fromEntries(Object.entries(arguments[0]).map(([key,value]) =>
+            [key, typeof value === 'boolean' ? branch.getBoolPref(key) :
+              typeof value === 'number' ? branch.getIntPref(key) : branch.getStringPref(key)]));
+        """, script_args=[defaults])
+        assert actual == defaults, {key: {'expected': value, 'actual': actual.get(key)} for key, value in defaults.items() if actual.get(key) != value}
         browser.set_context('content')
         browser.navigate('about:preferences#appearance')
         wait_for(lambda: browser.execute_script("return document.querySelector('h1')?.textContent === 'Внешний вид';"))
