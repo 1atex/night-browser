@@ -24,29 +24,29 @@ window.addEventListener(
     );
     updateTheme();
     const sections = {
-      appearance: ["Внешний вид", "Сделай Night своим.", "appearance"],
+      appearance: ["Внешний вид", "Цвета, панели и анимации.", "appearance"],
       tabs: [
         "Вкладки и запуск",
-        "Продолжай с того места, где остановился.",
+        "Запуск, вкладки и сочетания клавиш.",
         "tabs",
       ],
       memory: [
         "Память",
-        "Пусть открытые вкладки не мешают работать.",
+        "Выгрузка неактивных страниц и исключения.",
         "memory",
       ],
       privacy: [
         "Приватность",
-        "Контроль над тем, что остаётся в браузере.",
+        "Защита, пароли и разрешения сайтов.",
         "shield",
       ],
-      search: ["Поиск", "Твой привычный способ находить нужное.", "search"],
+      search: ["Поиск", "Поисковая система и подсказки.", "search"],
       import: [
-        "Переезд из Zen",
-        "Твои сайты, привычки и данные — уже в Night.",
+        "Импорт из Zen",
+        "Перенос данных с резервной копией.",
         "import",
       ],
-      about: ["О Night", "Своё пространство в интернете.", "moon"],
+      about: ["О браузере", "Версия, обновления и лицензии.", "moon"],
     };
     const element = (tag, text = "", attributes = {}) => {
       const node = document.createElementNS(XHTML, tag);
@@ -166,7 +166,7 @@ window.addEventListener(
           element(
             "small",
             key === "graphite"
-              ? "Классический Night"
+              ? "Нейтральный серый"
               : key === "midnight"
                 ? "Холоднее и глубже"
                 : "Мягкий серый",
@@ -214,7 +214,7 @@ window.addEventListener(
         "night.ui.toolbar-autohide",
       );
       row(layout, "Только сайт", "Скрыть обе панели. Вернуть интерфейс: Alt+Shift+F или кнопкой в раскрытой верхней панели.",
-        button("Включить", () => browserWindow.gNightBrowser.shell.toolbar.toggleFocus()));
+        button("Переключить", () => browserWindow.gNightBrowser.shell.toolbar.toggleFocus()));
     }
     function tabs() {
       const startup = card("При запуске");
@@ -237,7 +237,7 @@ window.addEventListener(
         "browser.tabs.loadInBackground",
         true,
       );
-      const shortcuts = card("Всегда под рукой");
+      const shortcuts = card("Сочетания клавиш");
       for (const [name, keys] of [
         ["Новая вкладка", "Ctrl + T"],
         ["Найти вкладку", "Alt + P"],
@@ -252,7 +252,7 @@ window.addEventListener(
     function memory() {
       const memory = browserWindow.gNightBrowser.memory;
       const settings = memory.settings;
-      const summary = card("Память под контролем");
+      const summary = card("Состояние вкладок");
       const metrics = element("div", "", { class: "metrics" });
       const updateMetrics = () => {
         const tabs = [...browserWindow.gBrowser.tabs].filter(
@@ -264,8 +264,8 @@ window.addEventListener(
         metrics.replaceChildren(
           ...[
             [tabs.length - sleeping, "загружено"],
-            [sleeping, "спят"],
-            [memory.settings.idleMinutes, "минут до сна"],
+            [sleeping, "выгружено"],
+            [memory.settings.idleMinutes, "тайм-аут, мин"],
           ].map(([value, label]) => {
             const metric = element("div");
             metric.append(
@@ -478,20 +478,20 @@ window.addEventListener(
         "resource:///modules/night/NightImport.sys.mjs",
       );
       const intro = card(
-        "Продолжи с того же места",
+        "Данные для переноса",
         "Закладки и история · пароли · cookies и данные сайтов · расширения · вкладки и области",
       );
       intro.classList.add("import-hero");
       intro.append(
         element(
           "p",
-          "Импорт создаёт отдельную копию. Профиль Zen останется на месте, а текущий профиль Night сохранится рядом в папке profile-backup-….",
+          "Исходный профиль Zen не изменится. Перед заменой текущий профиль сохранится в папке profile-backup-… рядом с приложением.",
           { class: "card-caption" },
         ),
       );
       if (!NightImport.supported) {
         intro.append(
-          element("p", "Быстрый импорт доступен в Windows-сборке Night."),
+          element("p", "Импорт доступен в версии для Windows."),
         );
         return;
       }
@@ -499,11 +499,11 @@ window.addEventListener(
       if (pending) {
         const ready = card(
           "Данные готовы к переносу",
-          "Закрой остальные окна Night и перезапусти браузер. При закрытии можно отменить выход; копия сохранится до следующего запуска.",
+          "Перезапусти браузер, чтобы применить импорт. Если отменить выход, копия сохранится до следующего запуска.",
         );
         ready.append(
           button(
-            "Перезапустить Night",
+            "Перезапустить",
             () => NightImport.restart(),
             "button primary",
           ),
@@ -560,7 +560,7 @@ window.addEventListener(
       details.append(
         element(
           "p",
-          "Данные Zen заменят текущие данные Night, а не смешаются с ними. Резервная копия Night позволит вернуться назад.",
+          "Данные Zen заменят текущий профиль. Объединения не будет; резервная копия позволит вернуть прежние данные.",
           { class: "card-caption" },
         ),
         element(
@@ -578,7 +578,7 @@ window.addEventListener(
         consent,
         element(
           "span",
-          "Перенести данные Zen и сохранить резервную копию Night",
+          "Заменить текущие данные с сохранением резервной копии",
         ),
       );
       const progress = element("p", "", {
@@ -606,7 +606,7 @@ window.addEventListener(
             progress.textContent = `Готово: ${report.tabs} вкладок, ${report.workspaces} областей. ${report.warnings.join(" ")}`;
             details.append(
               button(
-                "Перезапустить Night",
+                "Перезапустить",
                 () => NightImport.restart(),
                 "button primary",
               ),
@@ -641,7 +641,7 @@ window.addEventListener(
           height: "72",
         }),
         element("h2", "Night Browser"),
-        element("p", "0.5 · Preview"),
+        element("p", "0.5.1 · Preview"),
       );
       info.append(identity);
       row(

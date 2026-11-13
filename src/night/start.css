@@ -1,9 +1,6 @@
 :root {
   color-scheme: dark;
-  font:
-    13px "Segoe UI",
-    system-ui,
-    sans-serif;
+  font: 13px "Segoe UI", system-ui, sans-serif;
   color: #d6dae3;
   background: #1b1b1e;
   font-synthesis: none;
@@ -14,81 +11,48 @@
 body {
   margin: 0;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: radial-gradient(ellipse at 50% 38%, #c3ccd903, transparent 60%);
-}
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28px 34px;
-}
-.wordmark {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 20px;
-  color: #aeb9cb;
-}
-.wordmark b {
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: -0.5px;
-  color: #bfc4d1;
-}
-.quiet-label {
-  font-size: 8px;
-  letter-spacing: 2px;
-  color: #4d4d58;
+  display: grid;
+  place-items: center;
 }
 main {
-  width: min(530px, calc(100% - 50px));
-  margin: auto;
+  width: min(530px, calc(100% - 48px));
   text-align: center;
-  padding: 40px 0 70px;
+  padding: 32px 0;
+  margin-top: -4vh;
 }
 .date {
-  text-transform: capitalize;
-  font-size: 11px;
-  color: #737380;
-  letter-spacing: 0.4px;
+  font-size: 12px;
+  color: #9898a5;
+  letter-spacing: 0.2px;
 }
 .clock {
-  font-size: 86px;
+  font-size: clamp(58px, 8vw, 78px);
   line-height: 1.2;
-  font-weight: 250;
-  letter-spacing: -4px;
+  font-weight: 300;
+  letter-spacing: -3px;
   color: #c5cddc;
-  margin-top: 15px;
+  margin: 10px 0 34px;
   font-variant-numeric: tabular-nums;
-}
-h1 {
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 0.1px;
-  color: #72727f;
-  margin: 13px 0 36px;
 }
 form {
   display: flex;
   align-items: center;
-  height: 52px;
-  gap: 14px;
+  height: 50px;
+  gap: 13px;
   background: #232327;
-  border: 1px solid #ffffff0a;
-  border-radius: 14px;
-  padding: 0 15px;
-  box-shadow: 0 3px 18px #00000008;
+  border: 1px solid #ffffff0d;
+  border-radius: 13px;
+  padding: 0 14px;
 }
 form:focus-within {
-  border-color: #c3ccd940;
+  border-color: #c3ccd94d;
   background: #27272c;
+  box-shadow: 0 0 0 3px #c3ccd907;
 }
 form svg {
   width: 17px;
   height: 17px;
-  stroke: #737e91;
+  stroke: #919caf;
   fill: none;
   stroke-width: 1.5;
   flex-shrink: 0;
@@ -101,98 +65,69 @@ input {
   border: 0;
   outline: none;
   color: #e0e3eb;
-  font:
-    12px "Segoe UI",
-    system-ui;
+  font: inherit;
 }
 input::placeholder {
-  color: #6b6b78;
+  color: #9898a5;
 }
 button {
   cursor: pointer;
-  background: #ffffff04;
-  border: 1px solid #ffffff08;
+  background: transparent;
+  border: 0;
   border-radius: 7px;
-  color: #8590a4;
-  width: 28px;
-  height: 28px;
-  font-size: 16px;
+  color: #a4aec0;
+  width: 30px;
+  height: 30px;
+  font-size: 17px;
 }
 button:hover {
-  color: #d7e1f0;
+  color: #e0e3eb;
   background: #ffffff0a;
 }
 nav {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 32px;
-  margin-top: 29px;
+  gap: 26px;
+  margin-top: 28px;
 }
 nav a {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  color: #81818e;
+  min-width: 54px;
+  border-radius: 12px;
+  color: #a0a0ae;
   text-decoration: none;
-  font-size: 10px;
+  font-size: 11px;
 }
 nav a:hover {
-  color: #c3ccd9;
+  color: #e0e3eb;
 }
 .tile-icon {
   display: grid;
   place-items: center;
   width: 48px;
   height: 48px;
-  border-radius: 14px;
+  border-radius: 13px;
   background: #222226;
   border: 1px solid #ffffff09;
-  font-size: 21px;
-  color: #a4aec0;
-  transition:
-    background 0.15s,
-    transform 0.15s;
-}
-.tile-icon.censys {
   font-size: 22px;
   font-weight: 500;
-}
-.tile-icon.youtube {
-  font-size: 15px;
+  color: #a4aec0;
 }
 nav a:hover .tile-icon {
   background: #2b2c33;
-  transform: translateY(-2px);
-  border-color: #c3ccd91a;
+  border-color: #c3ccd926;
 }
-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 25px 32px;
-  font-size: 9px;
-  color: #565662;
+.tile-icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
 }
-.shortcuts {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-kbd {
-  padding: 3px 5px;
-  border: 1px solid #ffffff0b;
-  border-radius: 4px;
-  font:
-    8px "Segoe UI",
-    system-ui;
-  color: #777784;
-}
-i {
-  width: 1px;
-  height: 10px;
-  margin: 0 8px;
-  background: #ffffff0a;
+.tile-icon.github img {
+  filter: brightness(0) invert(0.86);
 }
 .sr-only {
   position: absolute;
@@ -209,43 +144,11 @@ input:focus-visible {
   outline: none;
   box-shadow: none;
 }
-form:focus-within {
-  border-color: #c3ccd94d;
-  box-shadow: 0 0 0 3px #c3ccd907, 0 8px 24px #00000015;
+@media (max-width: 400px) {
+  nav { gap: 18px; }
 }
-.tile-icon img {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-}
-.tile-icon.github img {
-  filter: brightness(0) invert(0.86);
-}
-@media (max-width: 700px) {
-  header {
-    padding: 22px;
-  }
-  .quiet-label {
-    display: none;
-  }
-  .shortcuts {
-    display: none;
-  }
-  .clock {
-    font-size: 74px;
-  }
-  main {
-    padding: 30px 0;
-  }
-  nav {
-    gap: 24px;
-  }
-  footer {
-    justify-content: center;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-  }
+@media (max-height: 500px) {
+  main { margin-top: 0; padding: 24px 0; }
+  .clock { font-size: 58px; margin-bottom: 24px; }
+  nav { margin-top: 22px; }
 }

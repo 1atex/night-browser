@@ -15,3 +15,7 @@ Site favicons identify linked third-party websites, not the Night product. The Y
 ## Motion
 
 Transitions last 115–230 ms and run on interaction. Tab opening/closing, workspace changes, context menus, settings cards and the request workbench use opacity and transform animations. There is no decorative animation loop or resident helper process. Native reduced-motion preferences and Night's animation setting disable these effects. Motion tests verify active transitions, their completion, absence of idle animation and both disabling modes.
+
+## Interface identity
+
+The 0.5.1 interface keeps the product identity in the about page, native Windows metadata and native internal-page identity indicators. Daily browsing surfaces use functional names: “Новая вкладка”, “Настройки” and “Запросы”. The sidebar and start page have no wordmark, product slogan or persistent release badge. Internal tabs use purpose-specific icons; website favicons are unchanged. Settings descriptions explain controls rather than advertise the product. Version and license information remain accessible in “О браузере”.

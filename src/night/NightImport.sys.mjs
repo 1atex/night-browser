@@ -72,7 +72,7 @@ export const NightImport = {
       );
     if (Services.vc.compare(version, Services.appinfo.platformVersion) > 0)
       throw new Error(
-        `Профиль использует Gecko ${version}, а Night — ${Services.appinfo.platformVersion}. Сначала обнови Night: перенос в более старый движок может повредить данные.`,
+        `Профиль использует Gecko ${version}, текущая версия движка — ${Services.appinfo.platformVersion}. Сначала обнови браузер: перенос в более старый движок может повредить данные.`,
       );
     return { version };
   },
@@ -83,12 +83,12 @@ export const NightImport = {
 
   async stage(source) {
     if (!this.supported)
-      throw new Error("Быстрый импорт доступен в Windows-сборке Night.");
+      throw new Error("Импорт доступен в версии для Windows.");
     if (["copying", "preparing"].includes(this.status.phase))
       throw new Error("Импорт уже выполняется.");
     if (await this.pending())
       throw new Error(
-        "Предыдущий импорт готов. Перезапусти Night, чтобы его применить.",
+        "Предыдущий импорт готов. Перезапусти браузер, чтобы его применить.",
       );
     await this.inspect(source);
     const id = Services.uuid.generateUUID().toString().replace(/[{}-]/g, "");

@@ -29,6 +29,7 @@ export class NightShell {
   #status;
   #menu;
   #filter;
+  #empty;
   #frame = null;
   #dragged = null;
   #rows = new Map();
@@ -78,7 +79,7 @@ export class NightShell {
 
   #prompt(title, current, callback) {
     const value = { value: current };
-    if (Services.prompt.prompt(this.#window, "Night", title, value, null, {}))
+    if (Services.prompt.prompt(this.#window, "Рабочие области", title, value, null, {}))
       callback(value.value);
   }
 
@@ -86,16 +87,14 @@ export class NightShell {
     const doc = this.#window.document;
     this.#sidebar = this.#element("aside", "", {
       id: "night-sidebar",
-      "aria-label": "Вкладки Night",
+      "aria-label": "Вкладки",
     });
-    const brand = this.#element("header", "", { class: "night-brand" });
-    brand.append(
-      this.#element("span", "◒", {
-        class: "night-mark",
-        "aria-hidden": "true",
+    const heading = this.#element("header", "", { class: "night-sidebar-header" });
+    heading.append(
+      this.#element("span", "Вкладки"),
+      this.#button("", "Новая вкладка · Ctrl+T", () => this.workspaces.newTab(), {
+        id: "night-new-tab",
       }),
-      this.#element("strong", "night"),
-      this.#element("span", "", { class: "night-wordmark" }),
       this.#button("", "Только сайт · Alt+Shift+F", () => this.toolbar.toggleFocus(), {
         id: "night-focus-button",
         "aria-pressed": "false",
@@ -161,11 +160,14 @@ export class NightShell {
         buttons[next]?.focus();
       }
     });
-    const newTab = this.#button(
-      "+  Новая вкладка",
-      "Новая вкладка · Ctrl+T",
-      () => this.workspaces.newTab(),
-      { id: "night-new-tab" },
+    this.#empty = this.#element("div", "", { id: "night-tab-empty", hidden: "" });
+    this.#empty.append(
+      this.#element("p", "Вкладки не найдены"),
+      this.#button("Сбросить поиск", "Сбросить поиск", () => {
+        this.#filter.value = "";
+        this.#filter.focus();
+        this.render();
+      }),
     );
     const footer = this.#element("footer");
     const actions = this.#element("div", "", { class: "night-footer-actions" });
@@ -181,7 +183,7 @@ export class NightShell {
       ),
       this.#button(
         "◇",
-        "Память и настройки Night",
+        "Управление памятью",
         () => this.#owner.toggle("memory"),
         { id: "night-tools-button" },
       ),
@@ -195,23 +197,24 @@ export class NightShell {
     this.#status = this.#element("button", "", {
       type: "button",
       id: "night-memory-status",
+      title: "Управление памятью",
     });
     this.#status.addEventListener("click", () => this.#owner.toggle("memory"));
     footer.append(actions, this.#status);
     if (!Services.prefs.getBoolPref("night.import.completed", false))
       footer.append(
         this.#button(
-          "Переехать из Zen",
+          "Импорт из Zen",
           "Импортировать данные Zen",
           () => this.#owner.openSettings("import"),
           { id: "night-import-button" },
         ),
       );
     this.#sidebar.append(
-      brand,
+      heading,
       this.#filter,
       this.#pins,
-      newTab,
+      this.#empty,
       this.#list,
       workspace,
       footer,
@@ -511,9 +514,14 @@ export class NightShell {
     const pins = [],
       normal = [];
     for (const tab of tabs) {
+      const uri = tab.linkedBrowser.currentURI.spec;
+      const internal = /^about:(home|newtab|preferences|blank)(?:[?#]|$)/.exec(uri);
+      const label = internal
+        ? internal[1] === "preferences" ? "Настройки" : "Новая вкладка"
+        : tab.label === "New Tab" ? "Новая вкладка" : tab.label;
       if (
         query &&
-        !`${tab.label} ${tab.linkedBrowser.currentURI.spec}`
+        !`${label} ${uri}`
           .toLocaleLowerCase()
           .includes(query)
       )
@@ -531,12 +539,11 @@ export class NightShell {
       row.toggleAttribute("data-pinned", tab.pinned);
       main.setAttribute("aria-selected", String(tab.selected));
       main.title =
-        tab.label + (tab.hasAttribute("pending") ? " · выгружена" : "");
+        label + (tab.hasAttribute("pending") ? " · выгружена" : "");
       main.setAttribute("aria-label", main.title);
-      title.textContent = tab.label === "New Tab" ? "Новая вкладка" : tab.label;
-      const internal = /^about:(?:home|newtab|preferences|blank)(?:[?#]|$)/.test(tab.linkedBrowser.currentURI.spec);
+      title.textContent = label;
       const image = internal
-        ? "chrome://browser/content/night/branding/icon32.png"
+        ? `chrome://browser/content/night/icons/${internal[1] === "preferences" ? "settings" : "newtab"}.svg`
         : tab.getAttribute("image");
       if (
         image &&
@@ -572,6 +579,7 @@ export class NightShell {
     }
     this.#syncChildren(this.#pins, pins);
     this.#syncChildren(this.#list, normal);
+    this.#empty.hidden = !query || pins.length + normal.length > 0;
     if (this.#renderedWorkspace !== this.workspaces.active) {
       this.#renderedWorkspace = this.workspaces.active;
       const colors = ["#c3ccd9", "#adbfe0", "#b7ccb9", "#d4b9b1", "#c6badb"];
@@ -594,7 +602,7 @@ export class NightShell {
     }
     const all = [...browser.tabs].filter((tab) => !tab.closing);
     const sleeping = all.filter((tab) => tab.hasAttribute("pending")).length;
-    this.#status.textContent = `${all.length - sleeping} активных · ${sleeping} спят`;
+    this.#status.textContent = `Загружено: ${all.length - sleeping}${sleeping ? ` · выгружено: ${sleeping}` : ""}`;
     this.#window.document
       .getElementById("night-split-button")
       .setAttribute("aria-pressed", String(!!browser.selectedTab.splitview));

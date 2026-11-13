@@ -7,26 +7,21 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src resource:; style-src resource:; img-src resource: data:; form-action https://www.google.com; base-uri 'none'"
     />
-    <title>Night</title>
+    <title>Новая вкладка</title>
     <link
       rel="stylesheet"
       href="resource://newtab/prerendered/night-start.css"
     />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2317171a'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%23c3ccd9' stroke-width='2'/%3E%3Cpath d='M12 32h40a20 20 0 0 1-40 0' fill='%23c3ccd9'/%3E%3C/svg%3E"
+      href="resource://newtab/prerendered/night-newtab.svg"
     />
     <script src="resource://newtab/prerendered/night-start.js" defer></script>
   </head>
   <body>
-    <header>
-      <span class="wordmark">◒ <b>night</b></span
-      ><span class="quiet-label">ТВОЁ ПРОСТРАНСТВО</span>
-    </header>
-    <main>
+    <main aria-label="Новая вкладка">
       <div class="date" id="date"></div>
       <div class="clock" id="clock" aria-label="Текущее время"></div>
-      <h1 id="greeting">Время для своего.</h1>
       <form action="https://www.google.com/search" method="get">
         <label for="query" class="sr-only">Поиск в Google</label
         ><svg viewBox="0 0 24 24" aria-hidden="true">
@@ -35,7 +30,7 @@
         ><input
           id="query"
           name="q"
-          placeholder="Найти что-нибудь"
+          placeholder="Поиск в Google"
           autocomplete="off"
         /><button type="submit" aria-label="Искать">↗</button>
       </form>
@@ -54,12 +49,5 @@
         >
       </nav>
     </main>
-    <footer>
-      <span>Меньше шума. Больше твоего.</span
-      ><span class="shortcuts"
-        ><kbd>Alt P</kbd> найти вкладку <i></i> <kbd>Alt S</kbd> разделить
-        экран</span
-      >
-    </footer>
   </body>
 </html>

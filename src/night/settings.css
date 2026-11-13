@@ -42,43 +42,30 @@ button:disabled {
 }
 .settings-layout {
   display: grid;
-  grid-template-columns: 202px minmax(0, 1fr);
+  grid-template-columns: 188px minmax(0, 1fr);
   max-width: 1130px;
   margin: 0 auto;
   min-height: 100vh;
-  padding: 44px 38px;
-  gap: 58px;
+  padding: 36px 32px;
+  gap: 40px;
 }
 .settings-nav {
   display: flex;
   flex-direction: column;
   position: sticky;
-  top: 44px;
+  top: 36px;
   align-self: start;
-  height: calc(100vh - 88px);
-  min-height: 520px;
+  height: calc(100vh - 72px);
+  min-height: 420px;
 }
-.settings-brand {
+.settings-title {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 10px 32px;
-  font-size: 20px;
+  padding: 7px 14px 25px;
+  font-size: 15px;
   letter-spacing: -0.6px;
   font-weight: 600;
-}
-.settings-brand img {
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
-}
-.brand-subtitle {
-  display: block;
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--muted);
-  letter-spacing: 0;
-  margin-top: 3px;
 }
 nav {
   display: flex;
@@ -125,27 +112,16 @@ nav a[aria-current="true"] img {
 .nav-bottom a span {
   color: #62626d;
 }
-.build-label {
-  font-size: 8px;
-  letter-spacing: 1.8px;
-  color: #55555f;
-  margin-top: 12px;
-}
 main {
   min-width: 0;
   max-width: 690px;
   padding-top: 8px;
 }
 .page-header {
-  margin-bottom: 32px;
-}
-#eyebrow {
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: #73737e;
+  margin-bottom: 24px;
 }
 h1 {
-  font-size: 32px;
+  font-size: 28px;
   letter-spacing: -1px;
   font-weight: 550;
   margin: 10px 0;
@@ -340,7 +316,7 @@ input[type="number"] {
   gap: 7px;
 }
 .metrics strong {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 450;
   letter-spacing: -1px;
   color: #c3ccd9;
@@ -454,7 +430,7 @@ kbd {
     height: auto;
     margin-bottom: 25px;
   }
-  .settings-brand {
+  .settings-title {
     padding-bottom: 20px;
   }
   nav {
@@ -516,7 +492,7 @@ kbd {
   --settings-card: #3a3c45;
   --accent: #e1e3ed;
 }
-.settings-brand {
+.settings-title {
   font-weight: 600;
 }
 nav a {
@@ -533,10 +509,10 @@ nav a:hover {
   background-color: #ffffff05;
 }
 .page-header {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 h1 {
-  letter-spacing: -1.1px;
+  letter-spacing: -0.7px;
   font-weight: 600;
 }
 #description {
@@ -545,7 +521,7 @@ h1 {
 .card {
   background:
     linear-gradient(135deg, #ffffff02, transparent), var(--settings-card);
-  border-radius: 18px;
+  border-radius: 14px;
   box-shadow:
     inset 0 1px #ffffff03,
     0 3px 12px #00000009;

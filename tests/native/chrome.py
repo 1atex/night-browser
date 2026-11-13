@@ -78,7 +78,7 @@ def run(binary, app_ini, output):
         browser.find_element('id', 'query').click()
         assert browser.execute_script("return getComputedStyle(document.getElementById('query')).outlineStyle;") == 'none'
         assert browser.execute_script("return [...document.querySelectorAll('.tile-icon img')].every(i=>i.complete&&i.naturalWidth>0);")
-        wait_for(lambda: chrome("const i=d.querySelector('.night-tab[data-selected] .night-tab-icon img');return i?.complete&&i.naturalWidth>0&&i.src.startsWith('chrome://browser/content/night/branding/');"))
+        wait_for(lambda: chrome("const i=d.querySelector('.night-tab[data-selected] .night-tab-icon img');return i?.complete&&i.naturalWidth>0&&i.src==='chrome://browser/content/night/icons/newtab.svg';"))
         screenshot('night-home-focus.png')
         bar = chrome("const b=d.querySelector('#urlbar .urlbar-background');return {radius:w.getComputedStyle(b).borderTopLeftRadius,outline:w.getComputedStyle(b).outlineStyle};")
         assert bar == {'radius':'11px','outline':'none'}, bar

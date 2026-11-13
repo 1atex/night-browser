@@ -6,10 +6,10 @@
       http-equiv="Content-Security-Policy"
       content="default-src chrome:; img-src chrome: data:; style-src chrome: 'unsafe-inline'; object-src 'none'"
     />
-    <title>Настройки — Night</title>
+    <title>Настройки</title>
     <link
       rel="icon"
-      href="chrome://browser/content/night/branding/icon32.png"
+      href="chrome://browser/content/night/icons/settings.svg"
     />
     <link rel="stylesheet" href="chrome://browser/content/night/settings.css" />
     <script
@@ -20,23 +20,17 @@
   <body>
     <div class="settings-layout">
       <aside class="settings-nav">
-        <a class="settings-brand" href="#appearance"
-          ><img
-            src="chrome://browser/content/night/branding/icon48.png"
-            alt=""
-          /><span>Night<span class="brand-subtitle">Настройки</span></span></a
-        >
+        <a class="settings-title" href="#appearance">Настройки</a>
         <nav id="navigation" aria-label="Разделы настроек"></nav>
         <div class="nav-bottom">
           <a href="about:addons">Расширения <span>↗</span></a
           ><a href="chrome://browser/content/preferences/advanced.xhtml"
             >Все параметры <span>↗</span></a
-          ><span class="build-label">NIGHT 0.5 · PREVIEW</span>
+          >
         </div>
       </aside>
       <main>
         <header class="page-header">
-          <span id="eyebrow">ТВОЁ ПРОСТРАНСТВО</span>
           <h1 id="heading"></h1>
           <p id="description"></p>
         </header>

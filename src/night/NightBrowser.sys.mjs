@@ -87,7 +87,7 @@ class NightWindow {
     doc.documentElement.setAttribute("night-workbench", "true");
     this.#panel = this.#element("section", "", {
       id: "night-tools",
-      "aria-label": "Сетевые инструменты Night",
+      "aria-label": "Сетевые инструменты",
     });
     const heading = this.#element("header", "", {
       class: "night-workbench-header",
@@ -95,10 +95,7 @@ class NightWindow {
     const identity = this.#element("div", "", {
       class: "night-workbench-identity",
     });
-    identity.append(
-      this.#element("span", "NETWORK", { class: "night-kicker" }),
-      this.#element("h2", "Запросы"),
-    );
+    identity.append(this.#element("h2", "Запросы"));
     const close = this.#button("×", () => this.close());
     close.setAttribute("aria-label", "Закрыть сетевые инструменты");
     heading.append(

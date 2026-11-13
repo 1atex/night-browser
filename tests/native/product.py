@@ -119,7 +119,10 @@ def run(binary, app_ini, output):
           const field = w.document.getElementById('night-tab-search');
           field.value = 'nothing-matches-this'; field.dispatchEvent(new w.Event('input'));
           const filtered = w.document.getElementById('night-tab-list').children.length === 0;
-          field.value = ''; field.dispatchEvent(new w.Event('input'));
+          const empty = w.document.getElementById('night-tab-empty');
+          if (empty.hidden) throw new Error('Missing empty search state');
+          empty.querySelector('button').click();
+          if (field.value || !empty.hidden) throw new Error('Search reset did not restore the list');
           const count = w.gBrowser.tabs.length;
           w.document.getElementById('night-new-tab').click();
           const opened = w.gBrowser.tabs.length === count + 1;

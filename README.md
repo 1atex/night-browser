@@ -22,7 +22,7 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 
 ## Запуск и разработка
 
-[Скачать Night 0.5 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.5.0-preview.1/night-browser-0.5.0-preview-windows-x64.zip) · [Релиз и контрольная сумма](https://github.com/1atex/night-browser/releases/tag/v0.5.0-preview.1)
+[Скачать Night 0.5.1 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.5.1-preview.1/night-browser-0.5.1-preview-windows-x64.zip) · [Релиз и контрольная сумма](https://github.com/1atex/night-browser/releases/tag/v0.5.1-preview.1)
 
 Windows ZIP выпускается через [GitHub Actions](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml). Распаковать всю папку и запустить `Night.exe`; профиль создаётся рядом в `profile`. Старое закрепление от 0.2 нужно заменить: новый ярлык `Night.lnk` создаётся рядом с приложением.
 

@@ -1,6 +1,6 @@
 # Import from Zen
 
-On Windows, open **Переехать из Zen** at the bottom of the sidebar, or **Настройки → Переезд из Zen**. Choose a discovered profile, or point to the profile directory shown by Zen's `about:profiles`. Close Zen, confirm the replacement of Night's current data, and import. Restart Night when the copy is ready.
+On Windows, open **Импорт из Zen** at the bottom of the sidebar, or **Настройки → Импорт из Zen**. Choose a discovered profile, or point to the profile directory shown by Zen's `about:profiles`. Close Zen, confirm the replacement of Night's current data, and import. Restart Night when the copy is ready.
 
 The importer clones the selected profile into a separate staging directory. It carries bookmarks/history, saved logins and their NSS keys, cookies, site storage, permissions, containers, installed extensions and their data. Zen session data becomes Night tabs and workspaces; current `zen-sessions.jsonlz4` and older Places workspace/pin tables are supported. A primary password stays in effect. Sites or extensions can require another sign-in, especially when credentials are tied to an account or operating system.
 

@@ -55,14 +55,6 @@
   align-items: center;
   gap: 10px;
 }
-#night-tools .night-kicker {
-  font-size: 8px;
-  letter-spacing: 1.5px;
-  color: #6f7a8d;
-  border: 1px solid #ffffff0b;
-  border-radius: 4px;
-  padding: 4px 5px;
-}
 #night-tools h2 {
   font-size: 13px;
   font-weight: 500;
