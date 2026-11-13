@@ -51,9 +51,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
           $source = (Resolve-Path scripts/preview/Launcher.cs).Path
+          $importSource = (Resolve-Path scripts/preview/ProfileImport.cs).Path
           $executable = Join-Path (Resolve-Path dist/Night).Path "Night.exe"
           $icon = (Resolve-Path src/night/branding/night.ico).Path
-          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll "/win32icon:$icon" "/out:$executable" $source scripts/preview/ProfileImport.cs
+          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll "/win32icon:$icon" "/out:$executable" $source $importSource
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test packaged browser on Windows
         run: |
