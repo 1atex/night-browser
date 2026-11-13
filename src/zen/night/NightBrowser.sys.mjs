@@ -365,7 +365,7 @@ export const NightBrowser = {
     if (!widgetRegistered) {
       CustomizableUI.createWidget({
         id: "night-tools-button",
-        defaultArea: CustomizableUI.AREA_NAVBAR,
+        defaultArea: "zen-sidebar-foot-buttons",
         label: "Night",
         tooltiptext: "Night — память и запросы",
         onCommand(event) {

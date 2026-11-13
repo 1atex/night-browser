@@ -17,7 +17,7 @@ class EchoHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
-        self.wfile.write(b'<!doctype html><link rel="icon" href="data:,"><title>Night smoke test</title>')
+        self.wfile.write(b'<!doctype html><link rel="icon" href="data:,"><title>Night local test</title><body style="background:#1c1c20;color:#ececf0;font:20px system-ui;padding:48px"><h1>Night Browser</h1><p>Local preview test</p>')
 
     def do_POST(self):
         body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
@@ -53,27 +53,28 @@ def run(binary, log, app_ini=None, preview=False, screenshot=None):
     try:
         browser.start_session()
         browser.timeout.script = 20
+        browser.navigate(url)
         if preview:
             browser.set_context("chrome")
             wait_for(lambda: browser.execute_script("return !!Services.wm.getMostRecentWindow('navigator:browser')?.gNightBrowser;"), timeout=45)
             browser.set_window_rect(width=1280, height=900)
             ui = browser.execute_script("""
               const win = Services.wm.getMostRecentWindow("navigator:browser");
-              win.gNightBrowser.toggle();
-              const panel = win.document.getElementById("night-tools");
               const button = win.document.getElementById("night-tools-button");
+              button.click();
+              const panel = win.document.getElementById("night-tools");
               return {name: Services.appinfo.name, panel: panel.getBoundingClientRect().width > 250,
-                button: !!button, background: win.getComputedStyle(panel).backgroundColor,
+                button: button.getBoundingClientRect().width > 0, background: win.getComputedStyle(panel).backgroundColor,
                 updatesDisabled: !Services.policies.isAllowed("appUpdate"),
                 networkEnabled: Services.prefs.getBoolPref("night.network.enabled", false)};
             """)
             assert ui == {"name": "Night", "panel": True, "button": True, "background": "rgb(23, 23, 26)", "updatesDisabled": True, "networkEnabled": True}, ui
             if screenshot:
+                browser.execute_async_script("const done = arguments[arguments.length - 1]; const w = Services.wm.getMostRecentWindow('navigator:browser'); w.requestAnimationFrame(() => w.requestAnimationFrame(done));")
                 Path(screenshot).write_bytes(base64.b64decode(browser.screenshot()))
             browser.execute_script("Services.wm.getMostRecentWindow('navigator:browser').gNightBrowser.close();")
             print("PASS: packaged Night startup, tools panel, graphite CSS and update policy", flush=True)
             browser.set_context("content")
-        browser.navigate(url)
         browser.set_context("chrome")
         browser.execute_script("""
           const win = Services.wm.getMostRecentWindow("navigator:browser");

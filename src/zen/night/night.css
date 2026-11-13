@@ -23,6 +23,14 @@
   background: var(--night-background);
 }
 
+:root[night-browser][zen-default-theme] {
+  color-scheme: dark !important;
+  color: #ececf0;
+  --toolbox-textcolor: #ececf0 !important;
+  --toolbar-color-scheme: dark !important;
+  --zen-primary-color: var(--night-accent) !important;
+}
+
 :root[night-browser][zen-default-theme] .zen-browser-generic-background::before,
 :root[night-browser][zen-default-theme] .zen-browser-generic-background::after {
   background: var(--night-background);
@@ -81,6 +89,21 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+#night-tools label:has(input[type="checkbox"]) {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+#night-tools input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  flex-shrink: 0;
+  accent-color: var(--night-accent);
+}
+#night-tools > .night-row:first-child {
+  justify-content: space-between;
 }
 #night-tools input,
 #night-tools textarea,

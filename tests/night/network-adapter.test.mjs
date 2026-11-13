@@ -10,6 +10,7 @@ const source = (
     "utf8",
   )
 )
+  .replace(/\r\n/g, "\n")
   .replace(/^import[\s\S]*?from "[^"]+";\n/gm, "")
   .replace(
     "export class NightNetwork",
