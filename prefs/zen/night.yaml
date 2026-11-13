@@ -1,0 +1,14 @@
+- name: night.development
+  value: true
+
+- name: night.memory.enabled
+  value: true
+
+- name: night.memory.idle-minutes
+  value: 10
+
+- name: night.memory.excluded-sites
+  value: "youtube.com youtu.be"
+
+- name: night.network.enabled
+  value: false

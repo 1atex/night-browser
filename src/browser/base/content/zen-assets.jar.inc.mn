@@ -22,3 +22,5 @@
 #include ../../../zen/library/jar.inc.mn
 #include ../../../zen/about/jar.inc.mn
 #include ../../../zen/migration/jar.inc.mn
+
+#include ../../../zen/night/jar.inc.mn

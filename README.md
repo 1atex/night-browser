@@ -8,6 +8,7 @@ or measured memory improvement is available yet. Network tools remain experiment
 
 - [Product requirements and acceptance](docs/night/PRODUCT.md)
 - [Build and contribution guide](docs/night/CONTRIBUTING.md)
+- [Validation and memory comparison](docs/night/VALIDATION.md)
 - [License](LICENSE)
 
 ```sh

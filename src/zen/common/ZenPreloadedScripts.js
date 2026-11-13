@@ -62,3 +62,7 @@
 
   Services.scriptloader.loadSubScript("chrome://browser/content/zen-components/ZenDragAndDrop.js", this);
 }
+
+window.gZenStartup.promiseInitialized.then(() => {
+  ChromeUtils.importESModule("resource:///modules/night/NightBrowser.sys.mjs").NightBrowser.init(window);
+}).catch(console.error);

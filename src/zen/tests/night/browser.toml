@@ -1,0 +1,4 @@
+[DEFAULT]
+prefs = ["night.network.enabled=true"]
+
+["browser_night_network.js"]

@@ -16,6 +16,7 @@ Node.js, Python and Rust. Reserve at least 30 GB for source, tools and build out
 
 ```sh
 npm ci
+npm run surfer -- set brand release
 npm run init
 npm run build
 npm start
@@ -24,6 +25,7 @@ npm start
 `npm run test:night` runs standalone logic and source-integration checks without
 compiling Gecko. Native browser tests are separate and are not implied by these
 checks. After an initial build, JavaScript/CSS iterations can use `npm run build:ui`.
+See [validation](VALIDATION.md) for native smoke tests and Windows memory measurements.
 
 ## Updating upstream
 

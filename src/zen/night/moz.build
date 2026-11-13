@@ -1,0 +1,7 @@
+EXTRA_JS_MODULES.night += [
+    "MemoryPolicy.mjs",
+    "NightBrowser.sys.mjs",
+    "NightMemory.sys.mjs",
+    "NightNetwork.sys.mjs",
+    "RequestModel.mjs",
+]

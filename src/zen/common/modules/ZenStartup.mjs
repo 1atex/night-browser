@@ -204,7 +204,9 @@ class ZenStartup {
   }
 
   async #createUpdateAnimation() {
-    checkForZenUpdates();
+    if (!Services.prefs.getBoolPref("night.development", false)) {
+      checkForZenUpdates();
+    }
     return await createWindowUpdateAnimation();
   }
 
