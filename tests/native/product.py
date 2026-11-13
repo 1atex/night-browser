@@ -32,8 +32,8 @@ def run(binary, app_ini, output):
             print("PASS: one visible set of Windows caption controls", flush=True)
         browser.set_context("content")
         browser.navigate("about:home")
-        assert browser.execute_script("return document.querySelector('h1')?.textContent;") == "night."
-        assert browser.execute_script("return document.scripts.length;") == 0
+        wait_for(lambda: browser.execute_script("return /^\\d{2}:\\d{2}$/.test(document.querySelector('#clock')?.textContent);"))
+        assert browser.execute_script("return [...document.scripts].map(s => s.src);") == ["resource://newtab/prerendered/night-start.js"]
         browser.set_context("chrome")
         browser.execute_async_script(f"const done = arguments[arguments.length-1]; const w = {WIN}; w.requestAnimationFrame(() => w.requestAnimationFrame(done));")
         (output / "night-home.png").write_bytes(base64.b64decode(browser.screenshot()))
@@ -102,14 +102,13 @@ def run(binary, app_ini, output):
           source.dispatchEvent(new w.DragEvent('dragstart', {{dataTransfer: transfer, bubbles: true}}));
           target.dispatchEvent(new w.DragEvent('drop', {{dataTransfer: transfer, bubbles: true, cancelable: true}}));
           const moved = w.productSecond.index < w.productOriginal.index;
-          w.document.getElementById('night-tools-button').click();
           w.document.getElementById('night-network-button').click();
           const network = !!w.document.querySelector('#night-tools select');
           w.gNightBrowser.close();
           return {{moved, network}};
         """)
         assert state == {"moved": True, "network": True}, state
-        print("PASS: sidebar drag ordering and direct switching between memory and request panels", flush=True)
+        print("PASS: sidebar drag ordering and the network workbench", flush=True)
         state = browser.execute_script(f"""
           const w = {WIN}, s = w.gNightBrowser.shell;
           const id = s.workspaces.create('Исследования');

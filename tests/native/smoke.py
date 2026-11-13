@@ -60,7 +60,7 @@ def run(binary, log, app_ini=None, preview=False, screenshot=None):
             browser.set_window_rect(width=1280, height=900)
             ui = browser.execute_script("""
               const win = Services.wm.getMostRecentWindow("navigator:browser");
-              const button = win.document.getElementById("night-tools-button");
+              const button = win.document.getElementById("night-network-button");
               button.click();
               const panel = win.document.getElementById("night-tools");
               return {name: Services.appinfo.name, panel: panel.getBoundingClientRect().width > 250,
@@ -68,7 +68,7 @@ def run(binary, log, app_ini=None, preview=False, screenshot=None):
                 updatesDisabled: !Services.policies.isAllowed("appUpdate"),
                 networkEnabled: Services.prefs.getBoolPref("night.network.enabled", false)};
             """)
-            assert ui == {"name": "Night", "panel": True, "button": True, "background": "rgb(23, 23, 26)", "updatesDisabled": True, "networkEnabled": True}, ui
+            assert ui == {"name": "Night", "panel": True, "button": True, "background": "rgb(27, 27, 31)", "updatesDisabled": True, "networkEnabled": True}, ui
             if screenshot:
                 browser.execute_async_script("const done = arguments[arguments.length - 1]; const w = Services.wm.getMostRecentWindow('navigator:browser'); w.requestAnimationFrame(() => w.requestAnimationFrame(done));")
                 Path(screenshot).write_bytes(base64.b64decode(browser.screenshot()))

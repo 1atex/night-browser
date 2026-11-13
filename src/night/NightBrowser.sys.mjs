@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { NightWindows } from "resource:///modules/night/NightWindows.sys.mjs";
 import { NightShell } from "resource:///modules/night/NightShell.sys.mjs";
 import { NightMemory } from "resource:///modules/night/NightMemory.sys.mjs";
 
 const XHTML = "http://www.w3.org/1999/xhtml";
-
 
 class NightWindow {
   #window;
@@ -26,6 +26,7 @@ class NightWindow {
       (tab) => this.#network?.protectsTab(tab) ?? false,
     );
     this.shell = new NightShell(window, this);
+    NightWindows.init();
     window.gBrowser.tabContainer.addEventListener("TabSelect", this);
     window.addEventListener("unload", () => this.destroy(), { once: true });
   }
@@ -68,124 +69,56 @@ class NightWindow {
     status.classList.toggle("night-error", error);
   }
 
-  toggle(section = "memory") {
+  openSettings(section = "appearance") {
+    this.#window.openPreferences(section);
+  }
+
+  toggle(section = "network") {
+    if (section === "memory") {
+      this.openSettings("memory");
+      return;
+    }
     if (this.#destroyed) return;
     if (this.#panel) {
-      if (section !== this.#section) {
-        this.#panel.querySelector(`[data-section="${section}"]`).click();
-        return;
-      }
       this.close();
       return;
     }
-    this.#section = "memory";
+    const doc = this.#window.document;
+    doc.documentElement.setAttribute("night-workbench", "true");
     this.#panel = this.#element("section", "", {
       id: "night-tools",
-      "aria-label": "Night tools",
+      "aria-label": "Сетевые инструменты Night",
     });
-    const heading = this.#element("div", "", { class: "night-row" });
+    const heading = this.#element("header", "", {
+      class: "night-workbench-header",
+    });
+    const identity = this.#element("div", "", {
+      class: "night-workbench-identity",
+    });
+    identity.append(
+      this.#element("span", "NETWORK", { class: "night-kicker" }),
+      this.#element("h2", "Запросы"),
+    );
+    const close = this.#button("×", () => this.close());
+    close.setAttribute("aria-label", "Закрыть сетевые инструменты");
     heading.append(
-      this.#element("h2", "Night"),
-      this.#button("Закрыть", () => this.close()),
+      identity,
+      this.#element("p", "Перехват и Repeater в текущей вкладке"),
+      close,
     );
-    const navigation = this.#element("div", "", { class: "night-row" });
-    const memory = this.#element("div", "", { class: "night-section" });
-    const network = this.#element("div", "", {
-      class: "night-section",
-      hidden: "",
-    });
-    navigation.append(
-      this.#button("Память", () => {
-        this.#section = "memory";
-        memory.hidden = false;
-        network.hidden = true;
-      }),
-      this.#button("Запросы", async () => {
-        this.#section = "network";
-        memory.hidden = true;
-        network.hidden = false;
-        if (!network.childElementCount) await this.#buildNetwork(network);
-      }),
-    );
-    navigation.children[0].dataset.section = "memory";
-    navigation.children[1].dataset.section = "network";
+    const content = this.#element("div", "", { class: "night-network-layout" });
     this.#panel.append(
       heading,
-      navigation,
-      memory,
-      network,
+      content,
       this.#element("p", "", {
         class: "night-status",
         role: "status",
         "aria-live": "polite",
       }),
     );
-    this.#buildMemory(memory);
-    this.#window.document
-      .getElementById("browser")
-      .append(this.#panel);
-    if (section === "network") navigation.children[1].click();
-    this.#panel.querySelector("button").focus();
-  }
-
-  #buildMemory(parent) {
-    const settings = this.memory.settings;
-    parent.append(
-      this.#element(
-        "p",
-        "Неактивные вкладки освобождают память. Страница загрузится при возвращении.",
-      ),
-    );
-    const enabled = this.#field(
-      parent,
-      "Выгружать неактивные вкладки",
-      this.#element("input", "", { type: "checkbox" }),
-    );
-    enabled.checked = settings.enabled;
-    const interval = this.#field(
-      parent,
-      "Время неактивности, минут",
-      this.#element("input", "", { type: "number", min: "1", max: "1440" }),
-    );
-    interval.value = settings.idleMinutes;
-    const exclusions = this.#field(
-      parent,
-      "Не выгружать сайты и их поддомены",
-      this.#element("textarea", "", {
-        placeholder: "youtube.com\nchatgpt.com",
-      }),
-    );
-    exclusions.value = settings.excludedSites.join("\n");
-    parent.append(
-      this.#button("Сохранить", () => {
-        this.memory.setSettings({
-          enabled: enabled.checked,
-          idleMinutes: Number(interval.value),
-          excludedSites: exclusions.value,
-        });
-        this.#status("Настройки сохранены.");
-      }),
-    );
-    const keep = this.#field(
-      parent,
-      "Не выгружать текущую вкладку",
-      this.#element("input", "", { type: "checkbox" }),
-    );
-    const title = this.#element("p");
-    parent.append(title);
-    this.#refreshTab = () => {
-      const tab = this.#window.gBrowser.selectedTab;
-      keep.checked = this.memory.isProtected(tab);
-      title.textContent = tab.label;
-    };
-    keep.addEventListener("change", () =>
-      this.memory.protect(this.#window.gBrowser.selectedTab, keep.checked),
-    );
-    this.#refreshTab();
-    parent.append(
-      this.#button("Проверить неактивные вкладки", async () => {
-        this.#status(`Выгружено вкладок: ${await this.memory.checkNow()}`);
-      }),
+    doc.getElementById("browser").append(this.#panel);
+    this.#buildNetwork(content).catch((error) =>
+      this.#status(error.message, true),
     );
   }
 
@@ -200,14 +133,15 @@ class NightWindow {
     this.#network = new NightNetwork(this.#window, () =>
       this.#refreshNetwork(),
     );
-    parent.append(
-      this.#element(
-        "p",
-        "Захват ограничен выбранной вкладкой. Остановленные запросы отменяются через 60 секунд или при закрытии панели.",
-      ),
-    );
+    const capture = this.#element("div", "", { class: "night-capture" });
+    const editor = this.#element("div", "", { class: "night-editor" });
+    const reply = this.#element("div", "", { class: "night-reply" });
+    capture.append(this.#element("h3", "Захват"));
+    editor.append(this.#element("h3", "Запрос"));
+    reply.append(this.#element("h3", "Ответ"));
+    parent.append(capture, editor, reply);
     const intercept = this.#field(
-      parent,
+      capture,
       "Останавливать запросы перед отправкой",
       this.#element("input", "", { type: "checkbox" }),
     );
@@ -225,24 +159,28 @@ class NightWindow {
         scope.textContent = "Захват выключен.";
       }),
     );
-    parent.append(actions, scope);
+    capture.append(actions, scope);
     const list = this.#field(
-      parent,
+      capture,
       "Запросы",
       this.#element("select", "", { size: "5" }),
     );
+    const requestLine = this.#element("div", "", {
+      class: "night-request-line",
+    });
+    editor.append(requestLine);
     const method = this.#field(
-      parent,
+      requestLine,
       "Метод",
       this.#element("input", "", { value: "GET" }),
     );
     const url = this.#field(
-      parent,
+      requestLine,
       "URL",
       this.#element("input", "", { type: "url" }),
     );
     const headers = this.#field(
-      parent,
+      editor,
       "Заголовки",
       this.#element("textarea", "", {
         class: "night-code",
@@ -250,7 +188,7 @@ class NightWindow {
       }),
     );
     const body = this.#field(
-      parent,
+      editor,
       "Тело запроса",
       this.#element("textarea", "", {
         class: "night-code",
@@ -292,7 +230,9 @@ class NightWindow {
       }
     });
     buttons.append(forward, abort, replay);
-    parent.append(buttons, response);
+    editor.append(buttons);
+    reply.append(response);
+    response.textContent = "Отправь запрос, чтобы увидеть ответ.";
     const updateButtons = () => {
       const paused = this.#network.pending.some(
         (item) => item.id === selected?.id,
@@ -354,6 +294,7 @@ class NightWindow {
   }
 
   close() {
+    this.#window.document.documentElement.removeAttribute("night-workbench");
     this.#refreshNetwork = () => {};
     this.#refreshTab = () => {};
     this.#network?.destroy();

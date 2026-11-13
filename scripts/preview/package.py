@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 
 from omnijar import read_jar, write_jar
+from windows_brand import brand_runtime
 
 ROOT = Path(__file__).resolve().parents[2]
 PIN = json.loads((Path(__file__).parent / "runtime.json").read_text())
@@ -34,6 +35,10 @@ def package(runtime, output, archive, platform):
     output.mkdir(parents=True)
     target = output / "runtime"
     shutil.copytree(runtime, target)
+    if platform == "windows_x64":
+        executable = target / "NightBrowser.exe"
+        (target / "firefox.exe").rename(executable)
+        brand_runtime(executable, ROOT / "src/night/branding/night.ico")
     browser = read_jar(target / "browser/omni.ja")
     toolkit = read_jar(target / "omni.ja")
     if any("ZenStartup" in name or "ZenPreloadedScripts" in name for name in browser):
@@ -41,8 +46,13 @@ def package(runtime, output, archive, platform):
     source = ROOT / "src/night"
     for module in source.glob("*.mjs"):
         browser[f"modules/night/{module.name}"] = module.read_bytes()
-    for name in ["night.css", "shell.css", "bootstrap.js"]:
-        browser[f"chrome/browser/content/browser/night/{name}"] = (source / name).read_bytes()
+    for file in source.rglob("*"):
+        if file.is_file() and file.suffix != ".mjs":
+            browser[f"chrome/browser/content/browser/night/{file.relative_to(source).as_posix()}"] = file.read_bytes()
+    preferences = "chrome/browser/content/browser/preferences/"
+    browser[preferences + "advanced.xhtml"] = browser[preferences + "preferences.xhtml"]
+    replace_once(browser, preferences + "advanced.xhtml", "</head>", '<link rel="stylesheet" href="chrome://browser/content/night/advanced.css" /></head>')
+    browser[preferences + "preferences.xhtml"] = (source / "settings.xhtml").read_bytes()
     replace_once(browser, "chrome/browser/content/browser/browser.xhtml", "</head>",
                  '<link rel="stylesheet" href="chrome://browser/content/night/night.css" />\n'
                  '<script src="chrome://browser/content/night/bootstrap.js" defer="defer"></script>\n</head>')
@@ -55,6 +65,7 @@ def package(runtime, output, archive, platform):
             raise ValueError("Firefox new-tab integration point changed")
         browser[newtab + name] = (source / "start.html").read_bytes()
     browser[newtab + "night-start.css"] = (source / "start.css").read_bytes()
+    browser[newtab + "night-start.js"] = (source / "start.js").read_bytes()
     for name, data in list(browser.items()):
         if name.endswith("/branding/brand.ftl") or name.endswith("/branding/brand.properties"):
             text = data.decode("utf-8")
@@ -70,6 +81,12 @@ def package(runtime, output, archive, platform):
     shutil.copy2(source / "branding/night.ico", icon_directory / "main-window.ico")
     for size in [16, 32, 48, 64, 128]:
         shutil.copy2(source / f"branding/icon{size}.png", icon_directory / f"default{size}.png")
+    for name in list(browser):
+        if "/branding/" in name and name.endswith(("about-logo.svg", "icon32.svg", "icon64.svg", "icon128.svg", "identity-icons-brand.svg")):
+            browser[name] = (source / "branding/about-logo.svg").read_bytes()
+    for name in list(toolkit):
+        if name.endswith("global/in-content/common.css"):
+            toolkit[name] += b"\n" + (source / "internal.css").read_bytes()
     defaults = json.loads((ROOT / "config/preferences.json").read_text())
     browser["defaults/preferences/night.js"] = "\n".join(
         f"pref({json.dumps(name)}, {json.dumps(value)});" for name, value in defaults.items()
@@ -77,7 +94,7 @@ def package(runtime, output, archive, platform):
     write_jar(target / "browser/omni.ja", browser)
     write_jar(target / "omni.ja", toolkit)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    config["App"].update({"Name": "Night", "Vendor": "Night", "RemotingName": "night-preview",
+    config["App"].update({"Name": "Night", "Vendor": "Night", "RemotingName": "night-browser",
                           "Profile": "NightPreview",
                           "SourceRepository": "https://github.com/1atex/night-browser", "SourceStamp": revision})
     config["AppUpdate"]["URL"] = "https://updates.invalid/"
@@ -98,7 +115,7 @@ def package(runtime, output, archive, platform):
         "source": f"https://github.com/1atex/night-browser/tree/{revision}",
     }, indent=2))
     (output / "README.txt").write_text(
-        "Night Browser 0.2 Preview\n\n"
+        "Night Browser 0.3 Preview\n\n"
         "Распакуй всю папку в доступное для записи место и запусти Night.exe.\n"
         "Профиль хранится в папке profile рядом с Night.exe.\n"
         "Боковая панель: рабочие области, закреплённые вкладки, поиск.\n"
@@ -109,7 +126,7 @@ def package(runtime, output, archive, platform):
         "Это тестовая portable-версия. Автоматическое обновление отключено.\n"
         "Нативное ядро: Mozilla Firefox / Gecko 160.0.\n"
         "Оболочка, рабочие области, управление памятью и сетевые инструменты: Night.\n"
-        "Бинарные файлы Firefox сохраняют подпись и системные сведения Mozilla.\n"
+        "Windows-приложение имеет ресурсы Night и пока не подписано.\n"
         "Night: https://github.com/1atex/night-browser\n"
         "Firefox source: " + PIN["source"] + "\n",
         encoding="utf-8-sig")

@@ -1,27 +1,65 @@
 <!doctype html>
 <html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src resource:; img-src resource: data:; form-action https://www.google.com; base-uri 'none'">
-<title>Night</title>
-<link rel="stylesheet" href="resource://newtab/prerendered/night-start.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2317171a'/%3E%3Cpath d='M46 16A23 23 0 1 0 48 46A21 21 0 0 1 46 16' fill='%23c3ccd9'/%3E%3C/svg%3E">
-</head>
-<body>
-<main>
-<div class="eyebrow"><span class="dot"></span> YOUR SPACE, AT NIGHT</div>
-<div class="identity"><span class="moon" aria-hidden="true">◒</span><h1>night<span>.</span></h1></div>
-<p class="intro">Меньше шума. Больше твоего.</p>
-<form action="https://www.google.com/search" method="get"><label for="query" class="sr-only">Поиск в Google</label><span aria-hidden="true">⌕</span><input id="query" name="q" placeholder="Что ищем?" autocomplete="off"><button type="submit" aria-label="Искать">↗</button></form>
-<nav aria-label="Быстрые ссылки">
-<a href="https://www.youtube.com/"><span class="tile-icon">▶</span><span>YouTube</span><small>Смотреть</small></a>
-<a href="https://chatgpt.com/"><span class="tile-icon">✳</span><span>ChatGPT</span><small>Разобраться</small></a>
-<a href="https://search.censys.io/"><span class="tile-icon">⌁</span><span>Censys</span><small>Исследовать</small></a>
-<a href="https://github.com/"><span class="tile-icon">⌘</span><span>GitHub</span><small>Создавать</small></a>
-</nav>
-<div class="hint"><kbd>Alt</kbd> + <kbd>P</kbd> найти вкладку <i></i> <kbd>Alt</kbd> + <kbd>S</kbd> разделить экран</div>
-</main>
-<footer><span>NIGHT BROWSER</span><span>Своё пространство в интернете.</span></footer>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src resource:; style-src resource:; img-src resource: data:; form-action https://www.google.com; base-uri 'none'"
+    />
+    <title>Night</title>
+    <link
+      rel="stylesheet"
+      href="resource://newtab/prerendered/night-start.css"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2317171a'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%23c3ccd9' stroke-width='2'/%3E%3Cpath d='M12 32h40a20 20 0 0 1-40 0' fill='%23c3ccd9'/%3E%3C/svg%3E"
+    />
+    <script src="resource://newtab/prerendered/night-start.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <span class="wordmark">◒ <b>night</b></span
+      ><span class="quiet-label">ТВОЁ ПРОСТРАНСТВО</span>
+    </header>
+    <main>
+      <div class="date" id="date"></div>
+      <div class="clock" id="clock" aria-label="Текущее время"></div>
+      <h1 id="greeting">Время для своего.</h1>
+      <form action="https://www.google.com/search" method="get">
+        <label for="query" class="sr-only">Поиск в Google</label
+        ><svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m16 16 4 4" /></svg
+        ><input
+          id="query"
+          name="q"
+          placeholder="Найти что-нибудь"
+          autocomplete="off"
+        /><button type="submit" aria-label="Искать">↗</button>
+      </form>
+      <nav aria-label="Быстрые ссылки">
+        <a href="https://www.youtube.com/"
+          ><span class="tile-icon youtube">▶</span><span>YouTube</span></a
+        >
+        <a href="https://chatgpt.com/"
+          ><span class="tile-icon chatgpt">✳</span><span>ChatGPT</span></a
+        >
+        <a href="https://search.censys.io/"
+          ><span class="tile-icon censys">C</span><span>Censys</span></a
+        >
+        <a href="https://github.com/"
+          ><span class="tile-icon github">⌘</span><span>GitHub</span></a
+        >
+      </nav>
+    </main>
+    <footer>
+      <span>Меньше шума. Больше твоего.</span
+      ><span class="shortcuts"
+        ><kbd>Alt P</kbd> найти вкладку <i></i> <kbd>Alt S</kbd> разделить
+        экран</span
+      >
+    </footer>
+  </body>
 </html>

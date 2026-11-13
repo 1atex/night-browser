@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src chrome:; img-src chrome: data:; style-src chrome: 'unsafe-inline'; object-src 'none'"
+    />
+    <title>Настройки — Night</title>
+    <link
+      rel="icon"
+      href="chrome://browser/content/night/branding/icon32.png"
+    />
+    <link rel="stylesheet" href="chrome://browser/content/night/settings.css" />
+    <script
+      src="chrome://browser/content/night/settings.js"
+      defer="defer"
+    ></script>
+  </head>
+  <body>
+    <div class="settings-layout">
+      <aside class="settings-nav">
+        <a class="settings-brand" href="#appearance"
+          ><img
+            src="chrome://browser/content/night/branding/icon48.png"
+            alt=""
+          /><span>Night<span class="brand-subtitle">Настройки</span></span></a
+        >
+        <nav id="navigation" aria-label="Разделы настроек"></nav>
+        <div class="nav-bottom">
+          <a href="about:addons">Расширения <span>↗</span></a
+          ><a href="chrome://browser/content/preferences/advanced.xhtml"
+            >Все параметры <span>↗</span></a
+          ><span class="build-label">NIGHT 0.3 · PREVIEW</span>
+        </div>
+      </aside>
+      <main>
+        <header class="page-header">
+          <span id="eyebrow">ТВОЁ ПРОСТРАНСТВО</span>
+          <h1 id="heading"></h1>
+          <p id="description"></p>
+        </header>
+        <div id="content"></div>
+        <p id="status" role="status" aria-live="polite"></p>
+      </main>
+    </div>
+  </body>
+</html>
