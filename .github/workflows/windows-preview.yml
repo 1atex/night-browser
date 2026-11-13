@@ -83,6 +83,8 @@ jobs:
       - name: Create download archive
         run: |
           Copy-Item test-artifacts/memory.json dist/memory.json
+          Copy-Item test-artifacts/night-first-launch.png dist/night-first-launch.png
+          Copy-Item test-artifacts/night-settings-ordinary.png dist/night-settings.png
           7z a -tzip dist/night-browser-0.3.0-preview-windows-x64.zip ./dist/Night
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $hash = (Get-FileHash dist/night-browser-0.3.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
@@ -95,6 +97,8 @@ jobs:
             dist/night-browser-0.3.0-preview-windows-x64.zip
             dist/SHA256SUMS.txt
             dist/memory.json
+            dist/night-first-launch.png
+            dist/night-settings.png
           compression-level: 0
           retention-days: 30
           if-no-files-found: error
@@ -128,6 +132,8 @@ jobs:
             release-assets/night-browser-0.3.0-preview-windows-x64.zip \
             release-assets/SHA256SUMS.txt \
             release-assets/memory.json \
+            release-assets/night-first-launch.png \
+            release-assets/night-settings.png \
             --verify-tag --prerelease \
             --title "Night Browser $RELEASE_TAG" \
             --notes-file docs/night/PREVIEW_RELEASE.md

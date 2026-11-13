@@ -36,7 +36,7 @@ $testRoot = Join-Path $env:RUNNER_TEMP ("Night обычный запуск " + [
 Copy-Item $source $testRoot -Recurse
 $launcher = Join-Path $testRoot "Night.exe"
 $runtimeExe = Join-Path $testRoot "runtime/NightBrowser.exe"
-$profile = Join-Path $testRoot "profile"
+$profilePath = Join-Path $testRoot "profile"
 $runtime = Join-Path $testRoot "runtime"
 $browser = $null
 function Wait-Night {
@@ -49,6 +49,7 @@ function Wait-Night {
   throw "Ordinary Night window did not start with its own identity"
 }
 function Close-Night($process) {
+  $process.Refresh()
   [NightWindowInfo]::PostMessage($process.MainWindowHandle,0x10,[IntPtr]::Zero,[IntPtr]::Zero) | Out-Null
   if (-not $process.WaitForExit(20000)) { throw "Night did not close normally" }
 }
@@ -61,6 +62,7 @@ try {
   Start-Process $launcher
   $browser = Wait-Night
   Start-Sleep -Seconds 10
+  $browser.Refresh()
   $window = $browser.MainWindowHandle
   $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
   [NightWindowInfo]::ShowWindow($window,9) | Out-Null
@@ -85,6 +87,17 @@ try {
     $graphics.CopyFromScreen($rect.left,$rect.top,0,0,$bitmap.Size)
     $bitmap.Save((Join-Path $outputPath "night-first-launch.png"),[System.Drawing.Imaging.ImageFormat]::Png)
   } finally { $graphics.Dispose();$bitmap.Dispose() }
+  [System.Windows.Forms.SendKeys]::SendWait("^l")
+  [System.Windows.Forms.SendKeys]::SendWait("about:preferences#appearance{ENTER}")
+  Start-Sleep -Seconds 3
+  $settingsNames = @([System.Windows.Automation.AutomationElement]::FromHandle($window).FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { $_.Current.Name } | Where-Object { $_ })
+  if ($settingsNames -notcontains "Внешний вид") { throw "Ordinary settings navigation did not show Night settings" }
+  $bitmap = New-Object System.Drawing.Bitmap(($rect.right-$rect.left),($rect.bottom-$rect.top))
+  $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+  try { $graphics.CopyFromScreen($rect.left,$rect.top,0,0,$bitmap.Size);$bitmap.Save((Join-Path $outputPath "night-settings-ordinary.png"),[System.Drawing.Imaging.ImageFormat]::Png) } finally { $graphics.Dispose();$bitmap.Dispose() }
+  [System.Windows.Forms.SendKeys]::SendWait("^l")
+  [System.Windows.Forms.SendKeys]::SendWait("about:home{ENTER}")
+  Start-Sleep -Seconds 1
   if (-not (Test-Path (Join-Path $testRoot "Night.lnk"))) { throw "Night shortcut was not created" }
   $firstPid = $browser.Id
   Close-Night $browser
@@ -93,13 +106,14 @@ try {
   $browser = Wait-Night
   if ($browser.Id -eq $firstPid -or [NightWindowInfo]::Property($browser.MainWindowHandle,5) -ne $identity) { throw "Shortcut relaunch identity changed" }
   $command = (Get-CimInstance Win32_Process -Filter "ProcessId=$($browser.Id)").CommandLine
-  if (-not $command.Contains($profile) -or -not $command.Contains("-app")) { throw "Shortcut relaunched the wrong profile or application" }
+  if (-not $command.Contains($profilePath) -or -not $command.Contains("-app")) { throw "Shortcut relaunched the wrong profile or application" }
   [ordered]@{name=$version.ProductName;description=$version.FileDescription;originalFilename=$version.OriginalFilename;windowTitle=$browser.MainWindowTitle;appId=$identity;relaunch=$relaunch;taskbarLabel=$label;icon=$icon;shortcutRelaunch=$true;ordinaryLaunch=$true;visibleNames=$names} | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $outputPath "windows-identity.json") -Encoding utf8
   Write-Output "PASS: ordinary first launch without automation, native Night identity, no Firefox promotion, taskbar relaunch metadata and Unicode shortcut relaunch"
 } catch {
   $_ | Out-String | Set-Content (Join-Path $outputPath "ordinary-launch-error.txt") -Encoding utf8
   Write-Output ($_ | Out-String)
   if ($browser) {
+    $browser.Refresh()
     [ordered]@{label=$label;relaunch=$relaunch;icon=$icon;identity=$identity;title=$browser.MainWindowTitle;names=$names} | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $outputPath "ordinary-launch-state.json") -Encoding utf8
     try {
       $rect = New-Object NightWindowInfo+Rect
@@ -112,10 +126,11 @@ try {
   throw
 } finally {
   if ($browser -and -not $browser.HasExited) {
+    $browser.Refresh()
     [NightWindowInfo]::PostMessage($browser.MainWindowHandle,0x10,[IntPtr]::Zero,[IntPtr]::Zero) | Out-Null
     $browser.WaitForExit(5000) | Out-Null
   }
-  Get-Process NightBrowser -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $runtimeExe } | Stop-Process -Force
+  Get-Process NightBrowser -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $runtimeExe } | Stop-Process -Force -ErrorAction SilentlyContinue
   Remove-ItemProperty "HKCU:/Software/Mozilla/Night/TaskBarIDs" -Name $runtime -ErrorAction SilentlyContinue
   Remove-Item $testRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
