@@ -51,3 +51,13 @@ The all-loaded private working sets were essentially equal in this run. The redu
 `tests/native/first-launch.ps1` launches Night normally from a clean portable directory, with no headless or Marionette flags. It verifies the native PE name/version and absence of the old executable and invalid upstream certificate; inspects the final browser window's AppUserModelID, relaunch command, display name and icon; checks the accessible first-run UI and desktop for unsolicited OS pin prompts; captures the ordinary home/settings windows; then closes and relaunches through Night.lnk with the same profile. This validates the metadata Windows uses for pinning, not a simulation of the taskbar UI. Old user-created pins are not silently edited.
 
 The startup test refreshes the Process window handle after the temporary startup window is replaced. Capturing a stale startup handle is not a valid branding test.
+
+## Published 0.3 result
+
+Windows release [v0.3.0-preview.2](https://github.com/1atex/night-browser/releases/tag/v0.3.0-preview.2), source `d695ea7326aa73f5c3dc08ea61a75b880c558a75`, passed all 37 Node checks and the native smoke, product, settings, ordinary desktop startup, memory and launcher tests in [run 43375660472](https://github.com/1atex/night-browser/actions/runs/43375660472). The ordinary desktop check found no unsolicited Firefox pin notification. Night.lnk reopened the same portable profile with the same Night AppUserModelID.
+
+The public ZIP was downloaded and verified against SHA-256 and ZIP CRC. It contains Night.exe and runtime/NightBrowser.exe, no firefox.exe or pre-created profile, the expected source revision and application BuildID `20261113060004`, and the final settings and preference bundle.
+
+SHA-256: `9bcb9baf9e7ff5af868b3e4f3d3158a72ce50f6537b6b0995137d6de175f7a02`.
+
+Actual ordinary Windows screenshots: [first launch](https://github.com/1atex/night-browser/releases/download/v0.3.0-preview.2/night-first-launch.png) and [Night settings](https://github.com/1atex/night-browser/releases/download/v0.3.0-preview.2/night-settings.png). These were visually inspected after downloading the published assets; they are not mockups or headless captures.
