@@ -23,6 +23,13 @@ added to a disposable test runtime. This validates Gecko APIs, not the full Zen
 shell, Windows packaging, add-on compatibility or performance.
 On 2026-11-13, all six native scenarios above and all 37 standalone checks passed.
 
+The [Preview 1 Windows run](https://github.com/1atex/night-browser/actions/runs/43366181043)
+also passed on 2026-11-13: all 37 standalone checks, the six native scenarios,
+packaged startup/UI/update-policy checks, and the compiled launcher's portable
+profile check from a path containing spaces and Cyrillic characters. The release
+uses the pinned upstream native runtime; this does not establish a full source
+build or a memory/performance improvement.
+
 The in-tree browser test can also run after a native build:
 
 ```sh

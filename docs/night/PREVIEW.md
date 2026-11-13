@@ -1,5 +1,8 @@
 # Windows preview
 
+Download [Preview 1](https://github.com/1atex/night-browser/releases/tag/v0.1.0-preview.1)
+from Releases for a direct ZIP download without signing in.
+
 The [Windows preview workflow](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml)
 builds a portable Windows x64 package. Choose a successful run and download the
 `night-browser-windows-x64-preview` artifact. GitHub requires signing in to download
