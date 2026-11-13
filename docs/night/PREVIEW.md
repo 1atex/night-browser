@@ -4,6 +4,8 @@ Use the Night 0.3 release ZIP or the successful `Windows preview` Actions artifa
 
 The Windows executable, icon, version resource, taskbar grouping and relaunch metadata identify Night. Pin the new Night window or use the new shortcut. A pin created for 0.2 still points at the old executable; remove that old pin yourself. Night does not alter pins belonging to other browsers.
 
+To keep data from 0.2, close the old browser before copying its `profile` directory beside the new Night.exe. Keep a backup of the old folder. Each Night build has its own application BuildID so cached chrome from an earlier release is invalidated; the Gecko compatibility version stays unchanged.
+
 The workspace selector is at the bottom of the sidebar. Pins are shared across workspaces. Right-click a tab for pinning, moving, muting and memory protection. Alt+P searches tabs, Alt+B toggles the sidebar, Alt+S splits or separates pages.
 
 Settings open as a page: appearance, tabs, memory, privacy, search and about. Palette, density and sidebar width apply immediately. The memory section has an inactivity timeout and domain exceptions; per-tab exceptions remain in the tab context menu. Advanced engine controls remain available through “Все параметры”.

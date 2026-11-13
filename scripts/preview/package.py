@@ -5,6 +5,7 @@ import json
 import re
 import shutil
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 from omnijar import read_jar, write_jar
@@ -94,6 +95,9 @@ def package(runtime, output, archive, platform):
     write_jar(target / "browser/omni.ja", browser)
     write_jar(target / "omni.ja", toolkit)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    commit_time = int(subprocess.check_output(["git", "show", "-s", "--format=%ct", "HEAD"], cwd=ROOT, text=True).strip())
+    build_id = datetime.fromtimestamp(commit_time, timezone.utc).strftime("%Y%m%d%H%M%S")
+    config["App"]["BuildID"] = build_id
     config["App"].update({"Name": "Night", "Vendor": "Night", "RemotingName": "night-browser",
                           "Profile": "NightPreview",
                           "SourceRepository": "https://github.com/1atex/night-browser", "SourceStamp": revision})
@@ -109,7 +113,7 @@ def package(runtime, output, archive, platform):
     }}, indent=2))
     shutil.copy2(ROOT / "LICENSE", output / "LICENSE")
     (output / "BUILD.json").write_text(json.dumps({
-        "night_revision": revision, "night_version": json.loads((ROOT / "package.json").read_text())["version"],
+        "night_revision": revision, "night_version": json.loads((ROOT / "package.json").read_text())["version"], "night_build_id": build_id,
         "upstream": PIN, "platform": platform,
         "type": "Night shell and services on a pinned Mozilla Firefox native runtime",
         "source": f"https://github.com/1atex/night-browser/tree/{revision}",

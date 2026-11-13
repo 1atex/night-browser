@@ -14,6 +14,7 @@ def run(binary, app_ini, output):
         browser.timeout.script = 30
         browser.set_context('chrome')
         wait_for(lambda: browser.execute_script("return !!Services.wm.getMostRecentWindow('navigator:browser')?.gNightBrowser;"))
+        assert browser.execute_script("return Services.appinfo.appBuildID !== Services.appinfo.platformBuildID;")
         browser.set_context('content')
         browser.navigate('about:preferences#appearance')
         wait_for(lambda: browser.execute_script("return document.querySelector('h1')?.textContent === 'Внешний вид';"))

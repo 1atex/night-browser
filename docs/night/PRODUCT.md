@@ -16,7 +16,7 @@ The 0.2 tree contains no Zen shell or Zen build dependency. The earlier Zen-base
 - `start.html` and `start.css`: small clock/search start page served by Firefox's existing about:newtab/about:home mapping. One local clock script, no React bundle or sponsored feed UI.
 - `scripts/preview/package.py`: version/checksum checks, explicit Firefox chrome integration points, policies, provenance and portable packaging. An unknown upstream layout fails the build.
 
-Native navigation/security indicators remain visible. The normal address bar is not recreated. App compatibility version remains the pinned Firefox version so extension compatibility checks continue to work; Night's product version is in package.json, launcher and release metadata.
+Native navigation/security indicators remain visible. The normal address bar is not recreated. App compatibility version remains the pinned Firefox version so extension compatibility checks continue to work; Night's product version is in package.json, launcher and release metadata. A separate application BuildID derived from the Git commit time invalidates cached browser chrome when upgrading an existing profile.
 
 ## Request scope
 
