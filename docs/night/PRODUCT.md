@@ -12,11 +12,14 @@ The 0.2 tree contains no Zen shell or Zen build dependency. The earlier Zen-base
 - `NightBrowser.sys.mjs`: lazy three-column request workbench below the page.
 - `settings.xhtml`, `settings.js`, `settings.css`: Night settings at about:preferences, live appearance controls, memory rules, startup/privacy/search controls and about information. The original preferences remain an explicitly opened advanced page.
 - `NightWindows.sys.mjs` and `Launcher.cs`: per-install Windows grouping, local shortcut, taskbar relaunch/name/icon properties and separate portable profile. The helper runs transiently per window, with no resident background service.
+- `NightImport.sys.mjs`, `ZenImportModel.mjs` and `ProfileImport.cs`: Windows Zen discovery, locked profile copying, session/workspace conversion and recoverable activation after Night exits. Extension data and encrypted credentials move with the profile; the original Zen profile and a backup of the previous Night profile remain available.
 - `NightNetwork.sys.mjs` and `RequestModel.mjs`: selected-tab request capture, independent channel suspension, edits, replay, bounded in-memory history and responses.
 - `start.html` and `start.css`: small clock/search start page served by Firefox's existing about:newtab/about:home mapping. One local clock script, no React bundle or sponsored feed UI.
 - `scripts/preview/package.py`: version/checksum checks, explicit Firefox chrome integration points, policies, provenance and portable packaging. An unknown upstream layout fails the build.
 
 Native navigation/security indicators remain visible. The normal address bar is not recreated. App compatibility version remains the pinned Firefox version so extension compatibility checks continue to work; Night's product version is in package.json, launcher and release metadata. A separate application BuildID derived from the Git commit time invalidates cached browser chrome when upgrading an existing profile.
+
+Night 0.4 adds short interaction animations and consistent surfaces across the shell and settings. Animations finish within 230 ms, do not run while idle, and respect both the application toggle and the system's reduced-motion preference. The interface implementation and artwork are authored here; [design provenance](DESIGN_PROVENANCE.md) records the upstream boundaries.
 
 ## Request scope
 

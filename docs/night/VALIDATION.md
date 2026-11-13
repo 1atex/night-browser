@@ -61,3 +61,13 @@ The public ZIP was downloaded and verified against SHA-256 and ZIP CRC. It conta
 SHA-256: `9bcb9baf9e7ff5af868b3e4f3d3158a72ce50f6537b6b0995137d6de175f7a02`.
 
 Actual ordinary Windows screenshots: [first launch](https://github.com/1atex/night-browser/releases/download/v0.3.0-preview.2/night-first-launch.png) and [Night settings](https://github.com/1atex/night-browser/releases/download/v0.3.0-preview.2/night-settings.png). These were visually inspected after downloading the published assets; they are not mockups or headless captures.
+
+## Night 0.4 motion and migration checks
+
+The 43 Node checks include session conversion, duplicate tab identities, workspace and pin migration, preference filtering and extension path relocation. `tests/native/motion.py` checks actual chrome animations during tab opening and workspace changes, waits for completion, then verifies zero idle animations and zero effects with either reduced-motion mode enabled.
+
+`tests/native/zen_import.py` builds a profile in the checksum-pinned Zen 1.24.2b Windows runtime and imports it into Night. It verifies an encrypted password, bookmark, cookies and site storage, a signed uBlock Origin installation and its extension-local storage, two tabs and two workspaces. The source directory is renamed before Night starts, proving that the imported profile does not depend on its former path. Source file hashes remain unchanged, and the previous Night profile remains in its backup. The test also checks rejection of a running source and a newer-engine profile.
+
+`tests/native/import-transaction.ps1` exercises incomplete staging, a locked Night profile, retained backups, and recovery from interruptions before and after the profile swap. Windows copying handles extended-length paths used by extension storage.
+
+The full Windows checks passed for source `81ba7e49edc269af767e3562f3fccf81f0f8e1fc` in [run 43382324509](https://github.com/1atex/night-browser/actions/runs/43382324509). The migration fixture copied 72 files and restored both tabs and both workspaces. The motion result recorded six active opening animations, two workspace-switch animations, and zero for idle, disabled and system-reduced modes. Ordinary Windows settings and the migration page were visually inspected from the downloaded test artifact.
