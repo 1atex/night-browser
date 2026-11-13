@@ -84,6 +84,7 @@ def run(package, zen, extension, output):
         instances.append(source_instance)
         browser = source_instance[0]
         wait_for(lambda: browser.execute_script(f'return !!{WIN}?.gZenWorkspaces?.workspaceEnabled;'), timeout=60)
+        browser.execute_script(f"const w={WIN};w.gBrowser.selectedTab=w.gBrowser.addTrustedTab(arguments[0]+'/original');",script_args=[url])
         browser.set_context('content')
         browser.navigate(url+'/original')
         browser.execute_script("document.cookie='night_fixture=cookie-value; Max-Age=86400; path=/'; localStorage.setItem('night-fixture','stored-value');")
@@ -105,6 +106,12 @@ def run(package, zen, extension, output):
           }})().then(done,e=>done({{error:String(e)}}));
         """, script_args=[url])
         assert 'error' not in result, result
+        browser.set_context('content')
+        wait_for(lambda: browser.get_url() == url+'/workspace')
+        browser.set_context('chrome')
+        source_tabs = browser.execute_script(f"return [...{WIN}.gBrowser.tabs].filter(t=>!t.hasAttribute('zen-empty-tab')).map(t=>({{url:t.linkedBrowser.currentURI.spec,workspace:t.getAttribute('zen-workspace-id')}}));")
+        assert sum(item['url'].startswith(url) for item in source_tabs) >= 2, source_tabs
+        (output/'zen-import-source-tabs.json').write_text(json.dumps(source_tabs,indent=2))
         Addons(browser).install(str(extension), temp=False)
         locked = subprocess.run([str(night/'Night.exe'), '--copy-zen', str(source), 'import-stage-'+'a'*32], timeout=30)
         assert locked.returncode != 0, 'Copy accepted an open Zen profile'
