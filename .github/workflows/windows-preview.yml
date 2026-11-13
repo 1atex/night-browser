@@ -1,0 +1,85 @@
+name: Windows preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["feature/night-workspace", main]
+    paths:
+      - "src/zen/night/**"
+      - "src/zen/common/ZenPreloadedScripts.js"
+      - "src/zen/common/modules/ZenStartup.mjs"
+      - "prefs/zen/night.yaml"
+      - "scripts/preview/**"
+      - "tests/native/**"
+      - ".github/workflows/windows-preview.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check Night modules
+        run: npm run test:night
+      - name: Install test dependencies
+        run: python -m pip install -r tests/native/requirements.txt
+      - name: Download pinned native runtime
+        run: |
+          $pin = Get-Content scripts/preview/runtime.json -Raw | ConvertFrom-Json
+          $installer = Join-Path $env:RUNNER_TEMP "zen-upstream.exe"
+          Invoke-WebRequest -Uri $pin.windows_x64.url -OutFile $installer
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLower() -ne $pin.windows_x64.sha256) {
+            throw "Upstream checksum mismatch"
+          }
+          7z x -y "-o$env:RUNNER_TEMP\zen-upstream" $installer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Assemble Night preview
+        run: |
+          python scripts/preview/package.py --runtime "$env:RUNNER_TEMP/zen-upstream/core" --output dist/Night --archive "$env:RUNNER_TEMP/zen-upstream.exe" --platform windows_x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          & $csc /nologo /target:winexe /platform:x64 /reference:System.Windows.Forms.dll /out:dist/Night/Night.exe scripts/preview/Launcher.cs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test packaged browser on Windows
+        run: |
+          New-Item -ItemType Directory -Force test-artifacts | Out-Null
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/smoke.py --binary "$output/runtime/zen.exe" --app-ini "$output/runtime/browser/application.ini" --preview --screenshot test-artifacts/preview.png --log test-artifacts/gecko.log 2>&1 | Tee-Object -FilePath test-artifacts/native-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test portable launcher
+        run: python -u tests/native/launcher.py --launcher dist/Night/Night.exe
+      - name: Create download archive
+        run: |
+          7z a -tzip dist/night-browser-0.1.0-preview-windows-x64.zip ./dist/Night
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $hash = (Get-FileHash dist/night-browser-0.1.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  night-browser-0.1.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+      - name: Upload Windows preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: night-browser-windows-x64-preview
+          path: |
+            dist/night-browser-0.1.0-preview-windows-x64.zip
+            dist/SHA256SUMS.txt
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-preview-tests
+          path: test-artifacts/
+          retention-days: 14

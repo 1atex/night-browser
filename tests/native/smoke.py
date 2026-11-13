@@ -1,8 +1,10 @@
 import argparse
+import base64
 import json
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from marionette_driver.marionette import Marionette
 
@@ -41,16 +43,36 @@ def wait_for(predicate, timeout=15):
     raise AssertionError("Timed out waiting for the browser")
 
 
-def run(binary, log):
+def run(binary, log, app_ini=None, preview=False, screenshot=None):
     server = ThreadingHTTPServer(("127.0.0.1", 0), EchoHandler)
     server.received = []
     server.paths = []
     threading.Thread(target=server.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{server.server_port}"
-    browser = Marionette(bin=binary, headless=True, gecko_log=log, startup_timeout=30)
+    browser = Marionette(bin=binary, headless=True, app_args=["-app", app_ini] if app_ini else [], gecko_log=log, startup_timeout=60)
     try:
         browser.start_session()
         browser.timeout.script = 20
+        if preview:
+            browser.set_context("chrome")
+            wait_for(lambda: browser.execute_script("return !!Services.wm.getMostRecentWindow('navigator:browser')?.gNightBrowser;"), timeout=45)
+            browser.set_window_rect(width=1280, height=900)
+            ui = browser.execute_script("""
+              const win = Services.wm.getMostRecentWindow("navigator:browser");
+              win.gNightBrowser.toggle();
+              const panel = win.document.getElementById("night-tools");
+              const button = win.document.getElementById("night-tools-button");
+              return {name: Services.appinfo.name, panel: panel.getBoundingClientRect().width > 250,
+                button: !!button, background: win.getComputedStyle(panel).backgroundColor,
+                updatesDisabled: !Services.policies.isAllowed("appUpdate"),
+                networkEnabled: Services.prefs.getBoolPref("night.network.enabled", false)};
+            """)
+            assert ui == {"name": "Night", "panel": True, "button": True, "background": "rgb(23, 23, 26)", "updatesDisabled": True, "networkEnabled": True}, ui
+            if screenshot:
+                Path(screenshot).write_bytes(base64.b64decode(browser.screenshot()))
+            browser.execute_script("Services.wm.getMostRecentWindow('navigator:browser').gNightBrowser.close();")
+            print("PASS: packaged Night startup, tools panel, graphite CSS and update policy", flush=True)
+            browser.set_context("content")
         browser.navigate(url)
         browser.set_context("chrome")
         browser.execute_script("""
@@ -172,5 +194,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--binary", required=True)
     parser.add_argument("--log", default="night-smoke.log")
+    parser.add_argument("--app-ini")
+    parser.add_argument("--preview", action="store_true")
+    parser.add_argument("--screenshot")
     options = parser.parse_args()
-    run(options.binary, options.log)
+    run(options.binary, options.log, options.app_ini, options.preview, options.screenshot)
