@@ -15,7 +15,7 @@ export function parseIni(text) {
 
 export function importPreferences(text) {
   const allowed =
-    /^(?:extensions\.(?:webextensions\.|[a-z0-9_-]+@)|browser\.(?:download\.|search\.|urlbar\.|zoom\.)|privacy\.(?:trackingprotection\.|userContext\.)|network\.cookie\.|permissions\.default\.|font\.|signon\.|dom\.security\.https_only_mode$|intl\.accept_languages$)/i;
+    /^(?:extensions\.(?:webextensions\.(?:uuids$|ExtensionStorageIDB\.migrated\.)|[a-z0-9_-]+@)|browser\.(?:download\.|search\.|urlbar\.|zoom\.)|privacy\.(?:trackingprotection\.|userContext\.)|network\.cookie\.|permissions\.default\.|font\.|signon\.|dom\.security\.https_only_mode$|intl\.accept_languages$)/i;
   const values = new Map();
   for (const line of text.split(/\r?\n/)) {
     const match = line.match(/^user_pref\(("(?:[^"\\]|\\.)*"),\s*(.+)\);\s*$/);

@@ -113,6 +113,18 @@ def run(package, zen, extension, output):
         assert sum(item['url'].startswith(url) for item in source_tabs) >= 2, source_tabs
         (output/'zen-import-source-tabs.json').write_text(json.dumps(source_tabs,indent=2))
         Addons(browser).install(str(extension), temp=False)
+        saved = browser.execute_async_script("""
+          const done=arguments[arguments.length-1];
+          (async()=>{
+            const {ExtensionParent}=ChromeUtils.importESModule('resource://gre/modules/ExtensionParent.sys.mjs');
+            const {ExtensionStorageIDB,ExtensionStorageLocalIDB}=ChromeUtils.importESModule('resource://gre/modules/ExtensionStorageIDB.sys.mjs');
+            const extension=ExtensionParent.GlobalManager.getExtension('uBlock0@raymondhill.net');
+            await ExtensionStorageIDB.selectBackend({extension});
+            const db=await ExtensionStorageLocalIDB.openForPrincipal(ExtensionStorageIDB.getStoragePrincipal(extension));
+            await db.set({'night-import-fixture':'addon-value'});db.close();return true;
+          })().then(done,e=>done({error:String(e)}));
+        """)
+        assert saved is True, saved
         locked = subprocess.run([str(night/'Night.exe'), '--copy-zen', str(source), 'import-stage-'+'a'*32], timeout=30)
         assert locked.returncode != 0, 'Copy accepted an open Zen profile'
         assert not (night/('import-stage-'+'a'*32)).exists()
@@ -162,12 +174,18 @@ def run(package, zen, extension, output):
             const bookmark=await PlacesUtils.bookmarks.fetch({{url:arguments[0]+'/bookmark'}});
             const logins=await Services.logins.getAllLogins();
             const addon=await AddonManager.getAddonByID('uBlock0@raymondhill.net');
+            const {{ExtensionParent}}=ChromeUtils.importESModule('resource://gre/modules/ExtensionParent.sys.mjs');
+            const {{ExtensionStorageIDB,ExtensionStorageLocalIDB}}=ChromeUtils.importESModule('resource://gre/modules/ExtensionStorageIDB.sys.mjs');
+            const extension=ExtensionParent.GlobalManager.getExtension('uBlock0@raymondhill.net');
+            const db=await ExtensionStorageLocalIDB.openForPrincipal(ExtensionStorageIDB.getStoragePrincipal(extension));
+            const stored=await db.get('night-import-fixture');db.close();
             const w={WIN};
-            return {{bookmark:bookmark?.title,login:logins.some(l=>l.username==='fixture-user'&&l.password==='fixture-password'),addon:!!addon?.isActive,spaces:w.gNightBrowser.shell.workspaces.items.map(x=>x.name),tabs:[...w.gBrowser.tabs].map(t=>t.linkedBrowser.currentURI.spec),zenStyle:Services.prefs.getBoolPref('toolkit.legacyUserProfileCustomizations.stylesheets',false),signatureRequired:Services.prefs.getBoolPref('xpinstall.signatures.required',true)}};
+            return {{bookmark:bookmark?.title,login:logins.some(l=>l.username==='fixture-user'&&l.password==='fixture-password'),addon:!!addon?.isActive,addonStorage:stored['night-import-fixture'],spaces:w.gNightBrowser.shell.workspaces.items.map(x=>x.name),tabs:[...w.gBrowser.tabs].map(t=>t.linkedBrowser.currentURI.spec),zenStyle:Services.prefs.getBoolPref('toolkit.legacyUserProfileCustomizations.stylesheets',false),signatureRequired:Services.prefs.getBoolPref('xpinstall.signatures.required',true)}};
           }})().then(done,e=>done({{error:String(e)}}));
         """, script_args=[url])
         assert state['bookmark'] == 'Night import bookmark', state
         assert state['login'] and state['addon'] and state['signatureRequired'], state
+        assert state['addonStorage'] == 'addon-value', state
         assert 'Night import work' in state['spaces'] and not state['zenStyle'], state
         imported.set_context('content')
         imported.navigate(url+'/restored')

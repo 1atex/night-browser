@@ -23,6 +23,8 @@ test("keeps extension identities and user data preferences while dropping shell,
     'user_pref("browser.uiCustomization.state", "zen-layout");',
     'user_pref("browser.bypassAutoTriggerActions", false);',
     'user_pref("xpinstall.signatures.required", false);',
+    'user_pref("extensions.webextensions.remote", false);',
+    'user_pref("extensions.webextensions.ExtensionStorageIDB.migrated.addon@example.test", true);',
     'user_pref("security.sandbox.content.level", 0);',
     'user_pref("zen.theme.accent-color", "red");',
     'user_pref("app.update.auto", true);',
@@ -31,6 +33,8 @@ test("keeps extension identities and user data preferences while dropping shell,
   ].join("\n");
   const result = importPreferences(source);
   assert.match(result, /extensions.webextensions.uuids/);
+  assert.match(result, /ExtensionStorageIDB.migrated.addon@example.test/);
+  assert.doesNotMatch(result, /extensions.webextensions.remote/);
   assert.match(result, /signon.rememberSignons", false/);
   assert.match(result, /browser.search.suggest.enabled", false/);
   assert.doesNotMatch(
