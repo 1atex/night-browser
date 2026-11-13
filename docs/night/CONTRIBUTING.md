@@ -24,7 +24,7 @@ python scripts/preview/package.py --runtime /path/to/firefox --archive /path/to/
 
 Output must be a new directory. Use a separate test profile. Changing JS/CSS only requires repackaging, not compiling Gecko. Packaging uses Python's standard library and records the Git revision in `BUILD.json`.
 
-On Windows, the workflow compiles `scripts/preview/Launcher.cs` with the .NET Framework C# compiler and the Night icon. It then runs native tests, the minimized-memory comparison and the portable launcher test from a Unicode path. See `.github/workflows/windows-preview.yml` for exact commands. No Mozilla signing credentials are needed for this portable preview; the launcher is currently unsigned.
+On Windows, `windows_brand.py` uses the resource update API to replace icon groups, string tables and version resources in `NightBrowser.exe`. It removes the original Authenticode certificate because the modified executable is no longer Mozilla-signed. The workflow compiles `scripts/preview/Launcher.cs` with the .NET Framework C# compiler and the Night icon. It then runs native tests, the minimized-memory comparison and the portable launcher test from a Unicode path. `first-launch.ps1` also starts an ordinary visible browser without automation environment flags, inspects Windows metadata/UI, captures screenshots and relaunches its shortcut. See `.github/workflows/windows-preview.yml` for exact commands. No Mozilla signing credentials are needed for this portable preview; the launcher is currently unsigned.
 
 ## Upstream updates
 

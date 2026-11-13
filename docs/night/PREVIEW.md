@@ -1,11 +1,13 @@
 # Windows preview
 
-Download the [tested Night 0.2 ZIP](https://github.com/1atex/night-browser/releases/download/v0.2.0-preview.1/night-browser-0.2.0-preview-windows-x64.zip), published by [Windows run 43369643347](https://github.com/1atex/night-browser/actions/runs/43369643347). Extract the entire `Night` folder into a writable location and run `Night.exe`. The launcher creates `profile` beside itself. Keep the whole folder together; use a fresh profile for 0.2.
+Use the Night 0.3 release ZIP or the successful `Windows preview` Actions artifact. Extract the entire `Night` directory into a writable location and run `Night.exe`. A local `Night.lnk` shortcut and a separate `profile` directory are created beside it.
 
-The dropdown changes workspaces. The plus beside it creates one. Right-click a tab for pinning, moving, muting and memory protection. Pins appear in every workspace. Alt+P searches tabs, Alt+B toggles the sidebar, Alt+S splits or separates pages. The footer buttons open split view, request tools, memory settings and browser settings.
+The Windows executable, icon, version resource, taskbar grouping and relaunch metadata identify Night. Pin the new Night window or use the new shortcut. A pin created for 0.2 still points at the old executable; remove that old pin yourself. Night does not alter pins belonging to other browsers.
 
-Memory defaults to ten idle minutes with YouTube excluded. Configure the timeout and domain exceptions in the memory panel. Active tabs, visible split panes, media/calls and interception remain loaded.
+The workspace selector is at the bottom of the sidebar. Pins are shared across workspaces. Right-click a tab for pinning, moving, muting and memory protection. Alt+P searches tabs, Alt+B toggles the sidebar, Alt+S splits or separates pages.
 
-The request panel captures only after clicking Start. It edits and forwards selected held requests or sends an explicit copy. Closing the panel cancels held requests. It is not a system proxy.
+Settings open as a page: appearance, tabs, memory, privacy, search and about. Palette, density and sidebar width apply immediately. The memory section has an inactivity timeout and domain exceptions; per-tab exceptions remain in the tab context menu. Advanced engine controls remain available through “Все параметры”.
 
-This preview uses pinned Firefox native binaries and Night's own browser chrome. Firefox executable metadata and some inherited dialogs remain upstream. The launcher is unsigned, no installer/default-browser integration is provided, and automatic updates are disabled. `BUILD.json` identifies Night and Firefox source revisions; the runtime's about:license retains dependency notices.
+The request workbench opens below the page. Capture starts explicitly and is scoped to a selected tab. Closing capture or the workbench cancels held requests. Night is not a system proxy.
+
+This portable preview is unsigned and has no automatic updater or default-browser installer. Gecko remains the official Firefox engine; Windows resources are changed to Night and the upstream certificate is removed from the modified EXE. Legal notices and exact upstream source references are retained in about:license, the Night about section and BUILD.json.

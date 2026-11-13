@@ -43,3 +43,11 @@ The [published raw memory result](https://github.com/1atex/night-browser/release
 | Night, after idle discard | 469.84 | 880.85 | 624.32 | 5 |
 
 The all-loaded private working sets were essentially equal in this run. The reduction comes from unloading inactive pages; this is not evidence of a faster renderer. The active tab and one manually protected tab remained loaded. Previous runs varied, so use the raw measurements and reproduce on the target machine before setting a product memory budget.
+
+## Night 0.3 identity and interface checks
+
+`tests/native/settings.py` exercises the actual settings page: live palette and density changes, memory timeout and domain persistence, all six sections, search-engine availability, a 980-pixel window and the advanced settings fallback.
+
+`tests/native/first-launch.ps1` launches Night normally from a clean portable directory, with no headless or Marionette flags. It verifies the native PE name/version and absence of the old executable and invalid upstream certificate; inspects the final browser window's AppUserModelID, relaunch command, display name and icon; checks the accessible first-run UI; captures the ordinary home/settings windows; then closes and relaunches through Night.lnk with the same profile. This validates the metadata Windows uses for pinning, not a simulation of the taskbar UI. Old user-created pins are not silently edited.
+
+The startup test refreshes the Process window handle after the temporary startup window is replaced. Capturing a stale startup handle is not a valid branding test.
