@@ -34,6 +34,7 @@ def run(binary, app_ini, output):
         browser.set_context('content')
         browser.execute_script("document.querySelector('[data-palette=graphite]').click();")
         browser.set_context('chrome')
+        browser.execute_async_script("const done=arguments[arguments.length-1];setTimeout(done,350);")
         (output / 'night-appearance.png').write_bytes(base64.b64decode(browser.screenshot()))
         browser.execute_script("Services.wm.getMostRecentWindow('navigator:browser').document.getElementById('night-tools-button').click();")
         browser.set_context('content')
@@ -48,11 +49,16 @@ def run(binary, app_ini, output):
         (output / 'night-network.png').write_bytes(base64.b64decode(browser.screenshot()))
         browser.execute_script("Services.wm.getMostRecentWindow('navigator:browser').gNightBrowser.close();")
         browser.set_context('content')
-        for section in ['tabs','privacy','search','about']:
+        for section in ['tabs','privacy','search','import','about']:
             browser.navigate('about:preferences#'+section)
             wait_for(lambda: browser.execute_script("return document.querySelectorAll('#content .card').length > 0;"))
             if section == 'search': wait_for(lambda: browser.execute_script("return document.querySelector('#search-engine')?.options.length > 0;"))
             assert browser.execute_script("return document.querySelector('#status').textContent;") == ''
+            if section == 'import':
+                browser.set_context('chrome')
+                browser.execute_async_script("const done=arguments[arguments.length-1];setTimeout(done,350);")
+                (output / 'night-import.png').write_bytes(base64.b64decode(browser.screenshot()))
+                browser.set_context('content')
         browser.navigate('about:preferences#appearance')
         wait_for(lambda: browser.execute_script("return !!document.querySelector('.theme-grid');"))
         browser.set_window_rect(width=980,height=760)
