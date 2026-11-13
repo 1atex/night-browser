@@ -81,3 +81,9 @@ The public 145,488,767-byte ZIP was downloaded and passed SHA-256 and ZIP CRC ve
 SHA-256: `24ac77f33fdab4459410b99777c9b70bf27a702bd6df91d4da9488fb1d06dae1`.
 
 Published evidence: [ordinary Windows settings](https://github.com/1atex/night-browser/releases/download/v0.4.0-preview.1/night-settings.png), [import page](https://github.com/1atex/night-browser/releases/download/v0.4.0-preview.1/night-import.png), [migration result](https://github.com/1atex/night-browser/releases/download/v0.4.0-preview.1/zen-import-result.json) and [motion result](https://github.com/1atex/night-browser/releases/download/v0.4.0-preview.1/motion.json). The ordinary settings screenshot was visually inspected after downloading the release.
+
+## Night 0.5 browser chrome checks
+
+`tests/native/chrome.py` checks the actual Gecko URL component's computed styles and the start-page search focus, rather than only checking stylesheet text. It loads a local HTTP site with a real favicon, changes its image, pins the tab and verifies rendered image loading. Night's internal tabs are checked separately.
+
+Real keyboard and pointer actions verify Ctrl+L, Escape, top-edge reveal, native address navigation and Alt+Shift+F. The test measures the content rectangle: focus mode must fill the complete browser window, and revealing the toolbar must not resize that rectangle. It opens a native menu while the toolbar is hidden, exercises an F11 round trip, checks both animation disabling modes and restarts the browser to verify the autohide preference. Ordinary Windows startup also captures focus mode and its revealed address bar without automation flags.

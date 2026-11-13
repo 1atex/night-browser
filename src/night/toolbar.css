@@ -122,6 +122,9 @@
 :root[night-toolbar-popup] #navigator-toolbox {
   transition: none !important;
 }
+:root[night-toolbar-auto]:not([night-motion]) #navigator-toolbox {
+  transition: none !important;
+}
 :root[night-toolbar-auto] #browser {
   padding-top: 8px;
 }
