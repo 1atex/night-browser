@@ -87,3 +87,13 @@ Published evidence: [ordinary Windows settings](https://github.com/1atex/night-b
 `tests/native/chrome.py` checks the actual Gecko URL component's computed styles and the start-page search focus, rather than only checking stylesheet text. It loads a local HTTP site with a real favicon, changes its image, pins the tab and verifies rendered image loading. Night's internal tabs are checked separately.
 
 Real keyboard and pointer actions verify Ctrl+L, Escape, top-edge reveal, native address navigation and Alt+Shift+F. The test measures the content rectangle: focus mode must fill the complete browser window, and revealing the toolbar must not resize that rectangle. It opens a native menu while the toolbar is hidden, exercises an F11 round trip, checks both animation disabling modes and restarts the browser to verify the autohide preference. Ordinary Windows startup also captures focus mode and its revealed address bar without automation flags.
+
+## Published 0.5 result
+
+Windows release [v0.5.0-preview.1](https://github.com/1atex/night-browser/releases/tag/v0.5.0-preview.1), source `eb679fe416922a2dece665840a6e29919dd2df8c`, passed all 43 Node checks and the native runtime checks in [run 43387116867](https://github.com/1atex/night-browser/actions/runs/43387116867). The new chrome checks passed on Windows and Linux. The release also passed the existing real-Zen migration, transaction recovery, request tools, settings, motion, session restoration, memory and ordinary Windows launcher/identity checks.
+
+The public ZIP was downloaded and passed SHA-256 and ZIP CRC verification: 145,496,542 bytes, 108 entries, product version 0.5.0 and application BuildID `20261113073334`. It contains the expected native executables/configuration, toolbar and import modules, final reduced-motion styles and Night preferences, with no pre-created profile, old firefox.exe or Zen test installer.
+
+SHA-256: `662c69cea23b6b68d954181bcc2fd67a27f919dabd1ed71447dd356725318352`.
+
+Published evidence: [first launch](https://github.com/1atex/night-browser/releases/download/v0.5.0-preview.1/night-first-launch.png), [focus mode](https://github.com/1atex/night-browser/releases/download/v0.5.0-preview.1/night-focus.png), [address overlay](https://github.com/1atex/night-browser/releases/download/v0.5.0-preview.1/night-address.png) and [chrome checks](https://github.com/1atex/night-browser/releases/download/v0.5.0-preview.1/chrome-result.json). Ordinary focus-mode/overlay captures were visually inspected from the Windows artifact, and first launch was inspected again from the public release.
