@@ -1,6 +1,6 @@
 # Windows preview
 
-Download the Night 0.2 ZIP from Releases or the successful `Windows preview` Actions artifact. Extract the entire `Night` folder into a writable location and run `Night.exe`. The launcher creates `profile` beside itself. Keep the whole folder together; use a fresh profile for 0.2.
+Download the [tested Night 0.2 ZIP](https://github.com/1atex/night-browser/releases/download/v0.2.0-preview.1/night-browser-0.2.0-preview-windows-x64.zip), published by [Windows run 43369643347](https://github.com/1atex/night-browser/actions/runs/43369643347). Extract the entire `Night` folder into a writable location and run `Night.exe`. The launcher creates `profile` beside itself. Keep the whole folder together; use a fresh profile for 0.2.
 
 The dropdown changes workspaces. The plus beside it creates one. Right-click a tab for pinning, moving, muting and memory protection. Pins appear in every workspace. Alt+P searches tabs, Alt+B toggles the sidebar, Alt+S splits or separates pages. The footer buttons open split view, request tools, memory settings and browser settings.
 

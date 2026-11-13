@@ -16,6 +16,8 @@ Night 0.2 использует Mozilla Firefox напрямую. Код обол
 
 ## Запуск и разработка
 
+[Скачать Night 0.2 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.2.0-preview.1/night-browser-0.2.0-preview-windows-x64.zip) · [Релиз и контрольная сумма](https://github.com/1atex/night-browser/releases/tag/v0.2.0-preview.1)
+
 Windows ZIP выпускается через [GitHub Actions](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml). Распаковать всю папку и запустить `Night.exe`; профиль создаётся рядом в `profile`. Не переносить профиль из прототипа 0.1.
 
 [Инструкция по сборке](docs/night/CONTRIBUTING.md) · [Проверки](docs/night/VALIDATION.md) · [Архитектура](docs/night/PRODUCT.md)
