@@ -20,6 +20,11 @@ def run(binary, app_ini, output):
     threading.Thread(target=server.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{server.server_port}"
     browser = Marionette(bin=binary, headless=True, app_args=["-app", app_ini], gecko_log=str(output / "product-gecko.log"), startup_timeout=60)
+
+    def click_toolbar(element_id):
+        rect = browser.execute_script(f"return {WIN}.document.getElementById(arguments[0]).getBoundingClientRect().toJSON();", script_args=[element_id])
+        browser.actions.sequence('pointer', 'extension-mouse').pointer_move(x=round(rect['x']+rect['width']/2), y=round(rect['y']+rect['height']/2), origin='viewport').pointer_down(button=0).pointer_up(button=0).perform()
+
     try:
         browser.start_session()
         browser.timeout.script = 30
@@ -43,13 +48,27 @@ def run(binary, app_ini, output):
         with tempfile.TemporaryDirectory() as directory:
             extension = Path(directory) / "compatibility.xpi"
             with zipfile.ZipFile(extension, "w") as archive:
-                archive.writestr("manifest.json", json.dumps({"manifest_version": 2, "name": "Night compatibility test", "version": "1.0", "browser_specific_settings": {"gecko": {"id": "compatibility@night.test", "strict_min_version": "128.0"}}, "content_scripts": [{"matches": ["http://127.0.0.1/*"], "js": ["content.js"]}]}))
+                archive.writestr("manifest.json", json.dumps({"manifest_version": 2, "name": "Night compatibility test", "version": "1.0", "browser_specific_settings": {"gecko": {"id": "compatibility@night.test", "strict_min_version": "128.0"}}, "content_scripts": [{"matches": ["http://127.0.0.1/*"], "js": ["content.js"]}], "browser_action": {"default_popup": "popup.html", "default_title": "Compatibility action", "default_icon": "icon.png"}, "background": {"scripts": ["background.js"]}}))
                 archive.writestr("content.js", "document.documentElement.setAttribute('data-night-extension', 'running');")
+                archive.writestr("background.js", "browser.browserAction.setBadgeText({text:'3'});")
+                archive.writestr("popup.html", '<!doctype html><meta charset="utf-8"><title>Extension popup</title><body style="width:180px;height:80px">Extension action is available</body>')
+                archive.writestr("icon.png", (Path(__file__).resolve().parents[2] / 'src/night/branding/icon32.png').read_bytes())
             addon = Addons(browser).install(str(extension), temp=True)
             browser.refresh()
             wait_for(lambda: browser.execute_script("return document.documentElement.getAttribute('data-night-extension') === 'running';"))
+            browser.set_context('chrome')
+            browser.execute_script("const {CustomizableUI}=ChromeUtils.importESModule('moz-src:///browser/components/customizableui/CustomizableUI.sys.mjs');CustomizableUI.addWidgetToArea('compatibility_night_test-browser-action',CustomizableUI.AREA_NAVBAR);")
+            wait_for(lambda: browser.execute_script(f"const b={WIN}.document.getElementById('compatibility_night_test-browser-action');return b?.getBoundingClientRect().width>0&&b.querySelector('.toolbarbutton-badge')?.textContent==='3';"))
+            click_toolbar('compatibility_night_test-browser-action')
+            wait_for(lambda: browser.execute_script(f"return [...{WIN}.document.querySelectorAll('panel')].some(p=>p.state==='open'&&p.querySelector('browser.webextension-popup-browser'));"))
+            browser.execute_script(f"for(const p of {WIN}.document.querySelectorAll('panel'))if(p.state==='open'&&p.querySelector('browser.webextension-popup-browser'))p.hidePopup();")
+            wait_for(lambda: browser.execute_script(f"return ![...{WIN}.document.querySelectorAll('panel')].some(p=>p.state==='open'&&p.querySelector('browser.webextension-popup-browser'));"))
+            browser.execute_script("const {CustomizableUI}=ChromeUtils.importESModule('moz-src:///browser/components/customizableui/CustomizableUI.sys.mjs');CustomizableUI.addWidgetToArea('compatibility_night_test-browser-action',CustomizableUI.AREA_ADDONS);")
+            click_toolbar('unified-extensions-button')
+            wait_for(lambda: browser.execute_script(f"return {WIN}.document.getElementById('unified-extensions-panel').state==='open';"))
+            browser.execute_script(f"{WIN}.document.getElementById('unified-extensions-panel').hidePopup();")
             Addons(browser).uninstall(addon)
-        print("PASS: Firefox WebExtension loads and runs with normal Gecko version compatibility", flush=True)
+        print("PASS: Firefox WebExtension content script, pinned action, badge, popup and extensions menu", flush=True)
         browser.set_context("chrome")
         state = browser.execute_script(f"""
           const w = {WIN}, b = w.gBrowser, s = w.gNightBrowser.shell;

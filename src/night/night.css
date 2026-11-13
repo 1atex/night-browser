@@ -1,5 +1,6 @@
 @import url("chrome://browser/content/night/shell.css");
 @import url("chrome://browser/content/night/toolbar.css");
+@import url("chrome://browser/content/night/menu.css");
 :root[night-browser] {
   color-scheme: dark;
   --toolbar-color: #dedfe7;

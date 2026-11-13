@@ -1,3 +1,58 @@
+:root[night-browser] #nav-bar {
+  --toolbarbutton-inner-padding: 8px;
+  --toolbarbutton-border-radius: 9px;
+  --toolbarbutton-hover-background: #c3ccd910;
+  --toolbarbutton-active-background: #c3ccd91c;
+  --toolbarbutton-icon-fill: #b6becd;
+  --toolbarbutton-icon-fill-attention: #d5e2f5;
+  padding: 7px 10px;
+  min-height: 48px;
+}
+:root[night-browser]:not([customizing]) #nav-bar-customization-target > toolbarspring {
+  display: none;
+}
+:root[night-browser] #urlbar-container {
+  margin-inline: 14px 18px;
+}
+:root[night-browser] #nav-bar .toolbarbutton-1 {
+  padding-inline: 1px;
+}
+:root[night-browser] #nav-bar .toolbarbutton-1 > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
+  border-radius: 9px;
+}
+:root[night-browser] #nav-bar .toolbarbutton-1:not([disabled]):is(:hover, [open], [checked]) > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
+  background-color: #c3ccd914 !important;
+}
+:root[night-browser] #back-button {
+  list-style-image: url("chrome://browser/content/night/icons/back.svg") !important;
+}
+:root[night-browser] #forward-button {
+  list-style-image: url("chrome://browser/content/night/icons/forward.svg") !important;
+}
+:root[night-browser] #reload-button {
+  list-style-image: url("chrome://browser/content/night/icons/reload.svg") !important;
+}
+:root[night-browser] #stop-button {
+  list-style-image: url("chrome://browser/content/night/icons/close.svg") !important;
+}
+:root[night-browser] #unified-extensions-button {
+  list-style-image: url("chrome://browser/content/night/icons/extensions.svg") !important;
+}
+:root[night-browser] #downloads-indicator-anchor {
+  list-style-image: url("chrome://browser/content/night/icons/download-toolbar.svg");
+}
+:root[night-browser] #night-sidebar-toggle .toolbarbutton-text {
+  box-sizing: content-box;
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  padding: 8px;
+  border-radius: 9px;
+  background-size: 16px;
+}
+:root[night-browser] #night-sidebar-toggle:hover .toolbarbutton-text {
+  background-color: #c3ccd910;
+}
 :root[night-browser] #urlbar {
   --urlbar-background-color: color-mix(in srgb, var(--night-background), white 4%);
   --urlbar-background-color-focus: var(--night-surface);
@@ -5,7 +60,7 @@
   --urlbar-background-border-radius: 11px;
   --urlbar-background-border-top-radius-open: 11px;
   --urlbar-background-border: 1px solid #ffffff0e;
-  --urlbar-background-border-focused: 1px solid #c3ccd93d;
+  --urlbar-background-border-focused: 1px solid #c3ccd92b;
   --urlbar-background-border-open: 1px solid #c3ccd92b;
   --urlbar-background-outline-focused: none;
   --urlbar-input-container-outline-open: none;
@@ -20,12 +75,25 @@
   --urlbar-box-background-color-focus: #c3ccd90c;
   --urlbar-box-background-color-hover: #c3ccd914;
   --urlbar-box-background-color-active: #c3ccd922;
-  --urlbarView-highlight-background: #c3ccd914;
-  --urlbarView-highlight-color: #f0f1f5;
+  --urlbarview-background-color-selected: #c3ccd910;
+  --urlbarview-background-color-hover: #c3ccd90a;
+  --urlbarview-text-color-selected: #f0f1f5;
+  --urlbarview-text-color-hover: #e0e3eb;
+  --urlbarview-text-color-secondary: #a3adbf;
+  --urlbarview-text-color-action: #a3adbf;
+  --urlbarview-separator-color: #ffffff0b;
+  --urlbarview-row-min-height: 40px;
+  --urlbarview-row-padding-block: 8px;
+  --urlbarview-row-padding-inline: 10px;
+  --urlbarview-row-gutter: 2px;
+  --urlbarview-row-border-radius: 9px;
+  --urlbarview-results-padding: 8px;
   font: 12px "Segoe UI", system-ui, sans-serif;
 }
 :root[night-browser] #urlbar .urlbar-background {
   outline: none !important;
+  border-radius: 11px !important;
+  clip-path: none !important;
 }
 :root[night-browser] #urlbar .urlbar-input-container {
   outline: none !important;
@@ -37,6 +105,10 @@
 :root[night-browser] #urlbar-input::placeholder {
   color: #979eac;
   opacity: 1;
+}
+:root[night-browser] #urlbar-input::selection {
+  background: #b6c6df38;
+  color: #f0f1f5;
 }
 :root[night-browser] #urlbar .searchmode-switcher {
   --button-border-radius: 7px;
@@ -51,9 +123,62 @@
 :root[night-browser] #urlbar .urlbarView-row-inner {
   border-radius: 8px;
 }
-:root[night-browser] #urlbar .urlbarView-row[selected] .urlbarView-row-inner {
-  background: #c3ccd914;
-  color: #f0f1f5;
+:root[night-browser] #urlbar .urlbarView {
+  margin: 8px 0 0;
+  padding: 5px;
+  width: auto;
+  border: 1px solid #ffffff15;
+  border-radius: 13px;
+  background: var(--night-surface);
+  box-shadow: 0 14px 36px #0005;
+  overflow-clip-margin: 0;
+}
+:root[night-browser] #urlbar .urlbarView-background {
+  display: none;
+}
+:root[night-browser] #urlbar .urlbarView-results {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+}
+:root[night-browser] #urlbar .urlbarView-row {
+  border-radius: 9px;
+}
+:root[night-browser] #urlbar .urlbarView-title {
+  font-weight: 400;
+}
+:root[night-browser] #urlbar .urlbarView-row[selected] .urlbarView-title {
+  font-weight: 500;
+}
+:root[night-browser] #urlbar .urlbarView-action {
+  font-size: 11px;
+}
+:root[night-browser] #unified-extensions-panel,
+:root[night-browser] #downloadsPanel {
+  --panel-border-radius: 14px;
+  --panel-padding: 8px;
+  --panel-shadow: 0 16px 48px #0006;
+  --arrowpanel-menuitem-border-radius: 8px;
+  --arrowpanel-menuitem-padding: 9px;
+  font: 12px "Segoe UI", system-ui, sans-serif;
+}
+:root[night-browser] #unified-extensions-panel .unified-extensions-item {
+  border-radius: 9px;
+  margin-block: 3px;
+}
+:root[night-browser] #unified-extensions-panel .unified-extensions-item-name {
+  font-size: 12px;
+  font-weight: 500;
+}
+:root[night-browser] #unified-extensions-panel .unified-extensions-item-message {
+  font-size: 11px;
+  color: #a3adbf;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[night-motion] #nav-bar .toolbarbutton-1 > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
+    transition: background-color 120ms ease;
+  }
 }
 #night-focus-button {
   width: 28px;

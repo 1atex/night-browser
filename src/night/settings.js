@@ -641,7 +641,7 @@ window.addEventListener(
           height: "72",
         }),
         element("h2", "Night Browser"),
-        element("p", "0.5.1 · Preview"),
+        element("p", "0.5.2 · Preview"),
       );
       info.append(identity);
       row(

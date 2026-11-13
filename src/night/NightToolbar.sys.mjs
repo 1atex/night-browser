@@ -1,3 +1,5 @@
+import { NightMenu } from "resource:///modules/night/NightMenu.sys.mjs";
+
 const XHTML = "http://www.w3.org/1999/xhtml";
 
 export class NightToolbar {
@@ -10,6 +12,7 @@ export class NightToolbar {
   #inside = false;
   #popups = new Set();
   #focus = false;
+  #menu;
 
   constructor(window) {
     this.#window = window;
@@ -37,6 +40,7 @@ export class NightToolbar {
       attributeFilter: ["inFullscreen", "inDOMFullscreen", "customizing"],
     });
     Services.prefs.addObserver("night.ui.toolbar-autohide", this);
+    this.#menu = new NightMenu(window, this);
     this.observe();
   }
 
@@ -148,6 +152,7 @@ export class NightToolbar {
   }
 
   destroy() {
+    this.#menu.destroy();
     this.#window.clearTimeout(this.#timer);
     this.#observer.disconnect();
     Services.prefs.removeObserver("night.ui.toolbar-autohide", this);

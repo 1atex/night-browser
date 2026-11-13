@@ -19,3 +19,5 @@ Transitions last 115–230 ms and run on interaction. Tab opening/closing, works
 ## Interface identity
 
 The 0.5.1 interface keeps the product identity in the about page, native Windows metadata and native internal-page identity indicators. Daily browsing surfaces use functional names: “Новая вкладка”, “Настройки” and “Запросы”. The sidebar and start page have no wordmark, product slogan or persistent release badge. Internal tabs use purpose-specific icons; website favicons are unchanged. Settings descriptions explain controls rather than advertise the product. Version and license information remain accessible in “О браузере”.
+
+Night 0.5.2 provides an original main-menu component and navigation glyphs. Menu actions call the engine's existing window, library, zoom, find, printing and DevTools APIs. Address suggestions keep Gecko's data and navigation behavior but use an independently styled surface. Extension icons, permission text, badges and popup contents remain owned by their extensions; browser-owned controls share Night's spacing and hover states. No Zen menu or icon assets are included.
