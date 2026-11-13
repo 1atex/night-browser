@@ -50,7 +50,9 @@ jobs:
           python scripts/preview/package.py --runtime "$env:RUNNER_TEMP/zen-upstream/core" --output dist/Night --archive "$env:RUNNER_TEMP/zen-upstream.exe" --platform windows_x64
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
-          & $csc /nologo /target:winexe /platform:x64 /reference:System.Windows.Forms.dll /out:dist/Night/Night.exe scripts/preview/Launcher.cs
+          $source = (Resolve-Path scripts/preview/Launcher.cs).Path
+          $executable = Join-Path (Resolve-Path dist/Night).Path "Night.exe"
+          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll "/out:$executable" $source
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test packaged browser on Windows
         run: |

@@ -48,7 +48,7 @@ def package(runtime, output, archive, platform):
                  '<script type="text/javascript" src="chrome://browser/content/ZenPreloadedScripts.js"></script>')
     replace_once(toolkit, "moz-src/browser/components/tabbrowser/TabUnloader.sys.mjs",
                  "tab.undiscardable || tab.selected || tab.zenModeActive",
-                 "tab.undiscardable || tab.selected || tab.linkedBrowser?.zenModeActive || tab.ownerGlobal?.gNightBrowser?.memory.shouldKeepLoaded(tab)")
+                 "tab.undiscardable || tab.selected || tab.linkedBrowser?.zenModeActive || tab.ownerDocument?.defaultView?.gNightBrowser?.memory.shouldKeepLoaded(tab)")
     for name, data in list(browser.items()):
         if name.endswith("/branding/brand.ftl") or name.endswith("/branding/brand.properties"):
             text = data.decode("utf-8")

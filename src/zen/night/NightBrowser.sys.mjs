@@ -369,7 +369,7 @@ export const NightBrowser = {
         label: "Night",
         tooltiptext: "Night — память и запросы",
         onCommand(event) {
-          event.target.ownerGlobal.gNightBrowser.toggle();
+          event.target.ownerDocument.defaultView.gNightBrowser.toggle();
         },
       });
       widgetRegistered = true;
