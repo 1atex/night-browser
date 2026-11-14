@@ -217,15 +217,21 @@ export class NightWorkspaces {
     this.switchTo(this.active);
   }
 
+  nextOpenTab(closing, excluded = []) {
+    const skip = new Set([closing, ...excluded]);
+    return this.tabs.filter(tab => !skip.has(tab) && !tab.hidden && !tab.hasAttribute("pending") && !tab.hasAttribute("discarded"))
+      .sort((a, b) => b.lastAccessed - a.lastAccessed)[0] ?? null;
+  }
+
   newTab(url = "about:newtab") {
     const tab = this.#window.gBrowser.addTrustedTab(url);
     SessionStore.setCustomTabValue(tab, KEY, this.active);
     this.#window.gBrowser.selectedTab = tab;
-    if (url === "about:newtab") this.#window.gURLBar.focus();
+    if (url === "about:newtab") this.#window.gURLBar.select();
     return tab;
   }
 
-  switchTo(id) {
+  switchTo(id, requested = null) {
     if (this.#switching || !this.items.some(item => item.id === id)) return;
     this.#switching = true;
     const browser = this.#window.gBrowser;
@@ -233,10 +239,10 @@ export class NightWorkspaces {
       const previous = browser.selectedTab;
       if (previous && !previous.pinned && this.workspaceOf(previous) === this.active) this.#last.set(this.active, previous);
       this.active = id;
-      const candidates = this.tabs;
-      let selected = this.#last.get(id);
-      if (!candidates.includes(selected)) selected = candidates.find(tab => !tab.pinned);
-      if (!selected && previous?.pinned) selected = previous;
+      const candidates = this.tabs.filter(tab => !tab.hasAttribute("pending") && !tab.hasAttribute("discarded"));
+      let selected = this.tabs.includes(requested) ? requested : this.#last.get(id);
+      if (selected !== requested && !candidates.includes(selected)) selected = candidates.find(tab => !tab.pinned);
+      if (!selected && previous?.pinned && candidates.includes(previous)) selected = previous;
       if (!selected) selected = this.newTab();
       for (const tab of this.tabs) browser.showTab(tab);
       browser.selectedTab = selected;
@@ -258,7 +264,7 @@ export class NightWorkspaces {
       const tab = event.target;
       if (!tab.pinned && this.workspaceOf(tab) !== this.active) {
         this.#last.set(this.workspaceOf(tab), tab);
-        this.switchTo(this.workspaceOf(tab));
+        this.switchTo(this.workspaceOf(tab), tab);
       }
     } else if (event.type === "TabOpen") {
       this.workspaceOf(event.target);

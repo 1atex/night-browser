@@ -11,7 +11,7 @@ ChromeUtils.registerWindowActor("NightStart", {
   parent: { esModuleURI: "resource:///modules/night/NightStartParent.sys.mjs" },
   child: {
     esModuleURI: "resource:///modules/night/NightStartChild.sys.mjs",
-    events: { DOMContentLoaded: {} },
+    events: { DOMContentLoaded: {}, submit: {capture: true} },
   },
   matches: ["about:home", "about:newtab"],
 });

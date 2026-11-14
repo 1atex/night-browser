@@ -52,7 +52,7 @@ def run(binary, app_ini, island, output):
     unrelated = root/'unrelated.exe'
     shutil.copy2(island, duplicate);shutil.copy2(island, unrelated)
     config = root/'NightIsland';config.mkdir()
-    (config/'settings.json').write_text(json.dumps({'browser_downloads': True, 'weather': False, 'update_check': False, 'activity_track': False, 'capture_self_hidden': False, 'capture_hidden': False, 'character': 'none', 'game_mode': False, 'open_delay_ms': 1000}))
+    (config/'settings.json').write_text(json.dumps({'browser_downloads': True, 'weather': False, 'update_check': False, 'activity_track': False, 'capture_self_hidden': False, 'capture_hidden': False, 'character': 'none', 'game_mode': False, 'open_delay_ms': 1000, 'panel_hue': 212, 'panel_sat': 0.9, 'panel_val': 0.12, 'island_animations': False}))
     env = os.environ | {'APPDATA': str(root), 'NI_INSTANCE': root.name, 'NI_DEBUG_TAB': 'Downloads', 'NI_BROWSER_TEST_OUTPUT': str(report)}
     server = ThreadingHTTPServer(('127.0.0.1', 0), Site)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -112,6 +112,16 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         wait_for(lambda: chrome('return NightIsland.status === "connected";'),timeout=45)
         wait_for(lambda: state()['state']['connected'])
         assert chrome('return NightIsland.reason === "" && NightIsland.errorCode === 0;')
+        wait_for(lambda: chrome('return !!NightIsland.appearance;'))
+        assert chrome('return NightIsland.capabilities.has("show-downloads") && w.document.documentElement.getAttribute("data-island-motion") === "false";')
+        assert chrome('return w.document.documentElement.style.getPropertyValue("--night-background") === `rgb(${NightIsland.appearance.panel.join(", ")})`;')
+        chrome('Services.prefs.setBoolPref("night.island.appearance",false);')
+        assert chrome('return !w.document.documentElement.style.getPropertyValue("--night-background");')
+        chrome('Services.prefs.setBoolPref("night.island.appearance",true);')
+        assert chrome('return !w.document.getElementById("night-island-pill").hidden;')
+        chrome('Services.prefs.setBoolPref("night.island.indicator",false);')
+        assert chrome('return w.document.getElementById("night-island-pill").hidden;')
+        chrome('Services.prefs.setBoolPref("night.island.indicator",true);')
         browser.set_context('content')
         wait_for(lambda: browser.execute_script("return document.getElementById('island-status')?.textContent === 'Island подключён';"))
         assert browser.execute_script("return document.getElementById('island-retry').hidden && document.getElementById('island-setup').hidden;")
@@ -148,6 +158,18 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         time.sleep(0.8)
         click_rect(state()['pin'])
         snapshot('night-island-active.png')
+        assert chrome('return w.document.getElementById("night-island-pill").textContent.includes("sample.zip");')
+        click_rect(state()['pin'])
+        user32.SetCursorPos(10,800)
+        settled.update(rect=None,since=time.monotonic())
+        wait_for(collapsed_settled)
+        browser.set_context('chrome')
+        browser.find_element('id','night-island-pill').click()
+        wait_for(lambda: state().get('expanded') and state().get('tab') == 'Downloads')
+        time.sleep(0.8)
+        click_rect(state()['pin'])
+        browser.set_context('chrome')
+        (output/'night-island-browser-pill.png').write_bytes(base64.b64decode(browser.screenshot()))
         chrome('''w.integrationSend=NightIsland.send;NightIsland.send=function(text){
           const frame=JSON.parse(text);if(frame.type==='result')w.setTimeout(()=>w.integrationSend.call(this,text),1600);
           else w.integrationSend.call(this,text);
@@ -193,7 +215,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         time.sleep(0.5)
         assert not state()['state']['error']
         assert chrome('return w.integrationDownloads["sample.zip"].succeeded;')
-        (output/'island-result.json').write_text(json.dumps({'real_island':True,'versioned_handshake':True,'download_progress':True,'native_pointer_pause_resume_cancel':True,'private_excluded':True,'disable_disconnects':True,'reconnect_after_restart':True,'complete_reveal':True,'pending_prevents_repeat':True,'connection_settings':True,'manual_reconnect':True,'indicator_opens_downloads':True,'numbered_executable_connects':True,'unrelated_executable_rejected':True,'enable_from_settings':True,'connection_failure_reason':True}))
+        (output/'island-result.json').write_text(json.dumps({'real_island':True,'versioned_handshake':True,'download_progress':True,'native_pointer_pause_resume_cancel':True,'private_excluded':True,'disable_disconnects':True,'reconnect_after_restart':True,'complete_reveal':True,'pending_prevents_repeat':True,'connection_settings':True,'manual_reconnect':True,'indicator_opens_downloads':True,'numbered_executable_connects':True,'unrelated_executable_rejected':True,'enable_from_settings':True,'connection_failure_reason':True,'browser_pill_opens_island':True,'shared_appearance':True,'appearance_can_be_disabled':True,'indicator_can_be_hidden':True}))
         print('PASS: actual Island pipe, native buttons, private exclusion, disconnect/reconnect and download lifecycle')
     finally:
         if not (output/'island-result.json').exists():

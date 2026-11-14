@@ -2,6 +2,7 @@ importScripts("resource://gre/modules/subprocess/subprocess_shared.js", "resourc
 
 const kernel = ctypes.open("kernel32.dll");
 const security = ctypes.open("advapi32.dll");
+const user = ctypes.open("user32.dll");
 const BOOL = ctypes.int32_t, DWORD = ctypes.uint32_t, HANDLE = ctypes.voidptr_t;
 const declare = (library, name, result, ...args) => library.declare(name, ctypes.winapi_abi, result, ...args);
 const processId = declare(kernel, "GetNamedPipeServerProcessId", BOOL, HANDLE, DWORD.ptr);
@@ -11,6 +12,8 @@ const openToken = declare(security, "OpenProcessToken", BOOL, HANDLE, DWORD, HAN
 const tokenInformation = declare(security, "GetTokenInformation", BOOL, HANDLE, DWORD, ctypes.voidptr_t, DWORD, DWORD.ptr);
 const convertSid = declare(security, "ConvertSidToStringSidW", BOOL, ctypes.voidptr_t, ctypes.jschar.ptr.ptr);
 const localFree = declare(kernel, "LocalFree", HANDLE, HANDLE);
+const allowForeground = declare(user, "AllowSetForegroundWindow", BOOL, DWORD);
+let peerId = 0;
 let port = null, pipe = null, running = true, wakeCount = 0, polling = false;
 let input = "", readPending = false, writePending = false, writeBuffer = null;
 const readOverlapped = win32.OVERLAPPED(), writeOverlapped = win32.OVERLAPPED();
@@ -50,6 +53,7 @@ function verifyPeer(expectedSid) {
     if (sid(process) !== expectedSid) throw failure("peer-identity");
     const name = path.readString().split("\\").pop();
     if (!/^night-island(?: \([1-9]\d{0,5}\))?\.exe$/i.test(name)) throw failure("peer-name");
+    peerId = pid.value;
   } finally { libc.CloseHandle(process); }
 }
 
@@ -134,6 +138,7 @@ self.onmessage = ({data}) => {
       if (!polling && running) { polling = true; setTimeout(loop, 0); }
     } else if (data.type === "send" && running) {
       if (typeof data.text !== "string" || data.text.length > 32768 || queue.length >= 16) return shutdown("protocol");
+      if (data.activate && peerId) allowForeground(peerId);
       queue.push(data.text);
       write();
     } else if (data.type === "close") shutdown();

@@ -2,6 +2,8 @@ import { Downloads } from "resource://gre/modules/Downloads.sys.mjs";
 import { setTimeout, clearTimeout } from "resource://gre/modules/Timer.sys.mjs";
 import { MAX_DOWNLOADS, MAX_FRAME, downloadItem, allowedActions, validCommand } from "resource:///modules/night/IslandDownloads.mjs";
 
+import {validAppearance} from "resource:///modules/night/IslandAppearance.mjs";
+
 export const NightIsland = {
   initialized: false,
   enabled: false,
@@ -20,6 +22,9 @@ export const NightIsland = {
   generation: 0,
   retryDelay: 1000,
   ready: false,
+  capabilities: new Set(),
+  appearance: null,
+  lastOpen: 0,
   lastSnapshot: "",
   connectionTimer: null,
 
@@ -97,6 +102,7 @@ export const NightIsland = {
     const text = JSON.stringify({v: 1, type: "downloads", items});
     if (text === this.lastSnapshot) return;
     this.lastSnapshot = text;
+    Services.obs.notifyObservers(null, "night-island-downloads");
     this.send(text);
   },
 
@@ -124,7 +130,7 @@ export const NightIsland = {
       }
       if (this.worker !== worker) return;
       if (message.type === "connected") {
-        this.send(JSON.stringify({v: 1, type: "hello", capabilities: ["downloads"]}));
+        this.send(JSON.stringify({v: 1, type: "hello", capabilities: ["downloads", "show-downloads", "appearance"]}));
       } else if (message.type === "frame") {
         try { this.receive(JSON.parse(message.text)); } catch { this.disconnected("protocol"); }
       }
@@ -144,9 +150,22 @@ export const NightIsland = {
     libc.PostQueuedCompletionStatus(this.port, 0, 1, win32.OVERLAPPED.ptr(0));
   },
 
-  send(text) {
+  send(text, activate = false) {
     if (new TextEncoder().encode(text).length >= MAX_FRAME) return;
-    this.post({type: "send", text: text + "\n"});
+    this.post({type: "send", text: text + "\n", activate});
+  },
+
+  openDownloads() {
+    if (!this.ready || !this.capabilities.has("show-downloads")) return false;
+    if (Date.now() - this.lastOpen >= 500) {
+      this.lastOpen = Date.now();
+      this.send(JSON.stringify({v: 1, type: "show", panel: "downloads"}), true);
+    }
+    return true;
+  },
+
+  get sharedAppearance() {
+    return this.enabled && Services.prefs.getBoolPref("night.island.appearance", true) ? this.appearance : null;
   },
 
   receive(message) {
@@ -156,11 +175,19 @@ export const NightIsland = {
       }
       clearTimeout(this.connectionTimer);
       this.ready = true;
+      this.capabilities = new Set(message.capabilities);
       this.retryDelay = 1000;
       this.lastSnapshot = "";
       this.seen.clear();
       this.setStatus("connected");
       this.snapshot();
+      return;
+    }
+    if (this.capabilities.has("appearance") && validAppearance(message)) {
+      if (JSON.stringify(this.appearance) !== JSON.stringify(message)) {
+        this.appearance = message;
+        Services.obs.notifyObservers(null, "night-island-appearance");
+      }
       return;
     }
     if (!validCommand(message) || this.seen.has(message.request)) return;
@@ -196,6 +223,7 @@ export const NightIsland = {
     clearTimeout(this.connectionTimer);
     this.connectionTimer = null;
     this.ready = false;
+    this.capabilities.clear();
     if (this.worker) {
       this.post({type: "close"});
       this.worker = null;
@@ -231,6 +259,8 @@ export const NightIsland = {
     this.list = null;
     this.entries.clear(); this.ids = new WeakMap(); this.seen.clear();
     this.closeTransport();
+    this.appearance = null;
     this.setStatus("disabled");
+    Services.obs.notifyObservers(null, "night-island-appearance");
   },
 };

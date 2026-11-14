@@ -1,4 +1,5 @@
 import { NightWorkspaces } from "resource:///modules/night/NightWorkspaces.sys.mjs";
+import {NightIslandView} from "resource:///modules/night/NightIslandView.sys.mjs";
 import { NightToolbar } from "resource:///modules/night/NightToolbar.sys.mjs";
 
 import { SessionStore } from "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs";
@@ -27,6 +28,7 @@ const EVENTS = [
 
 export class NightShell {
   #window;
+  #island;
   #owner;
   #sidebar;
   #list;
@@ -219,6 +221,7 @@ export class NightShell {
     });
     this.#status.setAttribute("aria-live", "polite");
     this.#status.addEventListener("click", () => {this.#status.removeAttribute("data-message"); this.#owner.toggle("memory");});
+    this.#island = new NightIslandView(this.#window, this.#owner, footer);
     footer.append(actions, this.#status);
     if (!Services.prefs.getBoolPref("night.import.completed", false))
       footer.append(
@@ -342,6 +345,7 @@ export class NightShell {
   #animate(node, frames, duration = 170) {
     if (
       !this.#window.document.documentElement.hasAttribute("night-motion") ||
+      this.#window.document.documentElement.getAttribute("data-island-motion") === "false" ||
       this.#window.matchMedia("(prefers-reduced-motion: reduce)").matches
     )
       return null;
@@ -355,7 +359,7 @@ export class NightShell {
     return this.workspaces.isPinned(tab) || !!this.workspaces.folderOf(tab);
   }
 
-  async #closeTab(tab, remove = false) {
+  async closeTab(tab, remove = false) {
     if (!remove && this.#isSaved(tab)) {
       this.#status.removeAttribute("data-message");
       try {
@@ -474,8 +478,8 @@ export class NightShell {
           ]);
       }
     if (this.#isSaved(tab)) {
-      items.push([this.workspaces.folderOf(tab) ? "Удалить из папки" : "Удалить закреплённую вкладку", () => this.#closeTab(tab, true)]);
-    } else items.push(["Закрыть", () => this.#closeTab(tab)]);
+      items.push([this.workspaces.folderOf(tab) ? "Удалить из папки" : "Удалить закреплённую вкладку", () => this.closeTab(tab, true)]);
+    } else items.push(["Закрыть", () => this.closeTab(tab)]);
     this.#showMenu(anchor, items);
   }
 
@@ -531,14 +535,14 @@ export class NightShell {
     const close = this.#button(
       "×",
       "Закрыть вкладку",
-      () => this.#closeTab(tab),
+      () => this.closeTab(tab),
       { class: "night-tab-close" },
     );
     row.append(main, close);
     row.addEventListener("auxclick", (event) => {
       if (event.button === 1) {
         event.preventDefault();
-        this.#closeTab(tab);
+        this.closeTab(tab);
       }
     });
     row.addEventListener("contextmenu", (event) => {
@@ -855,6 +859,7 @@ export class NightShell {
   }
 
   destroy() {
+    this.#island.destroy();
     this.toolbar.destroy();
     for (const event of EVENTS) this.#window.removeEventListener(event, this);
     this.#window.removeEventListener("keydown", this, true);

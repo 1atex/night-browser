@@ -1,4 +1,5 @@
 @import url("chrome://browser/content/night/theme.css");
+@import url("chrome://browser/content/night/island.css");
 @import url("chrome://browser/content/night/shell.css");
 @import url("chrome://browser/content/night/toolbar.css");
 @import url("chrome://browser/content/night/menu.css");
@@ -9,19 +10,19 @@
 :root[night-starting] :is(#navigator-toolbox, #browser) { visibility: hidden; }
 :root[night-browser] {
   color-scheme: dark;
-  --toolbar-color: #dedfe7;
+  --toolbar-color: var(--night-text);
   --toolbar-bgcolor: var(--night-background);
   --toolbar-field-background-color: var(--night-surface);
-  --toolbar-field-color: #e2e4eb;
+  --toolbar-field-color: var(--night-text);
   --toolbar-field-focus-background-color: var(--night-surface);
-  --toolbar-field-focus-color: #e2e4eb;
+  --toolbar-field-focus-color: var(--night-text);
   --panel-background: var(--night-surface);
-  --panel-color: #dfe1e8;
-  --panel-border-color: #ffffff0d;
-  --lwt-text-color: #e0e2ea;
+  --panel-color: var(--night-text);
+  --panel-border-color: var(--night-line);
+  --lwt-text-color: var(--night-text);
   --lwt-accent-color: var(--night-background);
   --chrome-content-separator-color: transparent;
-  --toolbox-textcolor: #e0e2ea;
+  --toolbox-textcolor: var(--night-text);
 }
 #night-tools {
   position: absolute;

@@ -38,3 +38,4 @@
   --night-surface: #323235;
   --night-panel: #38383b;
 }
+:root[data-island-motion="false"] *, :root[data-island-motion="false"] *::before, :root[data-island-motion="false"] *::after { animation-duration: 0s !important; transition-duration: 0s !important; }

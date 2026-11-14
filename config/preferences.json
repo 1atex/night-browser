@@ -1,6 +1,8 @@
 {
   "night.preview": true,
   "night.island.downloads": false,
+  "night.island.indicator": true,
+  "night.island.appearance": true,
   "night.network.enabled": true,
   "night.memory.enabled": true,
   "night.memory.idle-minutes": 10,
@@ -14,6 +16,7 @@
   "browser.sessionstore.restore_on_demand": true,
   "browser.sessionstore.restore_pinned_tabs_on_demand": true,
   "browser.tabs.splitView.enabled": true,
+  "browser.tabs.closeWindowWithLastTab": false,
   "browser.tabs.inTitlebar": 1,
   "sidebar.revamp": false,
   "sidebar.verticalTabs": false,

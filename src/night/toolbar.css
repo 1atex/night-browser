@@ -1,10 +1,10 @@
 :root[night-browser] #nav-bar {
   --toolbarbutton-inner-padding: 9px;
   --toolbarbutton-border-radius: 999px;
-  --toolbarbutton-hover-background: #c3ccd910;
-  --toolbarbutton-active-background: #c3ccd91c;
-  --toolbarbutton-icon-fill: #ffffffa6;
-  --toolbarbutton-icon-fill-attention: #d5e2f5;
+  --toolbarbutton-hover-background: var(--night-hover);
+  --toolbarbutton-active-background: var(--night-selected);
+  --toolbarbutton-icon-fill: var(--night-secondary);
+  --toolbarbutton-icon-fill-attention: var(--night-accent);
   padding: 6px 10px;
   min-height: 48px;
 }
@@ -69,15 +69,15 @@
   --urlbar-background-overhang-open: 0px;
   --urlbar-input-growth-open-block: 0px;
   --urlbar-input-growth-open-inline: 0px;
-  --toolbar-field-text-color: #dce0e8;
-  --toolbar-field-text-color-focus: #f0f1f5;
+  --toolbar-field-text-color: var(--night-text);
+  --toolbar-field-text-color-focus: var(--night-text);
   --urlbar-box-background-color: transparent;
   --urlbar-box-background-color-focus: #c3ccd90c;
   --urlbar-box-background-color-hover: #c3ccd914;
   --urlbar-box-background-color-active: #c3ccd922;
   --urlbarview-background-color-selected: var(--night-selected);
   --urlbarview-background-color-hover: var(--night-hover);
-  --urlbarview-text-color-selected: #f0f1f5;
+  --urlbarview-text-color-selected: var(--night-text);
   --urlbarview-text-color-hover: #e0e3eb;
   --urlbarview-text-color-secondary: #a3adbf;
   --urlbarview-text-color-action: #a3adbf;

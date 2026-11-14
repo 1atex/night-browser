@@ -4,9 +4,12 @@ window.addEventListener(
     const { parseSiteRules } = ChromeUtils.importESModule(
       "resource:///modules/night/MemoryPolicy.mjs",
     );
+    const {NightIsland} = ChromeUtils.importESModule("resource:///modules/night/NightIsland.sys.mjs");
+    const {applyIslandAppearance} = ChromeUtils.importESModule("resource:///modules/night/IslandAppearance.mjs");
     const XHTML = "http://www.w3.org/1999/xhtml";
     const browserWindow = window.browsingContext.topChromeWindow;
     const updateTheme = () => {
+      applyIslandAppearance(document.documentElement, NightIsland.sharedAppearance);
       document.documentElement.setAttribute(
         "data-palette",
         Services.prefs.getStringPref("night.ui.palette", "graphite"),
@@ -17,9 +20,15 @@ window.addEventListener(
       );
     };
     Services.prefs.addObserver("night.ui.", updateTheme);
+    Services.prefs.addObserver("night.island.appearance", updateTheme);
+    Services.obs.addObserver(updateTheme, "night-island-appearance");
     window.addEventListener(
       "unload",
-      () => Services.prefs.removeObserver("night.ui.", updateTheme),
+      () => {
+        Services.prefs.removeObserver("night.ui.", updateTheme);
+        Services.prefs.removeObserver("night.island.appearance", updateTheme);
+        Services.obs.removeObserver(updateTheme, "night-island-appearance");
+      },
       { once: true },
     );
     updateTheme();
@@ -145,13 +154,15 @@ window.addEventListener(
         const swatch = button(
           "",
           () => {
+            const shared = !!NightIsland.sharedAppearance;
+            if (shared) Services.prefs.setBoolPref("night.island.appearance", false);
             Services.prefs.setStringPref("night.ui.palette", key);
             grid
               .querySelectorAll("button")
               .forEach((node) =>
                 node.setAttribute("aria-pressed", String(node === swatch)),
               );
-            status("Палитра изменена");
+            status(shared ? "Палитра изменена. Оформление из Island выключено." : "Палитра изменена");
           },
           "theme-choice",
         );
@@ -724,6 +735,9 @@ window.addEventListener(
       section.append(connection);
       toggle(section, "Показывать загрузки в Island", "Прогресс, пауза, продолжение и открытие папки с готовым файлом.", "night.island.downloads", false);
       section.querySelector('[data-pref="night.island.downloads"]').disabled = !supported;
+      toggle(section, "Индикатор в боковой панели", "Файл и прогресс. Нажатие раскрывает загрузки в Island.", "night.island.indicator", true);
+      toggle(section, "Оформление из Island", "Фон, акцент и анимации. При выключении вернётся выбранная палитра браузера.", "night.island.appearance", true);
+      for (const input of section.querySelectorAll("[data-pref]")) input.disabled = !supported;
       const steps = element("ol", "", {class: "island-setup", id: "island-setup"});
       const install = element("li");
       install.append(element("span", "Запусти Island с поддержкой интеграции. "));
@@ -758,7 +772,9 @@ window.addEventListener(
         hint.textContent = description + (NightIsland.errorCode ? ` Код Windows: ${NightIsland.errorCode}.` : "");
         connection.dataset.state = key;
         retry.hidden = !["waiting", "unavailable"].includes(key);
-        steps.hidden = !supported || key === "connected";
+        const visual = NightIsland.capabilities.has("show-downloads") && NightIsland.capabilities.has("appearance");
+        if (key === "connected" && !visual) hint.textContent = "Загрузки подключены. Для раскрытия Island из браузера и общего оформления обнови Island по ссылке ниже.";
+        steps.hidden = !supported || key === "connected" && visual;
       };
       update();
       Services.obs.addObserver(update, "night-island-status");

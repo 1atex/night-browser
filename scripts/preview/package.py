@@ -72,6 +72,25 @@ def package(runtime, output, archive, platform):
                  "    this._nightWrapped = enabled;\n"
                  "    if (enabled) this.#disable(); else this.#enable();\n"
                  "  }\n")
+    tabs_module = "moz-src/browser/components/tabbrowser/Tabbrowser.sys.mjs"
+    replace_once(toolkit, tabs_module,
+                 "  _findTabToBlurTo(aTab, aExcludeTabs = []) {",
+                 "  _findTabToBlurTo(aTab, aExcludeTabs = []) {\n"
+                 "    const workspaces = this.documentGlobal.gNightBrowser?.shell.workspaces;\n"
+                 "    if (workspaces) return aTab.selected ? workspaces.nextOpenTab(aTab, aExcludeTabs) : null;\n")
+    replace_once(toolkit, tabs_module,
+                 "    this.selectedTab = this._findTabToBlurTo(aTab);",
+                 "    this.selectedTab = this._findTabToBlurTo(aTab) || (aTab.selected ? this.documentGlobal.gNightBrowser?.shell.workspaces.newTab() : null);")
+    replace_once(toolkit, tabs_module,
+                 "      let newTab = this._findTabToBlurTo(this.selectedTab, tabsToExclude);",
+                 "      let newTab = this._findTabToBlurTo(this.selectedTab, tabsToExclude);\n"
+                 "      if (!newTab && this.documentGlobal.gNightBrowser) newTab = this.documentGlobal.gNightBrowser.shell.workspaces.newTab();")
+    replace_once(toolkit, tabs_module,
+                 "  removeCurrentTab(options) {\n    this.removeTab(this.selectedTab, options);",
+                 "  removeCurrentTab(options) {\n"
+                 "    const shell = this.documentGlobal.gNightBrowser?.shell;\n"
+                 "    if (shell?.workspaces.isPinned(this.selectedTab)) { shell.closeTab(this.selectedTab); return; }\n"
+                 "    this.removeTab(this.selectedTab, options);")
     newtab = "chrome/browser/builtin-addons/newtab/prerendered/"
     for name in ["activity-stream.html", "activity-stream-noscripts.html"]:
         if newtab + name not in browser:

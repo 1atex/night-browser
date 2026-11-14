@@ -78,6 +78,11 @@ jobs:
           $output = (Resolve-Path dist/Night).Path
           python -u tests/native/smoke.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --preview --screenshot test-artifacts/preview.png --log test-artifacts/gecko.log 2>&1 | Tee-Object -FilePath test-artifacts/native-results.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test start page and last-tab behavior
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/start_flow.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test Night product and session restoration
         run: |
           $output = (Resolve-Path dist/Night).Path

@@ -35,3 +35,17 @@ Interface SVGs use Google Material Symbols. Shared symbols came from Night Islan
 ## Current Island integration foundation (0.9.1)
 
 The companion now merges [7d9bc801af2e41627ad7d15a6d2400bbda150aca](https://github.com/1atex/night-island/commit/7d9bc801af2e41627ad7d15a6d2400bbda150aca), which was on a separate branch from the earlier master reference. Its new glass, dock, fonts and settings remain intact. Download indicators use the current Island transition model and selected-font measurements, reserving space for the trailing VPN control. The browser connection settings use Night's shared theme, a simple capsule glyph, explicit connection states and setup instructions. The icon includes a standalone-image color fallback for internal HTML pages.
+
+
+## Interaction review: start page and Island
+
+| Observed problem | Resulting behavior | Verification |
+| --- | --- | --- |
+| Closing the last open page could select a sleeping saved page | Successor selection skips unloaded pages; an empty workspace shows the start page | Native last-page test checks that saved URLs receive no requests |
+| Sidebar and keyboard new-tab paths had different focus behavior | Ready start pages focus search; typing already begun in the address bar is preserved | Native typing immediately after Ctrl+T, sidebar opening and last-page close |
+| Ctrl+W removed saved folder entries | Current-tab close uses the same unload action as the sidebar, retaining native before-unload checks | Native close/unload and unsaved-form cancellation |
+| The start form always submitted to Google | It uses the browser's navigation/search path and displays the selected engine | Native address submission and engine-label check |
+| Integration existed only as a settings switch | A compact capsule shows progress and opens the real Island Downloads panel | Windows protocol test and native UI state |
+| Independent palettes made the applications feel unrelated | Optional RGB palette and motion sharing; independent hide/sync controls, with a return to the local palette | Protocol validation, style idempotence and Windows appearance toggles |
+
+The capsule reuses Island's restrained fill, pill radius, selected-font proportions and short interaction motion. It has no continuous idle animation or polling. Download names truncate in the row and remain available in the tooltip and accessible name. Private windows do not show the public-download indicator. Start-page theme delivery does not wait for the search service.

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {validAppearance} from "../../src/night/IslandAppearance.mjs";
 import vm from "node:vm";
 import {readFileSync} from "node:fs";
 
@@ -14,7 +15,7 @@ function setup() {
     Services: {obs: {notifyObservers: (...args) => notifications.push(args)}},
     setTimeout: (fn, delay) => { timers.set(++sequence, {fn, delay}); return sequence; },
     clearTimeout: id => timers.delete(id),
-    TextEncoder, MAX_FRAME: 32768,
+    validAppearance, validCommand: () => false, TextEncoder, MAX_FRAME: 32768,
   });
   vm.runInContext(source, context);
   const island = context.NightIsland;
@@ -63,4 +64,27 @@ test("retry clears stale errors and cancellation prevents a scheduled reconnect"
   island.retryNow();
   assert.equal(timers.size, 0);
   assert.equal(connects, 1);
+});
+
+
+test("Island actions require a negotiated capability and appearance frames are validated", () => {
+  const {island} = setup(), frames = [];
+  island.post = frame => frames.push(frame);
+  island.receive({v:1,type:"hello",capabilities:["downloads"]});
+  assert.equal(island.openDownloads(), false);
+  island.receive({v:1,type:"appearance",panel:[0,0,0],accent:[255,255,255],motion:true});
+  assert.equal(island.appearance, null);
+  island.closeTransport();
+  island.receive({v:1,type:"hello",capabilities:["downloads","show-downloads","appearance"]});
+  frames.length = 0;
+  assert.equal(island.openDownloads(), true);
+  assert.equal(island.openDownloads(), true);
+  assert.equal(frames.length, 1);
+  assert.equal(frames[0].activate, true);
+  assert.equal(JSON.parse(frames[0].text).panel, "downloads");
+  const theme = {v:1,type:"appearance",panel:[0,0,0],accent:[255,255,255],motion:false};
+  island.receive(theme);
+  assert.equal(island.appearance, theme);
+  island.receive({...theme,panel:["red",0,0]});
+  assert.equal(island.appearance, theme);
 });
