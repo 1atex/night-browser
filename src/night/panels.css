@@ -46,3 +46,8 @@
 :root[night-browser] #star-button { list-style-image: url("chrome://browser/content/night/icons/bookmark.svg"); }
 :root[night-browser] #star-button[starred] { fill: var(--night-accent); }
 :root[night-browser] #tracking-protection-icon { list-style-image: url("chrome://browser/content/night/icons/shield.svg"); }
+
+:root[night-browser] #trustpanel-graphic-section { background: transparent; border: 0; }
+:root[night-browser] :is(#trustpanel-graphic-image, #trustpanel-graphic-image-legacy) { display: none; }
+:root[night-browser] #trustpanel-graphic-section-text { padding: 10px 12px; }
+:root[night-browser] #trustpanel-popup .trustpanel-header { font-size: 13px; font-weight: 600; }

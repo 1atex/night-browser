@@ -83,6 +83,27 @@ def package(runtime, output, archive, platform):
     for icon in (source / "sites").iterdir():
         if icon.is_file():
             browser[newtab + "sites/" + icon.name] = icon.read_bytes()
+    trust_copy = {
+        "ru": {
+            "trustpanel-header-enabled": "Защита от отслеживания включена",
+            "trustpanel-description-enabled2": "Настройки защиты действуют для этого сайта.",
+            "trustpanel-description-enabled-insecure": "Проверьте безопасность соединения перед вводом личных данных.",
+            "trustpanel-description-disabled": "Защита от отслеживания отключена для этого сайта. Её можно включить ниже.",
+        },
+        "en-US": {
+            "trustpanel-header-enabled": "Tracking protection is on",
+            "trustpanel-description-enabled2": "Your protection settings apply to this site.",
+            "trustpanel-description-enabled-insecure": "Check the connection before entering personal information.",
+            "trustpanel-description-disabled": "Tracking protection is off for this site. You can enable it below.",
+        },
+    }
+    for locale, messages in trust_copy.items():
+        name = f"localization/{locale}/browser/browser.ftl"
+        for key, value in messages.items():
+            text, count = re.subn(rf"(?m)^{re.escape(key)} = .*$", f"{key} = {value}", browser[name].decode())
+            if count != 1:
+                raise ValueError(f"Unexpected site security message: {key}")
+            browser[name] = text.encode()
     for name, data in list(browser.items()):
         if name.endswith("/branding/brand.ftl") or name.endswith("/branding/brand.properties"):
             text = data.decode("utf-8")
