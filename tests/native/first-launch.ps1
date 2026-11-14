@@ -111,6 +111,8 @@ try {
   [NightWindowInfo]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
   [NightWindowInfo]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
   Start-Sleep -Seconds 1
+  $extensionNames = @([System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | Where-Object { -not $_.Current.IsOffscreen } | ForEach-Object { $_.Current.Name })
+  if ($extensionNames -notcontains "Расширений пока нет") { throw "Own empty extensions state did not appear" }
   $bitmap = New-Object System.Drawing.Bitmap(($rect.right-$rect.left),($rect.bottom-$rect.top))
   $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
   try { $graphics.CopyFromScreen($rect.left,$rect.top,0,0,$bitmap.Size);$bitmap.Save((Join-Path $outputPath "night-extensions-ordinary.png"),[System.Drawing.Imaging.ImageFormat]::Png) } finally { $graphics.Dispose();$bitmap.Dispose() }

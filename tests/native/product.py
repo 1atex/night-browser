@@ -44,6 +44,12 @@ def run(binary, app_ini, output):
         browser.execute_async_script(f"const done = arguments[arguments.length-1]; const w = {WIN}; w.requestAnimationFrame(() => w.requestAnimationFrame(done));")
         (output / "night-home.png").write_bytes(base64.b64decode(browser.screenshot()))
         print("PASS: Night start page without Activity Stream scripts", flush=True)
+        browser.set_context('chrome')
+        click_toolbar('unified-extensions-button')
+        wait_for(lambda: browser.execute_script(f"return {WIN}.document.getElementById('unified-extensions-panel').state==='open';"))
+        assert browser.execute_script(f"const w={WIN},d=w.document;return [...d.querySelectorAll('#unified-extensions-empty-state > img')].every(i=>w.getComputedStyle(i).display==='none');")
+        wait_for(lambda: browser.execute_script(f"return {WIN}.document.getElementById('unified-extensions-empty-state').textContent.includes('Расширений пока нет');"))
+        browser.execute_script(f"{WIN}.document.getElementById('unified-extensions-panel').hidePopup();")
         browser.set_context("content")
         browser.navigate(url)
         with tempfile.TemporaryDirectory() as directory:

@@ -104,6 +104,28 @@ def package(runtime, output, archive, platform):
             if count != 1:
                 raise ValueError(f"Unexpected site security message: {key}")
             browser[name] = text.encode()
+    extensions_copy = {
+        "ru": {
+            "unified-extensions-empty-reason-zero-extensions-onboarding2": "Расширений пока нет",
+            "unified-extensions-empty-content-explain-extensions-onboarding2": "Установленные расширения появятся здесь. Их можно закрепить рядом с адресной строкой.",
+        },
+        "en-US": {
+            "unified-extensions-empty-reason-zero-extensions-onboarding2": "No extensions installed",
+            "unified-extensions-empty-content-explain-extensions-onboarding2": "Installed extensions appear here. You can pin them beside the address bar.",
+        },
+    }
+    for locale, messages in extensions_copy.items():
+        name = f"localization/{locale}/browser/unifiedExtensions.ftl"
+        for key, value in messages.items():
+            text, count = re.subn(rf"(?m)^{re.escape(key)} = .*$", f"{key} = {value}", browser[name].decode())
+            if count != 1:
+                raise ValueError(f"Unexpected extensions message: {key}")
+            browser[name] = text.encode()
+        label = "Открыть каталог расширений" if locale == "ru" else "Browse extensions"
+        text, count = re.subn(r"(?m)^(unified-extensions-discover-extensions =\n    \.label = ).*$", lambda m: m[1] + label, browser[name].decode())
+        if count != 1:
+            raise ValueError("Unexpected extensions catalogue label")
+        browser[name] = text.encode()
     for name, data in list(browser.items()):
         if name.endswith("/branding/brand.ftl") or name.endswith("/branding/brand.properties"):
             text = data.decode("utf-8")

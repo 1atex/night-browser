@@ -8,19 +8,22 @@ The 0.2 tree contains no Zen shell or Zen build dependency. The earlier Zen-base
 
 - `NightShell.sys.mjs`: DOM-based chrome, keyed tab rows, search, pin/context actions, drag ordering, workspace controls and native split-view control. No framework or additional UI process.
 - `NightToolbar.sys.mjs`: optional toolbar autohide and per-window focus mode. The native address bar appears as an overlay on pointer/keyboard focus; menus and permission panels keep it visible. Focus mode gives the entire browser content area to the website. No polling loop or separate URL input is introduced.
-- `NightWorkspaces.sys.mjs`: per-window workspace catalogue, per-tab membership, visibility and last selection. SessionStore persists both tab and window metadata. Pinned tabs are shared; deleting an area moves its tabs rather than closing them.
+- `NightWorkspaces.sys.mjs`: per-window workspace catalogue, per-tab membership, visibility and last selection. SessionStore persists both tab and window metadata. Only global favorites use native pins. Workspace pins and nested folders retain scoped metadata; deleting an area moves its tabs rather than closing them.
+- `NightAddress.sys.mjs`: current-site favicon in the native URL component, using the selected tab or saved icon. Editing uses the existing input and suggestions.
+- `NightStartParent.sys.mjs` and `NightStartChild.sys.mjs`: appearance updates scoped to about:newtab and about:home. The parent observes the palette preference and releases its observer when the page actor is destroyed.
+- `theme.css`: shared Night Island color, typography, surface and motion tokens for chrome, settings and the start page.
 - `NightMemory.sys.mjs` and `MemoryPolicy.mjs`: one configurable idle policy, native safe discard, persistent per-tab exceptions, domain exceptions, media/call/intercept/split protections. Background session tabs restore on demand. No sandbox reduction or forced working-set trimming.
 - `NightBrowser.sys.mjs`: lazy three-column request workbench below the page.
 - `settings.xhtml`, `settings.js`, `settings.css`: Night settings at about:preferences, live appearance controls, memory rules, startup/privacy/search controls and about information. The original preferences remain an explicitly opened advanced page.
 - `NightWindows.sys.mjs` and `Launcher.cs`: per-install Windows grouping, local shortcut, taskbar relaunch/name/icon properties and separate portable profile. The helper runs transiently per window, with no resident background service.
 - `NightImport.sys.mjs`, `ZenImportModel.mjs` and `ProfileImport.cs`: Windows Zen discovery, locked profile copying, session/workspace conversion and recoverable activation after Night exits. Extension data and encrypted credentials move with the profile; the original Zen profile and a backup of the previous Night profile remain available.
 - `NightNetwork.sys.mjs` and `RequestModel.mjs`: selected-tab request capture, independent channel suspension, edits, replay, bounded in-memory history and responses.
-- `start.html` and `start.css`: small clock/search start page served by Firefox's existing about:newtab/about:home mapping. One local clock script, no React bundle or sponsored feed UI.
+- `start.html` and `start.css`: small clock/search start page served by Firefox's existing about:newtab/about:home mapping. One local clock script, no React bundle or sponsored feed UI. The self-loading preference prevents Gecko’s new-tab actor from injecting Activity Stream libraries behind this document.
 - `scripts/preview/package.py`: version/checksum checks, explicit Firefox chrome integration points, policies, provenance and portable packaging. An unknown upstream layout fails the build.
 
 Native navigation/security indicators remain visible. The normal address bar is not recreated. App compatibility version remains the pinned Firefox version so extension compatibility checks continue to work; Night's product version is in package.json, launcher and release metadata. A separate application BuildID derived from the Git commit time invalidates cached browser chrome when upgrading an existing profile.
 
-Night 0.4 adds short interaction animations and consistent surfaces across the shell and settings. Animations finish within 230 ms, do not run while idle, and respect both the application toggle and the system's reduced-motion preference. The interface implementation and artwork are authored here; [design provenance](DESIGN_PROVENANCE.md) records the upstream boundaries.
+Night 0.4 adds short interaction animations and consistent surfaces across the shell and settings. Animations finish within 260 ms, do not run while idle, and respect both the application toggle and the system's reduced-motion preference. The interface implementation is authored here, with licensed Material Symbols; [design provenance](DESIGN_PROVENANCE.md) records the upstream boundaries.
 
 ## Request scope
 

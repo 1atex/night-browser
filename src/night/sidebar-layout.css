@@ -96,7 +96,7 @@
   margin: 6px 40px 2px 2px;
 }
 :root[night-sidebar-navigation] #urlbar { font-size: 13px; }
-:root[night-sidebar-navigation] #urlbar[focused] {
+:root[night-sidebar-navigation] #urlbar[focused][night-address-editing] {
   position: fixed;
   left: 12px;
   top: 44px;
