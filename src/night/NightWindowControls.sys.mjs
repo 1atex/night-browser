@@ -15,7 +15,10 @@ export class NightWindowControls {
     this.#next = this.#container.nextSibling;
     this.#host = doc.createElementNS("http://www.w3.org/1999/xhtml", "div");
     this.#host.id = "night-window-controls";
+    this.#host.setAttribute("role", "group");
     this.#host.setAttribute("aria-label", "Управление окном");
+    for (const [name, label] of [["min", "Свернуть"], ["max", "Развернуть"], ["restore", "Свернуть в окно"], ["close", "Закрыть окно"]])
+      this.#container.querySelector(`.titlebar-${name}`)?.setAttribute("aria-label", label);
     this.#host.append(this.#container);
     doc.documentElement.append(this.#host);
     Services.prefs.addObserver("night.ui.window-controls-autohide", this);
