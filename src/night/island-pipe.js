@@ -49,9 +49,13 @@ function shutdown() {
   running = false;
   if (pipe && !pipe.isNull()) {
     libc.CancelIo(pipe);
-    const count = DWORD();
-    if (readPending) libc.GetOverlappedResult(pipe, readOverlapped.address(), count.address(), true);
-    if (writePending) libc.GetOverlappedResult(pipe, writeOverlapped.address(), count.address(), true);
+    while (readPending || writePending) {
+      const count = DWORD(), key = win32.ULONG_PTR(), overlapped = win32.OVERLAPPED.ptr();
+      const ok = libc.GetQueuedCompletionStatus(port, count.address(), key.address(), overlapped.address(), 0xffffffff);
+      if (String(overlapped) === String(readOverlapped.address())) readPending = false;
+      if (String(overlapped) === String(writeOverlapped.address())) writePending = false;
+      if (!ok && overlapped.isNull()) break;
+    }
     libc.CloseHandle(pipe);
   }
   self.postMessage({type: "closed"});
@@ -60,7 +64,7 @@ function shutdown() {
 
 function read() {
   readPending = true;
-  if (!libc.ReadFile(pipe, readBuffer, readBuffer.length, null, readOverlapped.address()) && ctypes.winLastError !== 997) shutdown();
+  if (!libc.ReadFile(pipe, readBuffer, readBuffer.length, null, readOverlapped.address()) && ctypes.winLastError !== 997) { readPending = false; shutdown(); }
 }
 
 function write() {
@@ -68,7 +72,7 @@ function write() {
   const bytes = new TextEncoder().encode(queue.shift());
   writeBuffer = ctypes.uint8_t.array(bytes.length)(Array.from(bytes));
   writePending = true;
-  if (!libc.WriteFile(pipe, writeBuffer, bytes.length, null, writeOverlapped.address()) && ctypes.winLastError !== 997) shutdown();
+  if (!libc.WriteFile(pipe, writeBuffer, bytes.length, null, writeOverlapped.address()) && ctypes.winLastError !== 997) { writePending = false; shutdown(); }
 }
 
 function loop() {
@@ -76,6 +80,8 @@ function loop() {
   try {
     const count = DWORD(), key = win32.ULONG_PTR(), overlapped = win32.OVERLAPPED.ptr();
     const ok = libc.GetQueuedCompletionStatus(port, count.address(), key.address(), overlapped.address(), wakeCount > 0 ? 0 : 0xffffffff);
+    if (String(overlapped) === String(readOverlapped.address())) readPending = false;
+    if (String(overlapped) === String(writeOverlapped.address())) writePending = false;
     if (!ok && ctypes.winLastError === 258) { setTimeout(loop, 0); return; }
     if (parseInt(key.value.toString(), 10) === 1) wakeCount++;
     else if (!ok || overlapped.isNull()) return shutdown();

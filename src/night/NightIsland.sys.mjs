@@ -11,6 +11,7 @@ export const NightIsland = {
   ids: new WeakMap(),
   seen: new Set(),
   worker: null,
+  transports: new Set(),
   port: null,
   timer: null,
   retry: null,
@@ -104,8 +105,9 @@ export const NightIsland = {
     this.port = port;
     const worker = new ChromeWorker("chrome://browser/content/night/island-pipe.js");
     this.worker = worker;
+    this.transports.add(worker);
     let released = false;
-    const release = () => { if (!released) { released = true; libc.CloseHandle(port); } };
+    const release = () => { if (!released) { released = true; this.transports.delete(worker); libc.CloseHandle(port); } };
     worker.onmessage = event => {
       const message = event.data;
       if (message.type === "closed") {

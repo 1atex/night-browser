@@ -108,6 +108,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         chrome('Services.prefs.setBoolPref("night.island.downloads",false);')
         wait_for(lambda: not state()['state']['connected'])
         assert chrome('return !NightIsland.worker && !NightIsland.enabled && NightIsland.entries.size===0;')
+        wait_for(lambda: chrome('return NightIsland.transports.size===0;'))
         chrome('Services.prefs.setBoolPref("night.island.downloads",true);')
         wait_for(lambda: chrome('return NightIsland.status === "connected";'))
         wait_for(lambda: find('sample.zip','active'))

@@ -2,7 +2,7 @@
 
 ## Implemented in 0.9 preview: downloads
 
-Install the companion [Island browser preview](https://github.com/1atex/night-island/releases/tag/v0.3.1-browser-preview.2). Enable **Night Browser downloads** in Island's integration settings, then **Настройки → Интеграции → Показывать загрузки в Island** in the browser. Both settings default to off.
+Install the companion [Island browser preview](https://github.com/1atex/night-island/releases/tag/v0.3.1-browser-preview.3). Enable **Night Browser downloads** in Island's integration settings, then **Настройки → Интеграции → Показывать загрузки в Island** in the browser. Both settings default to off.
 
 A download appears in the existing Island pill. Its Downloads tab provides pause, resume, cancel and reveal-in-folder when supported by the download's current state. Completed files are not executed. Horizontal and vertical docking are supported. Private downloads are excluded; only a sanitized basename, opaque ID, state and byte counts are sent. URLs, full paths, cookies and request headers stay in the browser.
 
