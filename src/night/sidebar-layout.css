@@ -109,7 +109,7 @@
   order: 1;
   height: 28px;
   flex: 1;
-  min-width: 90px;
+  min-width: 24px;
   -moz-window-dragging: drag;
 }
 :root[night-sidebar-navigation] #nav-bar-customization-target > :is(toolbarbutton, toolbaritem):not(#night-sidebar-toggle):not(#back-button):not(#forward-button):not(#stop-reload-button):not(#urlbar-container):not(#night-focus-exit) {
