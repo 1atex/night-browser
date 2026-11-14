@@ -35,7 +35,7 @@ def run(setup, output):
             wait_for(lambda: browser.execute_script(f'return !!{WIN}?.gNightBrowser;'))
             profile = Path(browser.execute_script('return Services.dirsvc.get("ProfD",Ci.nsIFile).path;'))
             assert profile == data/'profile', profile
-            assert browser.execute_script(f'return {WIN}.gBrowser.selectedBrowser.currentURI.spec;').endswith('/welcome.xhtml')
+            wait_for(lambda: browser.execute_script(f'return {WIN}.gBrowser.selectedBrowser.currentURI.spec;').endswith('/welcome.xhtml'))
             browser.execute_script('Services.prefs.setBoolPref("night.onboarding.completed",true);Services.prefs.savePrefFile(null);')
             (profile/'keep-test.txt').write_text('profile survives upgrade and removal')
             stop(instance)

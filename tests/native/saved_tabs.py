@@ -17,9 +17,10 @@ class Site(BaseHTTPRequestHandler):
         pass
     def do_GET(self):
         Site.requests.append(self.path)
-        body = b'<!doctype html><title>Saved project</title><link rel="icon" href="data:,"><button id="edit" onclick="window.onbeforeunload=()=>true">Edit unsaved draft</button><input id="draft" value="hello">'
+        body = b'<!doctype html><title>Saved project</title><link rel="icon" href="data:,"><button id="edit" onclick="window.onbeforeunload=(e)=>{e.preventDefault();e.returnValue=1;return 1}">Edit unsaved draft</button><input id="draft" value="hello">'
         self.send_response(200)
         self.send_header('Content-Type', 'text/html')
+        self.send_header('Cache-Control', 'no-store')
         self.send_header('Content-Length',str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -30,14 +31,14 @@ def run(binary, app_ini, output):
     server=ThreadingHTTPServer(('127.0.0.1',0),Site)
     threading.Thread(target=server.serve_forever,daemon=True).start()
     origin=f'http://127.0.0.1:{server.server_port}'
-    browser=Marionette(bin=binary,headless=True,prefs={'night.onboarding.completed':True},app_args=['-app',app_ini],gecko_log=str(output/'saved-tabs-gecko.log'))
+    browser=Marionette(bin=binary,headless=True,prefs={'night.onboarding.completed':True},app_args=['-app',app_ini,'--remote-debugging-port','0'],gecko_log=str(output/'saved-tabs-gecko.log'))
     def chrome(script,*args):
         browser.set_context('chrome')
         return browser.execute_script(f'const w={WIN},d=w.document,b=w.gBrowser,s=w.gNightBrowser.shell;'+script,script_args=list(args))
     def row():
         return "[...d.querySelectorAll('.night-tab')].find(r=>r.querySelector('.night-tab-title')?.textContent==='Saved project')"
     try:
-        browser.start_session({"unhandledPromptBehavior":{"default":"ignore","beforeUnload":"ignore"}})
+        browser.start_session({"webSocketUrl":True,"unhandledPromptBehavior":{"default":"ignore","beforeUnload":"ignore"}})
         browser.set_window_rect(width=1280,height=900)
         wait_for(lambda: chrome('return !!w.gNightBrowser;'))
         chrome('w.saved=s.workspaces.newTab(arguments[0]);w.folder=s.workspaces.createFolder("Проект");s.workspaces.move(w.saved,s.workspaces.active,w.folder);',origin+'/saved')
@@ -73,7 +74,7 @@ def run(binary, app_ini, output):
         assert Site.requests.count('/saved') == 1,Site.requests
         chrome(row()+'.querySelector(".night-tab-main").click();')
         wait_for(lambda: chrome('return !w.saved.hasAttribute("pending")&&!w.saved.hasAttribute("busy");'))
-        assert Site.requests.count('/saved') == 2,Site.requests
+        wait_for(lambda: Site.requests.count('/saved') == 2)
         browser.set_context('content')
         for handle in browser.window_handles:
             browser.switch_to_window(handle)
