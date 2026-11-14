@@ -65,7 +65,13 @@ def run(binary, app_ini, output):
         wait_for(lambda: chrome('return w.saved.hasAttribute("pending");'))
         assert chrome('return b.tabs.includes(w.saved)&&s.workspaces.folderOf(w.saved)===w.folder&&b.selectedTab!==w.saved;')
         assert chrome('return '+row()+'.textContent.includes("Спит");')
+        wait_for(lambda: chrome('return !d.getElementById("night-memory-status").hasAttribute("data-message");'))
         assert Site.requests.count('/saved') == 1,Site.requests
+        browser.set_context('content')
+        browser.switch_to_window(browser.window_handles[0])
+        browser.navigate('about:home')
+        wait_for(lambda: browser.execute_script('return !!document.querySelector("#clock")?.textContent;'))
+        browser.set_context('chrome')
         (output/'night-sleeping-folder.png').write_bytes(base64.b64decode(browser.screenshot()))
         browser.restart(in_app=True)
         wait_for(lambda: chrome('return !!w.gNightBrowser&&s.workspaces.folders.length===1;'))

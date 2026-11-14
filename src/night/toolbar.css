@@ -328,3 +328,5 @@
 :root[night-browser] #night-sidebar-toggle .toolbarbutton-icon { display: none; }
 :root[night-browser] #identity-box.chromeUI > #identity-icon-box,
 :root[night-browser] #trust-icon-container.chromeUI { display: none; }
+
+.night-tab-icon img, #night-address-icon { -moz-context-properties: fill; fill: var(--night-text); }

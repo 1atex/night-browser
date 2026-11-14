@@ -26,7 +26,7 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 
 ## Запуск и разработка
 
-[Установщик Night 0.8.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.1/night-browser-0.8.0-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.1/night-browser-0.8.0-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.8.0-preview.1)
+[Установщик Night 0.8.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.2/night-browser-0.8.0-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.2/night-browser-0.8.0-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.8.0-preview.2)
 
 Установщик работает без прав администратора. Приложение находится в `%LOCALAPPDATA%\Programs\Night Browser`, профиль — в `%LOCALAPPDATA%\NightBrowser\profile`. Повторная установка обновляет приложение; удаление программы сохраняет профиль. Выбор браузера по умолчанию остаётся за пользователем в настройках Windows.
 

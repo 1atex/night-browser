@@ -352,6 +352,7 @@ export class NightShell {
 
   async #closeTab(tab, remove = false) {
     if (!remove && this.#isSaved(tab)) {
+      this.#status.removeAttribute("data-message");
       try {
         const unloaded = await this.#owner.memory.deactivate(tab);
         this.render();
@@ -447,6 +448,7 @@ export class NightShell {
       ],
       ["В избранное всех пространств", () => this.workspaces.setPinned(tab, "global")],
       [this.#isSaved(tab) ? "Отправить в сон" : "Выгрузить сейчас", async () => {
+        this.#status.removeAttribute("data-message");
         const unloaded = await (this.#isSaved(tab) ? this.#owner.memory.deactivate(tab) : this.#owner.memory.unload(tab));
         this.render();
         if (!unloaded) this.#report("Вкладка защищена, уже выгружена или страница не разрешила выгрузку");
