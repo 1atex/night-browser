@@ -38,8 +38,8 @@
 :root[night-browser] #unified-extensions-button {
   list-style-image: url("chrome://browser/content/night/icons/extensions.svg") !important;
 }
-:root[night-browser] #downloads-indicator-anchor {
-  list-style-image: url("chrome://browser/content/night/icons/download-toolbar.svg");
+:root[night-browser] :is(#downloads-button, #downloads-indicator-anchor, #downloads-indicator-icon) {
+  list-style-image: url("chrome://browser/content/night/icons/download-toolbar.svg") !important;
 }
 :root[night-browser] #night-sidebar-toggle .toolbarbutton-text {
   box-sizing: content-box;

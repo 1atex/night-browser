@@ -87,6 +87,7 @@ def run(binary, app_ini, output):
         wait_for(lambda: chrome("const i=d.querySelector('.night-tab[data-selected] .night-tab-icon img');return i?.complete&&i.naturalWidth>0&&i.src==='chrome://browser/content/night/icons/newtab.svg';"))
         screenshot('night-home-focus.png')
         bar = chrome("const b=d.querySelector('#urlbar .urlbar-background');return {radius:w.getComputedStyle(b).borderTopLeftRadius,outline:w.getComputedStyle(b).outlineStyle};")
+        assert chrome("return ['back-button','forward-button','reload-button','downloads-button','unified-extensions-button'].every(id=>w.getComputedStyle(d.getElementById(id)).listStyleImage.includes('/night/icons/'));")
         assert bar == {'radius':'999px','outline':'none'}, bar
         browser.set_context('content')
         browser.navigate(origin)
