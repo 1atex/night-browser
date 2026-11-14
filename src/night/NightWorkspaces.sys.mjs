@@ -161,7 +161,7 @@ export class NightWorkspaces {
   }
 
   move(node, workspace, parentId = null, before = null) {
-    if (!this.items.some(item => item.id === workspace)) return;
+    if (before === node || !this.items.some(item => item.id === workspace)) return;
     const parent = this.folders.find(folder => folder.id === parentId && folder.workspace === workspace);
     if (parentId && !parent) return;
     if (typeof node === "string") {

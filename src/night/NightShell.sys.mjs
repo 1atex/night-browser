@@ -73,15 +73,20 @@ export class NightShell {
       "aria-label": title,
       ...attrs,
     });
-    button.addEventListener("click", (event) => {
+    button.addEventListener("click", async (event) => {
       event.stopPropagation();
       try {
-        action(event);
+        await action(event);
       } catch (error) {
-        this.#status.textContent = error.message;
+        this.#report(error.message);
       }
     });
     return button;
+  }
+
+  #report(message) {
+    this.#status.textContent = message;
+    this.#status.setAttribute("data-message", "true");
   }
 
   #prompt(title, current, callback) {
@@ -207,7 +212,8 @@ export class NightShell {
       id: "night-memory-status",
       title: "Управление памятью",
     });
-    this.#status.addEventListener("click", () => this.#owner.toggle("memory"));
+    this.#status.setAttribute("aria-live", "polite");
+    this.#status.addEventListener("click", () => {this.#status.removeAttribute("data-message"); this.#owner.toggle("memory");});
     footer.append(actions, this.#status);
     if (!Services.prefs.getBoolPref("night.import.completed", false))
       footer.append(
@@ -373,7 +379,7 @@ export class NightShell {
           () => {
             this.#menu?.remove();
             this.#menu = null;
-            action();
+            return action();
           },
           { role: "menuitem" },
         ),
@@ -431,7 +437,7 @@ export class NightShell {
       ["Выгрузить сейчас", async () => {
         const unloaded = await this.#owner.memory.unload(tab);
         this.render();
-        if (!unloaded) this.#status.textContent = "Вкладка защищена, уже выгружена или страница не разрешила выгрузку";
+        if (!unloaded) this.#report("Вкладка защищена, уже выгружена или страница не разрешила выгрузку");
       }],
       ["Открыть рядом с текущей", () => this.split(tab)],
       ["Дублировать", () => this.#window.duplicateTabIn(tab, "tab")],
@@ -722,7 +728,7 @@ export class NightShell {
     }
     const all = [...browser.tabs].filter((tab) => !tab.closing);
     const sleeping = all.filter((tab) => tab.hasAttribute("pending")).length;
-    this.#status.textContent = `Загружено: ${all.length - sleeping}${sleeping ? ` · выгружено: ${sleeping}` : ""}`;
+    if (!this.#status.hasAttribute("data-message")) this.#status.textContent = `Загружено: ${all.length - sleeping}${sleeping ? ` · выгружено: ${sleeping}` : ""}`;
     this.#window.document
       .getElementById("night-split-button")
       .setAttribute("aria-pressed", String(!!browser.selectedTab.splitview));
@@ -783,7 +789,7 @@ export class NightShell {
         try {
           this.split();
         } catch (error) {
-          this.#status.textContent = error.message;
+          this.#report(error.message);
         }
       }
       return;
@@ -808,8 +814,4 @@ export class NightShell {
     this.#window.document.getElementById("night-autohide-button")?.remove();
     this.#window.document.getElementById("night-focus-exit")?.remove();
   }
-}
-
-function windowOpen(window, url) {
-  window.openTrustedLinkIn(url, "tab");
 }

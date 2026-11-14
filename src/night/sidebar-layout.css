@@ -213,3 +213,5 @@
 :root[night-motion] .night-folder-chevron { transition: transform 140ms ease; }
 :root[night-sidebar-navigation] #night-sidebar-toggle { order: -1; }
 :root[night-sidebar-navigation] #nav-bar-overflow-button { display: none; }
+
+#night-memory-status[data-message] { display: block !important; color: #d2c2b1 !important; line-height: 1.5; }
