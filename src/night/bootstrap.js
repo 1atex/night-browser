@@ -1,4 +1,5 @@
 (() => {
+  Services.prefs.setBoolPref("browser.startup.preXulSkeletonUI", false);
   const { NightBrowser } = ChromeUtils.importESModule("resource:///modules/night/NightBrowser.sys.mjs");
   const start = () => {
     try {

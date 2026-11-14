@@ -11,7 +11,7 @@ WELCOME = 'chrome://browser/content/night/welcome.xhtml'
 
 def run(binary, app_ini, output):
     output.mkdir(parents=True, exist_ok=True)
-    browser = Marionette(bin=binary, headless=True, app_args=['-app', app_ini], gecko_log=str(output/'onboarding-gecko.log'))
+    browser = Marionette(prefs={"browser.startup.preXulSkeletonUI": True}, bin=binary, headless=True, app_args=['-app', app_ini], gecko_log=str(output/'onboarding-gecko.log'))
     def chrome(script):
         browser.set_context('chrome')
         return browser.execute_script(f'const w={WIN},d=w.document,b=w.gBrowser;' + script)
