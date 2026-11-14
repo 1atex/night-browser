@@ -111,10 +111,13 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
           const frame=JSON.parse(text);if(frame.type==='result')w.setTimeout(()=>w.integrationSend.call(this,text),1600);
           else w.integrationSend.call(this,text);
         };''')
-        command('sample.zip','pause')
-        wait_for(lambda: bool(state()['state'].get('pending')))
         seen = chrome('return NightIsland.seen.size;')
         command('sample.zip','pause')
+        wait_for(lambda: bool(state()['state'].get('pending')))
+        wait_for(lambda: chrome('return NightIsland.seen.size;') == seen + 1)
+        seen += 1
+        user32.mouse_event(2,0,0,0,0);user32.mouse_event(4,0,0,0,0)
+        time.sleep(0.2)
         assert chrome('return NightIsland.seen.size;') == seen
         wait_for(lambda: not state()['state'].get('pending'))
         chrome('NightIsland.send=w.integrationSend;delete w.integrationSend;')
@@ -138,8 +141,8 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         browser.set_context('content')
         wait_for(lambda: browser.execute_script("return document.getElementById('island-status').textContent === 'Ожидаем Island';"))
         assert browser.execute_script("return !document.getElementById('island-retry').hidden && !document.getElementById('island-setup').hidden;")
-        process=launch()
         browser.find_element('id','island-retry').click()
+        process=launch()
         wait_for(lambda: chrome('return NightIsland.status === "connected";'),timeout=40)
         Site.delay=0.002
         chrome('w.integrationDownloads["sample.zip"].start().catch(()=>{});')
