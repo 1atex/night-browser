@@ -20,12 +20,17 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 - Собственные настройки, четыре палитры, плотность и ширина панели; русская локализация.
 - Компактная стартовая страница с часами, поиском и быстрыми ссылками; выбранная палитра применяется сразу. Библиотеки Activity Stream не загружаются.
 - Имя, значок, ресурсы EXE и идентичность окна Windows — Night.
+- Установщик для текущего пользователя и мастер первого запуска с оформлением и импортом Zen.
+- Управление окном справа сверху при наведении; постоянная видимость включается в настройках.
+- Крестик у сохранённой вкладки отправляет её в сон, сохраняя папку и состояние. Удаление доступно отдельно в контекстном меню.
 
 ## Запуск и разработка
 
-[Скачать Night 0.7.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.7.0-preview.2/night-browser-0.7.0-preview-windows-x64.zip) · [Релиз и контрольная сумма](https://github.com/1atex/night-browser/releases/tag/v0.7.0-preview.2)
+[Установщик Night 0.8.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.1/night-browser-0.8.0-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.1/night-browser-0.8.0-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.8.0-preview.1)
 
-Windows ZIP выпускается через [GitHub Actions](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml). Распаковать всю папку и запустить `Night.exe`; профиль создаётся рядом в `profile`. Старое закрепление от 0.2 нужно заменить: новый ярлык `Night.lnk` создаётся рядом с приложением.
+Установщик работает без прав администратора. Приложение находится в `%LOCALAPPDATA%\Programs\Night Browser`, профиль — в `%LOCALAPPDATA%\NightBrowser\profile`. Повторная установка обновляет приложение; удаление программы сохраняет профиль. Выбор браузера по умолчанию остаётся за пользователем в настройках Windows.
+
+Для portable распакуй всю папку и запусти `Night.exe`; профиль создаётся рядом в `profile`. Обе версии выпускаются через [GitHub Actions](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml). Установленная версия и portable используют разные профили. Для переноса данных уже настроенного Night закрой обе копии, сохрани резервные копии и замени содержимое нового профиля содержимым прежней папки `profile`. Профиль Zen удобнее переносить через мастер первого запуска.
 
 [Импорт из Zen](docs/night/ZEN_IMPORT.md) · [О дизайне и лицензиях](docs/night/DESIGN_PROVENANCE.md)
 
@@ -35,4 +40,6 @@ Windows ZIP выпускается через [GitHub Actions](https://github.co
 
 Экономия памяти проверяется отдельным воспроизводимым тестом. Его синтетические результаты не являются замером YouTube, ChatGPT или Censys; ускорение рендеринга пока не заявляется.
 
-Тестовая portable-версия пока без автоматических обновлений. MPL-2.0.
+Тестовая версия пока без автоматических обновлений и подписи Windows. MPL-2.0.
+
+[Предложение по интеграции с Night Island](docs/night/ISLAND_INTEGRATION.md)

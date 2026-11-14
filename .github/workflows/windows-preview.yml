@@ -152,6 +152,9 @@ jobs:
           Copy-Item test-artifacts/night-onboarding.png dist/night-onboarding.png
           Copy-Item test-artifacts/installer-result.json dist/installer-result.json
           Copy-Item test-artifacts/onboarding-result.json dist/onboarding-result.json
+          Copy-Item test-artifacts/night-window-controls.png dist/night-window-controls.png
+          Copy-Item test-artifacts/night-sleeping-folder.png dist/night-sleeping-folder.png
+          Copy-Item test-artifacts/saved-tabs-result.json dist/saved-tabs-result.json
       - name: Upload Windows preview
         uses: actions/upload-artifact@v4
         with:
@@ -162,6 +165,9 @@ jobs:
             dist/night-onboarding.png
             dist/installer-result.json
             dist/onboarding-result.json
+            dist/night-window-controls.png
+            dist/night-sleeping-folder.png
+            dist/saved-tabs-result.json
             dist/SHA256SUMS.txt
             dist/sidebar-result.json
             dist/night-sidebar-filled.png
@@ -212,6 +218,9 @@ jobs:
             release-assets/night-onboarding.png \
             release-assets/installer-result.json \
             release-assets/onboarding-result.json \
+            release-assets/night-window-controls.png \
+            release-assets/night-sleeping-folder.png \
+            release-assets/saved-tabs-result.json \
             release-assets/SHA256SUMS.txt \
             release-assets/sidebar-result.json \
             release-assets/night-sidebar-filled.png \

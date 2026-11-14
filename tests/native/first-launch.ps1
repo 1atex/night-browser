@@ -116,7 +116,7 @@ try {
   function Click-Caption([string]$name) {
     $captionRect = New-Object NightWindowInfo+Rect
     [NightWindowInfo]::GetWindowRect($window,[ref]$captionRect) | Out-Null
-    [NightWindowInfo]::SetCursorPos($captionRect.right-35,$captionRect.top+3) | Out-Null
+    [NightWindowInfo]::SetCursorPos($captionRect.right-35,$captionRect.top+10) | Out-Null
     Start-Sleep -Milliseconds 350
     $button = [System.Windows.Automation.AutomationElement]::FromHandle($window).FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | Where-Object { $_.Current.Name -eq $name -and -not $_.Current.IsOffscreen -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button } | Select-Object -First 1
     if (-not $button) { throw "Caption button missing: $name" }
@@ -129,7 +129,7 @@ try {
   }
   Click-Caption "Развернуть"
   if (-not [NightWindowInfo]::IsZoomed($window)) { throw "Caption maximize did not work" }
-  Click-Caption "Восстановить"
+  Click-Caption "Свернуть в окно"
   if ([NightWindowInfo]::IsZoomed($window)) { throw "Caption restore did not work" }
   Click-Caption "Свернуть"
   if (-not [NightWindowInfo]::IsIconic($window)) { throw "Caption minimize did not work" }
