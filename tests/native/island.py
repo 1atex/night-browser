@@ -3,6 +3,7 @@ import base64
 import ctypes
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -44,6 +45,9 @@ def run(binary, app_ini, island, output):
     user32.PostMessageW.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_size_t, ctypes.c_ssize_t]
     report = output.resolve()/'island-state.json'
     root = Path(tempfile.mkdtemp(prefix='night-island-integration-'))
+    duplicate = root/'night-island (1).exe'
+    unrelated = root/'unrelated.exe'
+    shutil.copy2(island, duplicate);shutil.copy2(island, unrelated)
     config = root/'NightIsland';config.mkdir()
     (config/'settings.json').write_text(json.dumps({'browser_downloads': True, 'weather': False, 'update_check': False, 'activity_track': False, 'capture_self_hidden': False, 'capture_hidden': False, 'character': 'none', 'game_mode': False, 'open_delay_ms': 1000}))
     env = os.environ | {'APPDATA': str(root), 'NI_INSTANCE': root.name, 'NI_DEBUG_TAB': 'Downloads', 'NI_BROWSER_TEST_OUTPUT': str(report)}
@@ -51,7 +55,7 @@ def run(binary, app_ini, island, output):
     threading.Thread(target=server.serve_forever, daemon=True).start()
     origin = f'http://127.0.0.1:{server.server_port}'
     process = None
-    browser = Marionette(prefs={'night.onboarding.completed': True, 'night.island.downloads': True}, bin=binary, headless=True, app_args=['-app', app_ini], gecko_log=str(output/'island-gecko.log'))
+    browser = Marionette(prefs={'night.onboarding.completed': True, 'night.island.downloads': False}, bin=binary, headless=True, app_args=['-app', app_ini], gecko_log=str(output/'island-gecko.log'))
     def state():
         try: return json.loads(report.read_text())
         except (OSError, ValueError): return {'state': {'items': [], 'connected': False}}
@@ -72,7 +76,7 @@ def run(binary, app_ini, island, output):
         click_rect(button['rect'],current)
     def find(name, desired):
         return next((i for i in state()['state']['items'] if i['name']==name and i['state']==desired), None)
-    def launch(tab='Downloads'): return subprocess.Popen([island],env=env | {'NI_DEBUG_TAB':tab})
+    def launch(tab='Downloads', executable=duplicate): return subprocess.Popen([str(executable)],env=env | {'NI_DEBUG_TAB':tab})
     def close_island():
         hwnd = state().get('hwnd')
         if hwnd:user32.PostMessageW(hwnd,0x10,0,0)
@@ -86,12 +90,24 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         script=script.replace('HWND',str(hwnd)).replace('DEST',str((output/filename).resolve()).replace("'","''"))
         subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
     try:
-        process = launch('Home')
+        process = launch('Home', executable=unrelated)
         browser.start_session();browser.timeout.script=30
-        wait_for(lambda: chrome('return NightIsland.status === "connected";'),timeout=45)
-        wait_for(lambda: state()['state']['connected'])
         browser.set_context('content')
         browser.navigate('about:preferences#integrations')
+        wait_for(lambda: browser.execute_script("return document.getElementById('island-status')?.textContent === 'Связь выключена';"))
+        browser.find_element('css selector', '[data-pref="night.island.downloads"]').click()
+        wait_for(lambda: chrome('return NightIsland.reason === "peer-name" && NightIsland.status === "unavailable";'),timeout=45)
+        wait_for(lambda: state().get('hwnd'))
+        assert not state()['state']['connected']
+        browser.set_context('content')
+        assert browser.execute_script("return document.getElementById('island-status').textContent === 'Не удалось распознать Island' && !document.getElementById('island-retry').hidden;")
+        (output/'night-island-rejected.png').write_bytes(base64.b64decode(browser.screenshot()))
+        close_island()
+        process = launch('Home')
+        wait_for(lambda: chrome('return NightIsland.status === "connected";'),timeout=45)
+        wait_for(lambda: state()['state']['connected'])
+        assert chrome('return NightIsland.reason === "" && NightIsland.errorCode === 0;')
+        browser.set_context('content')
         wait_for(lambda: browser.execute_script("return document.getElementById('island-status')?.textContent === 'Island подключён';"))
         assert browser.execute_script("return document.getElementById('island-retry').hidden && document.getElementById('island-setup').hidden;")
         browser.set_context('chrome')
@@ -157,12 +173,12 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         wait_for(lambda: find('sample.zip','cancelled'))
         assert chrome('return w.integrationDownloads["sample.zip"].canceled && !w.integrationDownloads["sample.zip"].hasPartialData;')
         close_island()
-        wait_for(lambda: chrome('return NightIsland.status === "waiting";'))
+        wait_for(lambda: chrome('return NightIsland.status === "waiting" && NightIsland.reason === "not-running";'))
         browser.set_context('content')
-        wait_for(lambda: browser.execute_script("return document.getElementById('island-status').textContent === 'Ожидаем Island';"))
+        wait_for(lambda: browser.execute_script("return document.getElementById('island-status').textContent === 'Island не найден';"))
         assert browser.execute_script("return !document.getElementById('island-retry').hidden && !document.getElementById('island-setup').hidden;")
         browser.find_element('id','island-retry').click()
-        process=launch()
+        process=launch(executable=island)
         wait_for(lambda: chrome('return NightIsland.status === "connected";'),timeout=40)
         Site.delay=0.002
         chrome('w.integrationDownloads["sample.zip"].start().catch(()=>{});')
@@ -172,14 +188,14 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         time.sleep(0.5)
         assert not state()['state']['error']
         assert chrome('return w.integrationDownloads["sample.zip"].succeeded;')
-        (output/'island-result.json').write_text(json.dumps({'real_island':True,'versioned_handshake':True,'download_progress':True,'native_pointer_pause_resume_cancel':True,'private_excluded':True,'disable_disconnects':True,'reconnect_after_restart':True,'complete_reveal':True,'pending_prevents_repeat':True,'connection_settings':True,'manual_reconnect':True,'indicator_opens_downloads':True}))
+        (output/'island-result.json').write_text(json.dumps({'real_island':True,'versioned_handshake':True,'download_progress':True,'native_pointer_pause_resume_cancel':True,'private_excluded':True,'disable_disconnects':True,'reconnect_after_restart':True,'complete_reveal':True,'pending_prevents_repeat':True,'connection_settings':True,'manual_reconnect':True,'indicator_opens_downloads':True,'numbered_executable_connects':True,'unrelated_executable_rejected':True,'enable_from_settings':True,'connection_failure_reason':True}))
         print('PASS: actual Island pipe, native buttons, private exclusion, disconnect/reconnect and download lifecycle')
     finally:
         if not (output/'island-result.json').exists():
             (output/'island-failure-state.json').write_text(json.dumps(state()))
             try:
                 snapshot('night-island-failure.png')
-                details=chrome('return {status:NightIsland.status,ready:NightIsland.ready,items:[...NightIsland.entries].map(([id,d])=>({id,stopped:d.stopped,canceled:d.canceled,partial:d.hasPartialData,bytes:d.currentBytes,keep:d.tryToKeepPartialData})),seen:[...NightIsland.seen]};')
+                details=chrome('return {status:NightIsland.status,reason:NightIsland.reason,errorCode:NightIsland.errorCode,ready:NightIsland.ready,items:[...NightIsland.entries].map(([id,d])=>({id,stopped:d.stopped,canceled:d.canceled,partial:d.hasPartialData,bytes:d.currentBytes,keep:d.tryToKeepPartialData})),seen:[...NightIsland.seen]};')
                 (output/'island-failure-browser.json').write_text(json.dumps(details))
             except Exception:pass
         if browser.session:browser.quit()

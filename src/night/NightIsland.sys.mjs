@@ -6,6 +6,8 @@ export const NightIsland = {
   initialized: false,
   enabled: false,
   status: "disabled",
+  reason: "",
+  errorCode: 0,
   list: null,
   entries: new Map(),
   ids: new WeakMap(),
@@ -40,9 +42,11 @@ export const NightIsland = {
     if (enabled) this.start().catch(error => { console.error(error); this.setStatus("unavailable"); });
   },
 
-  setStatus(status) {
-    if (this.status === status) return;
+  setStatus(status, reason = "", errorCode = 0) {
+    if (this.status === status && this.reason === reason && this.errorCode === errorCode) return;
     this.status = status;
+    this.reason = reason;
+    this.errorCode = errorCode;
     Services.obs.notifyObservers(null, "night-island-status", status);
   },
 
@@ -101,7 +105,7 @@ export const NightIsland = {
     const {ctypes} = ChromeUtils.importESModule("resource://gre/modules/ctypes.sys.mjs");
     const {libc, win32} = ChromeUtils.importESModule("resource://gre/modules/subprocess/subprocess_win.sys.mjs");
     const port = libc.CreateIoCompletionPort(win32.INVALID_HANDLE_VALUE, win32.NULL_HANDLE_VALUE, 0, 1);
-    if (port.isNull()) { this.disconnected(); return; }
+    if (port.isNull()) { this.disconnected("completion-port", ctypes.winLastError); return; }
     this.native = {ctypes, libc, win32};
     this.port = port;
     const worker = new ChromeWorker("chrome://browser/content/night/island-pipe.js");
@@ -114,7 +118,7 @@ export const NightIsland = {
       if (message.type === "closed") {
         release();
         if (this.worker === worker) {
-          this.worker = null; this.port = null; this.disconnected();
+          this.worker = null; this.port = null; this.disconnected(message.reason, message.code);
         }
         return;
       }
@@ -122,15 +126,15 @@ export const NightIsland = {
       if (message.type === "connected") {
         this.send(JSON.stringify({v: 1, type: "hello", capabilities: ["downloads"]}));
       } else if (message.type === "frame") {
-        try { this.receive(JSON.parse(message.text)); } catch { this.disconnected(); }
+        try { this.receive(JSON.parse(message.text)); } catch { this.disconnected("protocol"); }
       }
     };
     worker.onerror = event => {
       event.preventDefault(); worker.terminate(); release();
-      if (this.worker === worker) { this.worker = null; this.port = null; this.disconnected(); }
+      if (this.worker === worker) { this.worker = null; this.port = null; this.disconnected("worker-error"); }
     };
     this.post({type: "init", port: String(ctypes.cast(port, ctypes.uintptr_t).value)});
-    this.connectionTimer = setTimeout(() => { if (!this.ready) this.disconnected(); }, 5000);
+    this.connectionTimer = setTimeout(() => { if (!this.ready) this.disconnected("handshake-timeout"); }, 5000);
   },
 
   post(message) {
@@ -148,7 +152,7 @@ export const NightIsland = {
   receive(message) {
     if (!this.ready) {
       if (message.v !== 1 || message.type !== "hello" || !message.capabilities?.includes("downloads")) {
-        this.disconnected(); return;
+        this.disconnected("protocol"); return;
       }
       clearTimeout(this.connectionTimer);
       this.ready = true;
@@ -209,10 +213,10 @@ export const NightIsland = {
     this.connect();
   },
 
-  disconnected() {
+  disconnected(reason = "connection-closed", code = 0) {
     this.closeTransport();
     if (!this.enabled) return;
-    this.setStatus("waiting");
+    this.setStatus(["not-running", "connection-closed"].includes(reason) ? "waiting" : "unavailable", reason, code);
     if (this.retry !== null) return;
     this.retry = setTimeout(() => { this.retry = null; this.connect(); }, this.retryDelay);
     this.retryDelay = Math.min(30000, this.retryDelay * 2);

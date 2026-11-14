@@ -743,9 +743,19 @@ window.addEventListener(
           unavailable: ["Не удалось подключиться", "Проверь, что интеграция включена в обоих приложениях."],
           unsupported: ["Доступно в Windows", "Связь с Island работает в версии браузера для Windows."],
         };
-        const [title, description] = labels[key] ?? labels.unavailable;
+        const problems = {
+          "not-running": ["Island не найден", "Запусти Island и включи в нём «Загрузки Night Browser». Подключение произойдёт автоматически."],
+          "peer-name": ["Не удалось распознать Island", "Запусти night-island.exe. Копии с номером, например night-island (1).exe, тоже поддерживаются."],
+          "peer-identity": ["Не удалось проверить Island", "Оба приложения должны работать в одной учётной записи Windows."],
+          "peer-access": ["Нет доступа к Island", "Закрой оба приложения и запусти их обычным способом, без прав администратора."],
+          "access-denied": ["Windows запретила соединение", "Закрой оба приложения и запусти их обычным способом, без прав администратора."],
+          "pipe-busy": ["Соединение Island занято", "Закрой другие копии Night Browser. Подключение повторится автоматически."],
+          "handshake-timeout": ["Island не ответил", "Проверь версию Island. Если она совместимая, перезапусти Island."],
+          "protocol": ["Версии интеграции несовместимы", "Установи совместимую версию Island по ссылке ниже."],
+        };
+        const [title, description] = problems[NightIsland.reason] ?? labels[key] ?? labels.unavailable;
         state.textContent = title;
-        hint.textContent = description;
+        hint.textContent = description + (NightIsland.errorCode ? ` Код Windows: ${NightIsland.errorCode}.` : "");
         connection.dataset.state = key;
         retry.hidden = !["waiting", "unavailable"].includes(key);
         steps.hidden = !supported || key === "connected";
