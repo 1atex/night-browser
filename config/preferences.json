@@ -1,5 +1,6 @@
 {
   "night.preview": true,
+  "night.island.downloads": false,
   "night.network.enabled": true,
   "night.memory.enabled": true,
   "night.memory.idle-minutes": 10,

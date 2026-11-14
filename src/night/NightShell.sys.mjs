@@ -5,6 +5,9 @@ import { SessionStore } from "moz-src:///browser/components/sessionstore/Session
 import { validIcon } from "resource:///modules/night/WorkspaceModel.mjs";
 
 const XHTML = "http://www.w3.org/1999/xhtml";
+const setText = (node, value) => { if (node.textContent !== value) node.textContent = value; };
+const setAttribute = (node, name, value) => { if (node.getAttribute(name) !== value) node.setAttribute(name, value); };
+const ROW_ATTRIBUTES = new Set(["label", "image", "busy", "pending", "soundplaying", "muted", "undiscardable"]);
 const EVENTS = [
   "TabOpen",
   "TabClose",
@@ -41,6 +44,8 @@ export class NightShell {
   #dragged = null;
   #rows = new Map();
   #renderedWorkspace = null;
+  #dirtyTabs = new Set();
+  #structureDirty = false;
   workspaces;
   toolbar;
 
@@ -618,15 +623,67 @@ export class NightShell {
       });
       parts = {row, main, title, children}; this.#folders.set(folder.id, parts);
     }
-    parts.title.textContent = folder.name;
-    parts.main.title = folder.name;
-    parts.main.setAttribute("aria-label", folder.name);
-    parts.main.setAttribute("aria-expanded", String(!folder.collapsed || !!this.#filter.value));
-    parts.children.hidden = folder.collapsed && !this.#filter.value;
+    setText(parts.title, folder.name);
+    setAttribute(parts.main, "title", folder.name);
+    setAttribute(parts.main, "aria-label", folder.name);
+    setAttribute(parts.main, "aria-expanded", String(!folder.collapsed || !!this.#filter.value));
+    const hidden = folder.collapsed && !this.#filter.value;
+    if (parts.children.hidden !== hidden) parts.children.hidden = hidden;
     return parts;
   }
 
+  #updateRow(tab, parts) {
+    const uri = tab.linkedBrowser.currentURI.spec;
+    const internal = /^about:(home|newtab|preferences|blank)(?:[?#]|$)/.exec(uri);
+    const label = internal
+      ? internal[1] === "preferences" ? "Настройки" : "Новая вкладка"
+      : SessionStore.getCustomTabValue(tab, "night-title") || (tab.label === "New Tab" ? "Новая вкладка" : tab.label);
+    const { row, main, icon, title, state, close } = parts;
+    row.toggleAttribute("data-loading", tab.hasAttribute("busy"));
+    row.toggleAttribute("data-selected", tab.selected);
+    row.toggleAttribute("data-split", !!tab.splitview);
+    row.toggleAttribute("data-sleeping", tab.hasAttribute("pending"));
+    row.toggleAttribute("data-pinned", tab.pinned);
+    setAttribute(main, "aria-selected", String(tab.selected));
+    const tooltip = label + (tab.hasAttribute("pending") ? " · выгружена" : "");
+    setAttribute(main, "title", tooltip);
+    setAttribute(main, "aria-label", tooltip);
+    setText(title, label);
+    const live = tab.getAttribute("image");
+    if (validIcon(live) && SessionStore.getCustomTabValue(tab, "night-favicon") !== live)
+      SessionStore.setCustomTabValue(tab, "night-favicon", live);
+    const image = internal
+      ? `chrome://browser/content/night/icons/${internal[1] === "preferences" ? "settings" : "newtab"}.svg`
+      : validIcon(live) ? live : SessionStore.getCustomTabValue(tab, "night-favicon");
+    const fallback = /^https?:/.test(uri) ? `page-icon:${uri}` : "chrome://browser/content/night/icons/globe.svg";
+    const source = validIcon(image) ? image : fallback;
+    if (icon.dataset.image !== source) {
+      const favicon = this.#element("img", "", {src: source, alt: "", width: "16", height: "16", referrerpolicy: "no-referrer"});
+      favicon.addEventListener("error", () => { favicon.src = fallback; }, {once: true});
+      icon.replaceChildren(favicon);
+      icon.dataset.image = source;
+    }
+    const stateLabel = tab.hasAttribute("pending")
+      ? "Спит"
+      : tab.soundPlaying
+      ? "♪"
+      : this.#owner.memory.isProtected(tab)
+        ? "◇"
+        : tab.splitview
+            ? "◫"
+            : "";
+    setText(state, stateLabel);
+    const saved = this.#isSaved(tab);
+    const hidden = tab.pinned || (saved && tab.hasAttribute("pending"));
+    if (close.hidden !== hidden) close.hidden = hidden;
+    const closeLabel = saved ? "Отправить в сон" : "Закрыть вкладку";
+    setAttribute(close, "title", closeLabel);
+    setAttribute(close, "aria-label", closeLabel);
+  }
+
   render() {
+    this.#structureDirty = false;
+    this.#dirtyTabs.clear();
     const browser = this.#window.gBrowser;
     const query = this.#filter.value.trim().toLocaleLowerCase();
     if (
@@ -640,9 +697,11 @@ export class NightShell {
       this.#selector.dataset.items = JSON.stringify(this.workspaces.items);
     }
     this.#selector.value = this.workspaces.active;
-    const tabs = this.workspaces.tabs;
+    const layout = this.workspaces.layout();
+    const tabs = layout.tabs;
+    const liveTabs = new Set(browser.tabs);
     for (const [tab, parts] of this.#rows)
-      if (!browser.tabs.includes(tab) || tab.closing) {
+      if (!liveTabs.has(tab) || tab.closing) {
         parts.row.remove();
         this.#rows.delete(tab);
       }
@@ -666,44 +725,8 @@ export class NightShell {
         parts = this.#row(tab);
         this.#rows.set(tab, parts);
       }
-      const { row, main, icon, title, state, close } = parts;
-      row.toggleAttribute("data-loading", tab.hasAttribute("busy"));
-      row.toggleAttribute("data-selected", tab.selected);
-      row.toggleAttribute("data-split", !!tab.splitview);
-      row.toggleAttribute("data-sleeping", tab.hasAttribute("pending"));
-      row.toggleAttribute("data-pinned", tab.pinned);
-      main.setAttribute("aria-selected", String(tab.selected));
-      main.title =
-        label + (tab.hasAttribute("pending") ? " · выгружена" : "");
-      main.setAttribute("aria-label", main.title);
-      title.textContent = label;
-      const live = tab.getAttribute("image");
-      if (validIcon(live) && SessionStore.getCustomTabValue(tab, "night-favicon") !== live)
-        SessionStore.setCustomTabValue(tab, "night-favicon", live);
-      const image = internal
-        ? `chrome://browser/content/night/icons/${internal[1] === "preferences" ? "settings" : "newtab"}.svg`
-        : validIcon(live) ? live : SessionStore.getCustomTabValue(tab, "night-favicon");
-      const fallback = /^https?:/.test(uri) ? `page-icon:${uri}` : "chrome://browser/content/night/icons/globe.svg";
-      const source = validIcon(image) ? image : fallback;
-      if (icon.dataset.image !== source) {
-        const favicon = this.#element("img", "", {src: source, alt: "", width: "16", height: "16", referrerpolicy: "no-referrer"});
-        favicon.addEventListener("error", () => { favicon.src = fallback; }, {once: true});
-        icon.replaceChildren(favicon);
-        icon.dataset.image = source;
-      }
-      state.textContent = tab.hasAttribute("pending")
-        ? "Спит"
-        : tab.soundPlaying
-        ? "♪"
-        : this.#owner.memory.isProtected(tab)
-          ? "◇"
-          : tab.splitview
-              ? "◫"
-              : "";
-      const saved = this.#isSaved(tab);
-      close.hidden = tab.pinned || (saved && tab.hasAttribute("pending"));
-      close.title = saved ? "Отправить в сон" : "Закрыть вкладку";
-      close.setAttribute("aria-label", close.title);
+      this.#updateRow(tab, parts);
+      const {row} = parts;
       if (tab.pinned) pins.push(row);
       else normal.push(tab);
     }
@@ -716,15 +739,16 @@ export class NightShell {
       this.#folderVersion = this.workspaces.folders;
     }
     for (const [id, parts] of this.#folders) if (!folders.has(id)) {parts.row.remove(); this.#folders.delete(id);}
-    const buildTree = parent => this.workspaces.children(parent).flatMap(node => {
+    const buildTree = parent => (layout.children.get(parent) ?? []).flatMap(node => {
       if (typeof node !== "string") return visible.has(node) && this.workspaces.isPinned(node) ? [this.#rows.get(node).row] : [];
       const folder = folders.get(node), parts = this.#folder(folder), children = buildTree(node);
       this.#syncChildren(parts.children, children);
       return query && !children.length && !folder.name.toLocaleLowerCase().includes(query) ? [] : [parts.row];
     });
     this.#syncChildren(this.#tree, buildTree(null));
-    this.#syncChildren(this.#list, this.workspaces.children().filter(node => typeof node !== "string" && visible.has(node) && !this.workspaces.isPinned(node)).map(tab => this.#rows.get(tab).row));
-    this.#empty.hidden = !query || pins.length + normal.length > 0;
+    this.#syncChildren(this.#list, (layout.children.get(null) ?? []).filter(node => typeof node !== "string" && visible.has(node) && !this.workspaces.isPinned(node)).map(tab => this.#rows.get(tab).row));
+    const emptyHidden = !query || pins.length + normal.length > 0;
+    if (this.#empty.hidden !== emptyHidden) this.#empty.hidden = emptyHidden;
     if (this.#renderedWorkspace !== this.workspaces.active) {
       this.#renderedWorkspace = this.workspaces.active;
       const colors = ["#c3ccd9", "#adbfe0", "#b7ccb9", "#d4b9b1", "#c6badb"];
@@ -747,10 +771,8 @@ export class NightShell {
     }
     const all = [...browser.tabs].filter((tab) => !tab.closing);
     const sleeping = all.filter((tab) => tab.hasAttribute("pending")).length;
-    if (!this.#status.hasAttribute("data-message")) this.#status.textContent = `Загружено: ${all.length - sleeping}${sleeping ? ` · выгружено: ${sleeping}` : ""}`;
-    this.#window.document
-      .getElementById("night-split-button")
-      .setAttribute("aria-pressed", String(!!browser.selectedTab.splitview));
+    if (!this.#status.hasAttribute("data-message")) setText(this.#status, `Загружено: ${all.length - sleeping}${sleeping ? ` · выгружено: ${sleeping}` : ""}`);
+    setAttribute(this.#window.document.getElementById("night-split-button"), "aria-pressed", String(!!browser.selectedTab.splitview));
   }
 
   #syncChildren(parent, children) {
@@ -813,10 +835,22 @@ export class NightShell {
       }
       return;
     }
+    if (event.type === "TabAttrModified" && !this.#filter.value) {
+      if (event.detail?.changed && !event.detail.changed.some(name => ROW_ATTRIBUTES.has(name))) return;
+      if (this.#rows.has(event.target)) this.#dirtyTabs.add(event.target);
+      else this.#structureDirty = true;
+    } else this.#structureDirty = true;
     if (this.#frame === null)
       this.#frame = this.#window.requestAnimationFrame(() => {
         this.#frame = null;
-        this.render();
+        if (this.#structureDirty) this.render();
+        else {
+          for (const tab of this.#dirtyTabs) {
+            const parts = this.#rows.get(tab);
+            if (parts && !tab.closing) this.#updateRow(tab, parts);
+          }
+          this.#dirtyTabs.clear();
+        }
       });
   }
 

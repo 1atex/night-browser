@@ -8,6 +8,7 @@ export class NightAddress {
   #icon;
   #source = "";
   #bar;
+  #label;
 
   constructor(window) {
     this.#window = window;
@@ -21,7 +22,10 @@ export class NightAddress {
     for (const type of ["pointerdown", "input", "focusout"]) this.#bar.addEventListener(type, this);
     window.addEventListener("keydown", this, true);
     const input = doc.querySelector("#urlbar .urlbar-input-box");
-    input.before(this.#icon);
+    this.#label = doc.createElementNS("http://www.w3.org/1999/xhtml", "span");
+    this.#label.id = "night-address-page";
+    this.#label.setAttribute("aria-hidden", "true");
+    input.before(this.#icon, this.#label);
     for (const event of ["TabSelect", "TabAttrModified", "SSTabRestored"])
       window.gBrowser.tabContainer.addEventListener(event, this);
     this.update();
@@ -48,6 +52,10 @@ export class NightAddress {
   update() {
     const tab = this.#window.gBrowser.selectedTab;
     const url = tab.linkedBrowser.currentURI.spec;
+    const page = url === "chrome://browser/content/night/welcome.xhtml" ? "Первый запуск" :
+      url.startsWith("about:preferences") ? "Настройки" : "";
+    if (this.#label.textContent !== page) this.#label.textContent = page;
+    this.#bar.toggleAttribute("night-internal-page", !!page);
     const saved = [tab.getAttribute("image"), SessionStore.getCustomTabValue(tab, "night-favicon")].find(validIcon);
     const source = saved ||
       (url.startsWith("about:preferences") ? ICONS + "settings.svg" :
@@ -66,5 +74,7 @@ export class NightAddress {
     this.#window.removeEventListener("keydown", this, true);
     this.#icon.removeEventListener("error", this);
     this.#icon.remove();
+    this.#label.remove();
+    this.#bar.removeAttribute("night-internal-page");
   }
 }

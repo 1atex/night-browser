@@ -110,6 +110,28 @@ export class NightWorkspaces {
     ].sort((a, b) => this.position(a) - this.position(b));
   }
 
+  layout() {
+    const folders = new Map(this.folders.filter(folder => folder.workspace === this.active).map(folder => [folder.id, folder]));
+    const children = new Map();
+    const positions = new Map();
+    const append = (parent, node, position) => {
+      if (!children.has(parent)) children.set(parent, []);
+      children.get(parent).push(node);
+      positions.set(node, position);
+    };
+    for (const folder of folders.values()) append(folder.parentId, folder.id, folder.position);
+    const tabs = [];
+    for (const tab of this.#window.gBrowser.tabs) {
+      if (tab.closing || (!tab.pinned && this.workspaceOf(tab) !== this.active)) continue;
+      tabs.push(tab);
+      if (tab.pinned) continue;
+      const parent = SessionStore.getCustomTabValue(tab, "night-folder");
+      append(folders.has(parent) ? parent : null, tab, this.position(tab));
+    }
+    for (const siblings of children.values()) siblings.sort((a, b) => positions.get(a) - positions.get(b));
+    return {tabs, children};
+  }
+
   setPinned(tab, mode) {
     const browser = this.#window.gBrowser;
     if (mode === "global") {

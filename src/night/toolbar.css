@@ -330,3 +330,18 @@
 :root[night-browser] #trust-icon-container.chromeUI { display: none; }
 
 .night-tab-icon img, #night-address-icon { -moz-context-properties: fill; fill: var(--night-text); }
+
+#night-address-page { display: none; pointer-events: none; }
+#urlbar[night-internal-page]:not([focused]):not([night-address-editing]) #night-address-page {
+  display: block;
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--night-text);
+}
+#urlbar[night-internal-page]:not([focused]):not([night-address-editing]) .urlbar-input-box {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+}

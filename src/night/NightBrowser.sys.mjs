@@ -4,6 +4,7 @@
 
 import { NightWindows } from "resource:///modules/night/NightWindows.sys.mjs";
 import { NightShell } from "resource:///modules/night/NightShell.sys.mjs";
+import { NightIsland } from "resource:///modules/night/NightIsland.sys.mjs";
 import { NightMemory } from "resource:///modules/night/NightMemory.sys.mjs";
 
 ChromeUtils.registerWindowActor("NightStart", {
@@ -36,6 +37,7 @@ class NightWindow {
     );
     this.shell = new NightShell(window, this);
     NightWindows.init();
+    NightIsland.init();
     window.gBrowser.tabContainer.addEventListener("TabSelect", this);
     window.addEventListener("unload", () => this.destroy(), { once: true });
   }

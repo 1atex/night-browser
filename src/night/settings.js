@@ -46,6 +46,7 @@ window.addEventListener(
         "Перенос данных с резервной копией.",
         "import",
       ],
+      integrations: ["Интеграции", "Связь с приложениями на этом компьютере.", "island"],
       about: ["О браузере", "Версия, обновления и лицензии.", "moon"],
     };
     const element = (tag, text = "", attributes = {}) => {
@@ -707,8 +708,26 @@ window.addEventListener(
         ),
       );
     }
+    function integrations() {
+      const {NightIsland} = ChromeUtils.importESModule("resource:///modules/night/NightIsland.sys.mjs");
+      const section = card("Night Island", "Прогресс загрузок в островке, пауза, продолжение и переход к файлу.");
+      toggle(section, "Показывать загрузки в Island", "Включи Night Browser в настройках интеграций Island. Загрузки из приватных окон не передаются.", "night.island.downloads", false);
+      const state = element("p", "", {class: "card-caption", role: "status"});
+      section.append(state);
+      const update = () => {
+        state.textContent = ({disabled: "Выключено", connecting: "Подключение…", connected: "Подключено", waiting: "Ожидаем Night Island с поддержкой браузера", unavailable: "Не удалось подключиться"})[NightIsland.status];
+      };
+      update();
+      Services.obs.addObserver(update, "night-island-status");
+      let listening = true;
+      const remove = () => { if (listening) { listening = false; Services.obs.removeObserver(update, "night-island-status"); } };
+      window.addEventListener("hashchange", remove, {once: true});
+      window.addEventListener("unload", remove, {once: true});
+    }
+
     const renderers = {
       appearance,
+      integrations,
       tabs,
       memory,
       privacy,
