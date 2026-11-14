@@ -60,6 +60,8 @@
 #night-sidebar :is(button, input, select) {
   font: inherit;
   color: inherit;
+  -moz-context-properties: fill;
+  fill: currentColor;
   border: 0;
   background: transparent;
 }

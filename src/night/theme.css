@@ -11,6 +11,7 @@
   --night-hover: #ffffff17;
   --night-selected: #ffffff29;
   --night-field: #ffffff14;
+  --night-site-filter: brightness(0) invert(.95);
   --night-radius: 12px;
   --night-pill: 999px;
   --night-font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;

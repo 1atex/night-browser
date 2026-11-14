@@ -167,6 +167,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Create download archive
         run: |
+          Copy-Item test-artifacts/start-flow-result.json dist/start-flow-result.json
+          Copy-Item test-artifacts/night-start-flow.png dist/night-start-flow.png
+          Copy-Item test-artifacts/night-island-browser-pill.png dist/night-island-browser-pill.png
           Copy-Item test-artifacts/rendering.json dist/rendering.json
           Copy-Item test-artifacts/island-result.json dist/island-result.json
           Copy-Item test-artifacts/night-island-downloads.png dist/night-island-downloads.png
@@ -204,6 +207,9 @@ jobs:
           path: |
             dist/night-browser-0.9.2-preview-windows-x64.zip
             dist/night-browser-0.9.2-preview-windows-x64-setup.exe
+            dist/start-flow-result.json
+            dist/night-start-flow.png
+            dist/night-island-browser-pill.png
             dist/rendering.json
             dist/island-result.json
             dist/night-island-downloads.png
@@ -261,6 +267,9 @@ jobs:
           gh release create "$RELEASE_TAG" \
             release-assets/night-browser-0.9.2-preview-windows-x64.zip \
             release-assets/night-browser-0.9.2-preview-windows-x64-setup.exe \
+            release-assets/start-flow-result.json \
+            release-assets/night-start-flow.png \
+            release-assets/night-island-browser-pill.png \
             release-assets/rendering.json \
             release-assets/island-result.json \
             release-assets/night-island-downloads.png \

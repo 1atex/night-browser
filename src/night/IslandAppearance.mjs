@@ -22,6 +22,7 @@ export function appearanceStyles(value) {
     "--night-hover": `rgba(${ink}, .09)`,
     "--night-selected": `rgba(${ink}, .16)`,
     "--night-field": `rgba(${ink}, .075)`,
+    "--night-site-filter": light ? "brightness(0)" : "brightness(0) invert(.95)",
     "color-scheme": light ? "light" : "dark",
   };
 }
