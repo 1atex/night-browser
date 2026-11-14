@@ -1,6 +1,13 @@
 name: Island connection check
 on:
   workflow_dispatch:
+  push:
+    branches: [feature/night-product]
+    paths:
+      - "src/night/*Island*"
+      - "src/night/island-pipe.js"
+      - "tests/native/island.py"
+      - ".github/workflows/island-check.yml"
 permissions:
   contents: read
 jobs:
