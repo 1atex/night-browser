@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src resource:; style-src resource:; img-src resource: data:; form-action https://www.google.com; base-uri 'none'"
+    />
+    <title>Новая вкладка</title>
+    <link
+      rel="stylesheet"
+      href="resource://newtab/prerendered/night-start.css"
+    />
+    <link
+      rel="icon"
+      href="resource://newtab/prerendered/night-newtab.svg"
+    />
+    <script src="resource://newtab/prerendered/night-start.js" defer></script>
+  </head>
+  <body>
+    <main aria-label="Новая вкладка">
+      <div class="home-time"><div class="date" id="date"></div>
+      <div class="clock" id="clock" aria-label="Текущее время"></div></div>
+      <form action="https://www.google.com/search" method="get">
+        <label for="query" class="sr-only">Поиск в Google</label
+        ><svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m16 16 4 4" /></svg
+        ><input
+          id="query"
+          name="q"
+          placeholder="Поиск в Google"
+          autocomplete="off"
+        /><button type="submit" aria-label="Искать">↗</button>
+      </form>
+      <nav aria-label="Быстрые ссылки">
+        <a href="https://www.youtube.com/"
+          ><span class="tile-icon youtube"><img src="resource://newtab/prerendered/sites/youtube.png" alt="" /></span><span>YouTube</span></a
+        >
+        <a href="https://chatgpt.com/"
+          ><span class="tile-icon chatgpt"><img src="resource://newtab/prerendered/sites/chatgpt.svg" alt="" /></span><span>ChatGPT</span></a
+        >
+        <a href="https://search.censys.io/"
+          ><span class="tile-icon censys">C</span><span>Censys</span></a
+        >
+        <a href="https://github.com/"
+          ><span class="tile-icon github"><img src="resource://newtab/prerendered/sites/github.ico" alt="" /></span><span>GitHub</span></a
+        >
+      </nav>
+    </main>
+  </body>
+</html>

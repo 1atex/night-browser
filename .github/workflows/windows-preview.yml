@@ -1,0 +1,241 @@
+name: Windows preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["feature/night-product", main]
+    tags: ["v*-preview.*"]
+    paths:
+      - "src/night/**"
+      - "config/**"
+      - "scripts/preview/**"
+      - "tests/native/**"
+      - "tests/night/**"
+      - ".github/workflows/windows-preview.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check Night modules
+        run: npm run test:night
+      - name: Install test dependencies
+        run: python -m pip install -r tests/native/requirements.txt
+      - name: Download pinned native runtime
+        run: |
+          $pin = Get-Content scripts/preview/runtime.json -Raw | ConvertFrom-Json
+          $installer = Join-Path $env:RUNNER_TEMP "firefox-upstream.exe"
+          Invoke-WebRequest -Uri $pin.windows_x64.url -OutFile $installer
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLower() -ne $pin.windows_x64.sha256) {
+            throw "Upstream checksum mismatch"
+          }
+          7z x -y "-o$env:RUNNER_TEMP\firefox-upstream" $installer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Assemble Night preview
+        run: |
+          python scripts/preview/package.py --runtime "$env:RUNNER_TEMP/firefox-upstream/core" --output dist/Night --archive "$env:RUNNER_TEMP/firefox-upstream.exe" --platform windows_x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          $source = (Resolve-Path scripts/preview/Launcher.cs).Path
+          $importSource = (Resolve-Path scripts/preview/ProfileImport.cs).Path
+          $executable = Join-Path (Resolve-Path dist/Night).Path "Night.exe"
+          $icon = (Resolve-Path src/night/branding/night.ico).Path
+          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll "/win32icon:$icon" "/out:$executable" $source $importSource
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build per-user installer
+        run: |
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $compiler)) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          & $compiler scripts/preview/installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test first-run setup and window controls
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/onboarding.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -u tests/native/installer.py --setup dist/night-browser-0.8.0-preview-windows-x64-setup.exe --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test packaged browser on Windows
+        run: |
+          New-Item -ItemType Directory -Force test-artifacts | Out-Null
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/smoke.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --preview --screenshot test-artifacts/preview.png --log test-artifacts/gecko.log 2>&1 | Tee-Object -FilePath test-artifacts/native-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test Night product and session restoration
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/product.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/product-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test Night settings and layout
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/settings.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/settings-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -u tests/native/motion.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/motion-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -u tests/native/chrome.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/chrome-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test folders, resize and background restoration
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/sidebar.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/sidebar-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -u tests/native/saved_tabs.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test configurable process reserve
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/preallocation.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/preallocation-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Inspect ordinary first launch and Windows identity
+        run: ./tests/native/first-launch.ps1 -Package dist/Night -Output test-artifacts
+      - name: Test migration from an actual Zen profile
+        run: |
+          ./tests/native/import-transaction.ps1 -Launcher dist/Night/Night.exe
+          $fixtures = Get-Content tests/native/import-fixtures.json -Raw | ConvertFrom-Json
+          $zen = Join-Path $env:RUNNER_TEMP "zen-import.exe"
+          $extension = Join-Path $env:RUNNER_TEMP "import-extension.xpi"
+          Invoke-WebRequest $fixtures.zen.url -OutFile $zen
+          Invoke-WebRequest $fixtures.extension.url -OutFile $extension
+          if ((Get-FileHash $zen -Algorithm SHA256).Hash.ToLower() -ne $fixtures.zen.sha256) { throw "Zen fixture checksum mismatch" }
+          if ((Get-FileHash $extension -Algorithm SHA256).Hash.ToLower() -ne $fixtures.extension.sha256) { throw "Extension fixture checksum mismatch" }
+          7z x -y "-o$env:RUNNER_TEMP/zen-import" $zen
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -u tests/native/zen_import.py --package dist/Night --zen "$env:RUNNER_TEMP/zen-import/core/zen.exe" --extension $extension --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/zen-import-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Measure minimized browser memory
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/memory.py --stock "$env:RUNNER_TEMP/firefox-upstream/core/firefox.exe" --night "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/memory-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test portable launcher
+        run: python -u tests/native/launcher.py --launcher dist/Night/Night.exe
+      - name: Create download archive
+        run: |
+          Copy-Item test-artifacts/sidebar-result.json dist/sidebar-result.json
+          Copy-Item test-artifacts/night-sidebar-filled.png dist/night-sidebar-filled.png
+          Copy-Item test-artifacts/memory.json dist/memory.json
+          Copy-Item test-artifacts/night-first-launch.png dist/night-first-launch.png
+          Copy-Item test-artifacts/night-settings-ordinary.png dist/night-settings.png
+          Copy-Item test-artifacts/night-import.png dist/night-import.png
+          Copy-Item test-artifacts/zen-import-result.json dist/zen-import-result.json
+          Copy-Item test-artifacts/motion.json dist/motion.json
+          Copy-Item test-artifacts/chrome-result.json dist/chrome-result.json
+          Copy-Item test-artifacts/night-focus-ordinary.png dist/night-focus.png
+          Copy-Item test-artifacts/night-address-ordinary.png dist/night-address.png
+          Copy-Item test-artifacts/night-extensions-ordinary.png dist/night-extensions.png
+          Copy-Item test-artifacts/night-menu-ordinary.png dist/night-menu.png
+          Copy-Item test-artifacts/night-suggestions-ordinary.png dist/night-suggestions.png
+          7z a -tzip dist/night-browser-0.8.0-preview-windows-x64.zip ./dist/Night
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $hash = (Get-FileHash dist/night-browser-0.8.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  night-browser-0.8.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          $setupHash = (Get-FileHash dist/night-browser-0.8.0-preview-windows-x64-setup.exe -Algorithm SHA256).Hash.ToLower()
+          "$setupHash  night-browser-0.8.0-preview-windows-x64-setup.exe" | Add-Content dist/SHA256SUMS.txt -Encoding ascii
+          Copy-Item test-artifacts/night-onboarding.png dist/night-onboarding.png
+          Copy-Item test-artifacts/installer-result.json dist/installer-result.json
+          Copy-Item test-artifacts/onboarding-result.json dist/onboarding-result.json
+          Copy-Item test-artifacts/night-window-controls.png dist/night-window-controls.png
+          Copy-Item test-artifacts/night-sleeping-folder.png dist/night-sleeping-folder.png
+          Copy-Item test-artifacts/saved-tabs-result.json dist/saved-tabs-result.json
+      - name: Upload Windows preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: night-browser-windows-x64-preview
+          path: |
+            dist/night-browser-0.8.0-preview-windows-x64.zip
+            dist/night-browser-0.8.0-preview-windows-x64-setup.exe
+            dist/night-onboarding.png
+            dist/installer-result.json
+            dist/onboarding-result.json
+            dist/night-window-controls.png
+            dist/night-sleeping-folder.png
+            dist/saved-tabs-result.json
+            dist/SHA256SUMS.txt
+            dist/sidebar-result.json
+            dist/night-sidebar-filled.png
+            dist/memory.json
+            dist/night-first-launch.png
+            dist/night-settings.png
+            dist/night-import.png
+            dist/zen-import-result.json
+            dist/motion.json
+            dist/chrome-result.json
+            dist/night-focus.png
+            dist/night-address.png
+            dist/night-extensions.png
+            dist/night-menu.png
+            dist/night-suggestions.png
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-preview-tests
+          path: test-artifacts/
+          retention-days: 14
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: night-browser-windows-x64-preview
+          path: release-assets
+      - name: Publish tested preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            release-assets/night-browser-0.8.0-preview-windows-x64.zip \
+            release-assets/night-browser-0.8.0-preview-windows-x64-setup.exe \
+            release-assets/night-onboarding.png \
+            release-assets/installer-result.json \
+            release-assets/onboarding-result.json \
+            release-assets/night-window-controls.png \
+            release-assets/night-sleeping-folder.png \
+            release-assets/saved-tabs-result.json \
+            release-assets/SHA256SUMS.txt \
+            release-assets/sidebar-result.json \
+            release-assets/night-sidebar-filled.png \
+            release-assets/memory.json \
+            release-assets/night-first-launch.png \
+            release-assets/night-settings.png \
+            release-assets/night-import.png \
+            release-assets/zen-import-result.json \
+            release-assets/motion.json \
+            release-assets/chrome-result.json \
+            release-assets/night-focus.png \
+            release-assets/night-address.png \
+            release-assets/night-extensions.png \
+            release-assets/night-menu.png \
+            release-assets/night-suggestions.png \
+            --verify-tag --prerelease \
+            --title "Night Browser $RELEASE_TAG" \
+            --notes-file docs/night/PREVIEW_RELEASE.md

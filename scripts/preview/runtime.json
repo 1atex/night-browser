@@ -1,0 +1,16 @@
+{
+  "product": "Mozilla Firefox",
+  "version": "160.0",
+  "revision": "d84e7a6936554efe26097d9d9b24a0e11330e630",
+  "source": "https://hg.mozilla.org/releases/mozilla-release/rev/d84e7a6936554efe26097d9d9b24a0e11330e630",
+  "gecko": "160.0",
+  "windows_x64": {
+    "url": "https://archive.mozilla.org/pub/firefox/releases/160.0/win64/ru/Firefox%20Setup%20160.0.exe",
+    "sha256": "9aca6af4a633546ce9908894d735b0518c36b6a54f108566e517225983cf5173"
+  },
+  "linux_x64": {
+    "url": "https://archive.mozilla.org/pub/firefox/releases/160.0/linux-x86_64/ru/firefox-160.0.tar.xz",
+    "sha256": "74a4ddecb25c1240a048b5ddb63d826a2502f35601ee2af48804c153d02eddd9"
+  },
+  "locale": "ru"
+}

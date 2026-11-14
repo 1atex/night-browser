@@ -1,0 +1,49 @@
+:root {
+  color-scheme: dark !important;
+  --in-content-page-background: #18181b !important;
+  --in-content-box-background: #222227 !important;
+  --in-content-page-color: #d8dbe4 !important;
+  --in-content-accent-color: #b7c6dd !important;
+  --in-content-primary-button-background: #b7c6dd !important;
+  --in-content-primary-button-text-color: #171a20 !important;
+  --color-accent-primary: #b7c6dd !important;
+  --color-accent-primary-hover: #d4dfed !important;
+  --color-accent-primary-active: #9aadc9 !important;
+  --background-color-canvas: #18181b !important;
+  --background-color-box: #222227 !important;
+  --background-color-information: #c3ccd910 !important;
+  --link-color: #bac9de !important;
+  --link-color-hover: #dce5f1 !important;
+  --button-background-color-primary: #b7c6dd !important;
+  --button-text-color-primary: #171a20 !important;
+  --focus-outline-color: #b7c6dd !important;
+  --in-content-item-selected: #c3ccd914 !important;
+  --in-content-item-selected-text: #d9e0ed !important;
+}
+#category-sync,
+#category-more-from-mozilla,
+#category-experimental,
+#category-ai-features,
+#category-ai,
+#firefoxAccountCategory,
+#fxaCategory,
+#policies-container,
+#searchInput,
+#helpButton,
+#category-browser-icon {
+  display: none !important;
+}
+body {
+  font-family: "Segoe UI", system-ui, sans-serif !important;
+}
+#categories > richlistitem[selected] {
+  background: #c3ccd914 !important;
+  color: #d5ddeb !important;
+  border-radius: 9px !important;
+}
+.main-content {
+  background: #18181b !important;
+}
+.category-icon {
+  filter: grayscale(1);
+}

@@ -1,0 +1,332 @@
+:root[night-browser] #nav-bar {
+  --toolbarbutton-inner-padding: 9px;
+  --toolbarbutton-border-radius: 999px;
+  --toolbarbutton-hover-background: #c3ccd910;
+  --toolbarbutton-active-background: #c3ccd91c;
+  --toolbarbutton-icon-fill: #ffffffa6;
+  --toolbarbutton-icon-fill-attention: #d5e2f5;
+  padding: 6px 10px;
+  min-height: 48px;
+}
+:root[night-browser]:not([customizing]) #nav-bar-customization-target > toolbarspring {
+  display: none;
+}
+:root[night-browser] #urlbar-container {
+  margin-inline: 14px 18px;
+}
+:root[night-browser] #nav-bar .toolbarbutton-1 {
+  padding-inline: 1px;
+}
+:root[night-browser] #nav-bar .toolbarbutton-1 > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
+  border-radius: var(--night-pill);
+}
+:root[night-browser] #nav-bar .toolbarbutton-1:not([disabled]):is(:hover, [open], [checked]) > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
+  background-color: #c3ccd914 !important;
+}
+:root[night-browser] #back-button {
+  list-style-image: url("chrome://browser/content/night/icons/back.svg") !important;
+}
+:root[night-browser] #forward-button {
+  list-style-image: url("chrome://browser/content/night/icons/forward.svg") !important;
+}
+:root[night-browser] #reload-button {
+  list-style-image: url("chrome://browser/content/night/icons/reload.svg") !important;
+}
+:root[night-browser] #stop-button {
+  list-style-image: url("chrome://browser/content/night/icons/close.svg") !important;
+}
+:root[night-browser] #unified-extensions-button {
+  list-style-image: url("chrome://browser/content/night/icons/extensions.svg") !important;
+}
+:root[night-browser] :is(#downloads-button, #downloads-indicator-anchor, #downloads-indicator-icon) {
+  list-style-image: url("chrome://browser/content/night/icons/download-toolbar.svg") !important;
+}
+:root[night-browser] #night-sidebar-toggle .toolbarbutton-text {
+  box-sizing: content-box;
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  padding: 8px;
+  border-radius: var(--night-pill);
+  background-size: 16px;
+}
+:root[night-browser] #night-sidebar-toggle:hover .toolbarbutton-text {
+  background-color: #c3ccd910;
+}
+:root[night-browser] #urlbar {
+  --urlbar-background-color: var(--night-field);
+  --urlbar-background-color-focus: var(--night-panel);
+  --urlbar-border-radius: 999px;
+  --urlbar-background-border-radius: 999px;
+  --urlbar-background-border-top-radius-open: 999px;
+  --urlbar-background-border: 1px solid transparent;
+  --urlbar-background-border-focused: 1px solid #ffffff26;
+  --urlbar-background-border-open: 1px solid #ffffff26;
+  --urlbar-background-outline-focused: none;
+  --urlbar-input-container-outline-open: none;
+  --urlbar-input-container-outline-open-focused: none;
+  --urlbar-background-box-shadow-open: 0 12px 32px #0005;
+  --urlbar-background-overhang-open: 0px;
+  --urlbar-input-growth-open-block: 0px;
+  --urlbar-input-growth-open-inline: 0px;
+  --toolbar-field-text-color: #dce0e8;
+  --toolbar-field-text-color-focus: #f0f1f5;
+  --urlbar-box-background-color: transparent;
+  --urlbar-box-background-color-focus: #c3ccd90c;
+  --urlbar-box-background-color-hover: #c3ccd914;
+  --urlbar-box-background-color-active: #c3ccd922;
+  --urlbarview-background-color-selected: var(--night-selected);
+  --urlbarview-background-color-hover: var(--night-hover);
+  --urlbarview-text-color-selected: #f0f1f5;
+  --urlbarview-text-color-hover: #e0e3eb;
+  --urlbarview-text-color-secondary: #a3adbf;
+  --urlbarview-text-color-action: #a3adbf;
+  --urlbarview-separator-color: #ffffff0b;
+  --urlbarview-row-min-height: 40px;
+  --urlbarview-row-padding-block: 8px;
+  --urlbarview-row-padding-inline: 10px;
+  --urlbarview-row-gutter: 2px;
+  --urlbarview-row-border-radius: var(--night-pill);
+  --urlbarview-results-padding: 8px;
+  font: 13px var(--night-font);
+}
+:root[night-browser] #urlbar .urlbar-background {
+  outline: none !important;
+  border-radius: var(--night-pill) !important;
+  clip-path: none !important;
+  inset: 0 !important;
+  box-shadow: none !important;
+}
+:root[night-browser] #urlbar .urlbar-input-container {
+  outline: none !important;
+}
+:root[night-browser] #urlbar-input {
+  font: inherit;
+  caret-color: #c3ccd9;
+}
+:root[night-browser] #urlbar-input::placeholder {
+  color: #979eac;
+  opacity: 1;
+}
+:root[night-browser] #urlbar-input::selection {
+  background: #b6c6df38;
+  color: #f0f1f5;
+}
+:root[night-browser] #urlbar .searchmode-switcher {
+  --button-border-radius: 7px;
+  --button-background-color-muted: transparent;
+  --button-background-color-muted-hover: #c3ccd913;
+  --button-background-color-muted-active: #c3ccd922;
+}
+:root[night-browser] #urlbar .searchmode-switcher::part(button) {
+  box-shadow: none;
+  background-image: none;
+}
+:root[night-browser] #urlbar .urlbarView-row-inner {
+  border-radius: 8px;
+}
+:root[night-browser] #urlbar .urlbarView {
+  margin: 8px 0 0;
+  padding: 5px;
+  width: auto;
+  border: 1px solid #ffffff15;
+  border-radius: 12px;
+  background: var(--night-panel);
+  box-shadow: 0 14px 36px #0005;
+  overflow-clip-margin: 0;
+}
+:root[night-browser] #urlbar .urlbarView-background {
+  display: none;
+}
+:root[night-browser] #urlbar .urlbarView-results {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+}
+:root[night-browser] #urlbar .urlbarView-row {
+  border-radius: var(--night-pill);
+}
+:root[night-browser] #urlbar .urlbarView-title {
+  font-weight: 400;
+}
+:root[night-browser] #urlbar .urlbarView-row[selected] .urlbarView-title {
+  font-weight: 500;
+}
+:root[night-browser] #urlbar .urlbarView-action {
+  font-size: 11px;
+}
+:root[night-browser] #unified-extensions-panel,
+:root[night-browser] #downloadsPanel {
+  --panel-border-radius: 14px;
+  --panel-padding: 8px;
+  --panel-shadow: 0 16px 48px #0006;
+  --arrowpanel-menuitem-border-radius: 8px;
+  --arrowpanel-menuitem-padding: 9px;
+  font: 13px var(--night-font);
+}
+:root[night-browser] #unified-extensions-panel .unified-extensions-item {
+  border-radius: var(--night-pill);
+  margin-block: 3px;
+}
+:root[night-browser] #unified-extensions-panel .unified-extensions-item-name {
+  font-size: 12px;
+  font-weight: 500;
+}
+:root[night-browser] #unified-extensions-panel .unified-extensions-item-message {
+  font-size: 11px;
+  color: #a3adbf;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[night-motion] #nav-bar .toolbarbutton-1 > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
+    transition: background-color 120ms ease;
+  }
+}
+#night-focus-button {
+  width: 28px;
+  height: 28px;
+  margin-left: 0;
+  background: url("chrome://browser/content/night/icons/focus.svg") center/15px no-repeat !important;
+  opacity: 0.55;
+  -moz-window-dragging: no-drag;
+}
+#night-focus-button:hover,
+#night-focus-button:focus-visible {
+  opacity: 1;
+  background-color: #c3ccd90d !important;
+}
+#night-autohide-button {
+  list-style-image: url("chrome://browser/content/night/icons/toolbar.svg");
+}
+#night-focus-exit {
+  list-style-image: url("chrome://browser/content/night/icons/focus.svg");
+}
+:root:not([night-focus-mode]) #night-focus-exit {
+  display: none;
+}
+#night-toolbar-trigger {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  z-index: 100;
+  -moz-window-dragging: no-drag;
+}
+#night-toolbar-trigger:focus-visible {
+  outline: none;
+  background: #c3ccd970;
+}
+:root[night-toolbar-auto] #night-toolbar-trigger {
+  display: block;
+}
+:root[night-toolbar-auto] #navigator-toolbox {
+  position: fixed;
+  top: 7px;
+  left: 8px;
+  right: 8px;
+  z-index: 101;
+  border: 1px solid #ffffff16 !important;
+  border-radius: 14px;
+  box-shadow: 0 14px 42px #0007;
+  transform: translateY(calc(-100% - 15px));
+  opacity: 0;
+  pointer-events: none;
+}
+:root[night-toolbar-auto] #nav-bar {
+  border-radius: 14px;
+}
+:root[night-toolbar-auto][night-toolbar-visible] #navigator-toolbox {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+:root[night-toolbar-popup] #navigator-toolbox,
+:root[night-browser] #navigator-toolbox:has(#urlbar[popover-open]) {
+  transition: none !important;
+}
+:root[night-toolbar-auto]:not([night-motion]) #navigator-toolbox {
+  transition: none !important;
+}
+:root[night-toolbar-auto] #browser {
+  padding-top: 8px;
+}
+:root[night-focus-mode] #night-sidebar {
+  display: none;
+}
+:root[night-focus-mode] #browser {
+  padding: 0;
+}
+:root[night-focus-mode] #tabbrowser-tabbox {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[inDOMFullscreen] #night-toolbar-trigger,
+:root[inFullscreen] #night-toolbar-trigger {
+  display: none;
+}
+.night-tab-icon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  position: relative;
+  opacity: 1;
+}
+.night-tab-icon img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+.night-tab-icon:empty {
+  background: url("chrome://browser/content/night/icons/globe.svg") center/16px no-repeat;
+}
+.night-tab[data-pinned] .night-tab-icon,
+.night-tab[data-pinned] .night-tab-icon img {
+  width: 20px;
+  height: 20px;
+}
+.night-tab[data-loading] .night-tab-icon::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -2px;
+  width: 5px;
+  height: 5px;
+  border: 2px solid var(--night-background);
+  border-radius: 50%;
+  background: var(--night-accent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[night-motion][night-toolbar-auto] #navigator-toolbox {
+    transition: transform 170ms var(--night-spring), opacity 130ms ease;
+  }
+}
+
+:root[night-browser] #urlbar-container { min-height: 42px; }
+:root[night-browser] #urlbar { --urlbar-height: 38px; }
+:root[night-browser] #urlbar[focused] .urlbar-background { box-shadow: var(--night-shadow) !important; }
+:root[night-browser] #urlbar .urlbar-input-container { padding-inline: 10px; }
+:root[night-browser] #urlbar .searchmode-switcher { --button-icon-fill: var(--night-secondary); }
+:root[night-browser] #urlbar:not([focused]):not([searchmode]) .searchmode-switcher { display: none; }
+:root[night-browser] #urlbar[focused] #night-address-icon { display: none; }
+#night-address-icon { width: 16px; height: 16px; flex-shrink: 0; margin-inline: 2px 8px; object-fit: contain; }
+:root[night-browser] #urlbar .urlbar-go-button { list-style-image: url("chrome://browser/content/night/icons/forward.svg"); }
+:root[night-browser] #identity-box[pageproxystate="valid"].chromeUI #identity-icon-label { display: none; }
+:root[night-browser] #night-sidebar-toggle .toolbarbutton-text {
+  display: flex;
+  font-size: 0;
+  background: url("chrome://browser/content/night/icons/sidebar.svg") center/18px no-repeat;
+}
+:root[night-browser] #night-sidebar-toggle .toolbarbutton-icon { display: none; }
+:root[night-browser] #identity-box.chromeUI > #identity-icon-box,
+:root[night-browser] #trust-icon-container.chromeUI { display: none; }
+
+.night-tab-icon img, #night-address-icon { -moz-context-properties: fill; fill: var(--night-text); }

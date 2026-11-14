@@ -1,19 +1,45 @@
 # Night Browser
 
-Firefox-based desktop browser for Windows, built on the Zen source foundation.
-Night Island graphite styling, vertical tabs, workspaces, pinned sites and split view.
+Night — браузер для Windows на Firefox/Gecko, со своей оболочкой и инструментами для работы с запросами. Оформление на основе Night Island, рабочие области, вертикальные вкладки, разделение экрана и управляемая выгрузка страниц.
 
-This repository contains an early source prototype. No verified Windows installer
-or measured memory improvement is available yet. Network tools remain experimental.
+Night использует Mozilla Firefox напрямую. Код оболочки, патчи, сборочные инструменты и модули Zen удалены. История первого прототипа сохранена в Git.
 
-- [Product requirements and acceptance](docs/night/PRODUCT.md)
-- [Build and contribution guide](docs/night/CONTRIBUTING.md)
-- [License](LICENSE)
+## Что работает
 
-```sh
-npm ci
-npm run test:night
-```
+- Рабочие области с отдельными вкладками и восстановлением после перезапуска.
+- Общие избранные сайты, закрепления внутри пространства, вложенные папки и перенос мышью между ними.
+- Адрес и навигация в боковой панели или сверху. Ширина панели меняется перетаскиванием края; плотность и видимость элементов настраиваются.
+- Две страницы рядом: `Alt+S`. Скрытие боковой панели: `Alt+B`. Поиск вкладки: `Alt+P`.
+- Автоскрытие верхней панели и режим «Только сайт»: `Alt+Shift+F`. Адресная строка появляется поверх страницы по `Ctrl+L` или у верхнего края окна.
+- Favicon сайтов в адресной строке, вкладках и закреплениях; спокойный фокус в адресной строке и поиске.
+- Таймер выгрузки неактивных страниц, исключения по домену и по вкладке. Активные страницы, split view, аудио, PiP, звонки и перехватываемые запросы защищены.
+- Repeater и перехват HTTP(S) в выбранной вкладке: изменение URL в пределах origin, метода, заголовков и текстового тела; просмотр ответа и сравнение последних ответов.
+- Расширения и DevTools Firefox. Адресная строка, проверка сертификатов, разрешения и изоляция сайтов остаются механизмами Firefox.
+- Локальный импорт профиля Zen: закладки, история, пароли, cookies, расширения, вкладки и области, с резервной копией Night.
+- Короткие анимации вкладок, областей и меню; поддержка уменьшения движения без фоновой анимации.
+- Собственные настройки, четыре палитры, плотность и ширина панели; русская локализация.
+- Компактная стартовая страница с часами, поиском и быстрыми ссылками; выбранная палитра применяется сразу. Библиотеки Activity Stream не загружаются.
+- Имя, значок, ресурсы EXE и идентичность окна Windows — Night.
+- Установщик для текущего пользователя и мастер первого запуска с оформлением и импортом Zen.
+- Управление окном справа сверху при наведении; постоянная видимость включается в настройках.
+- Крестик у сохранённой вкладки отправляет её в сон, сохраняя папку и состояние. Удаление доступно отдельно в контекстном меню.
 
-Building the native browser additionally requires the Mozilla toolchain; see the
-build guide. `engine/`, profiles and generated binaries are not committed.
+## Запуск и разработка
+
+[Установщик Night 0.8.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.3/night-browser-0.8.0-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.3/night-browser-0.8.0-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.8.0-preview.3)
+
+Установщик работает без прав администратора. Приложение находится в `%LOCALAPPDATA%\Programs\Night Browser`, профиль — в `%LOCALAPPDATA%\NightBrowser\profile`. Повторная установка обновляет приложение; удаление программы сохраняет профиль. Выбор браузера по умолчанию остаётся за пользователем в настройках Windows.
+
+Для portable распакуй всю папку и запусти `Night.exe`; профиль создаётся рядом в `profile`. Обе версии выпускаются через [GitHub Actions](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml). Установленная версия и portable используют разные профили. Для переноса данных уже настроенного Night закрой обе копии, сохрани резервные копии и замени содержимое нового профиля содержимым прежней папки `profile`. Профиль Zen удобнее переносить через мастер первого запуска.
+
+[Импорт из Zen](docs/night/ZEN_IMPORT.md) · [О дизайне и лицензиях](docs/night/DESIGN_PROVENANCE.md)
+
+[Инструкция по сборке](docs/night/CONTRIBUTING.md) · [Проверки](docs/night/VALIDATION.md) · [Архитектура](docs/night/PRODUCT.md)
+
+Сборка проверяет SHA-256 официального Firefox, добавляет исходники Night, заменяет Windows-ресурсы приложения, собирает launcher и запускает тесты на Windows. Обычный первый запуск проверяется отдельно, без режима автоматизации. Нативный Gecko используется готовым; его исходники и точная ревизия указаны в `scripts/preview/runtime.json`. Это позволяет менять продукт без компиляции движка при каждой правке интерфейса.
+
+Экономия памяти проверяется отдельным воспроизводимым тестом. Его синтетические результаты не являются замером YouTube, ChatGPT или Censys; ускорение рендеринга пока не заявляется.
+
+Тестовая версия пока без автоматических обновлений и подписи Windows. MPL-2.0.
+
+[Предложение по интеграции с Night Island](docs/night/ISLAND_INTEGRATION.md)
