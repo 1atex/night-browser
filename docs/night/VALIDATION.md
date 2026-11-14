@@ -182,3 +182,19 @@ Both public binaries were downloaded after publication and passed SHA-256 verifi
 | Windows installer | 135,424,060 | `b8b4c245e2a88669103274178b88ae8d9c87ffeb07169b99980fa87fcdbcb0bb` |
 
 The public [ordinary first-run capture](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.3/night-first-launch.png), [window controls](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.3/night-window-controls.png) and [sleeping folder tab](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.3/night-sleeping-folder.png) were visually inspected after download. The latter two come from automated tests; their striped address-bar indicator belongs to Marionette. Installer, onboarding, saved-tab and Zen migration result files ship alongside the binaries. This verifies the tested Windows environment and fixtures, not every GPU configuration or the user's real profile.
+
+## Published 0.9 result
+
+[Browser v0.9.0-preview.2](https://github.com/1atex/night-browser/releases/tag/v0.9.0-preview.2) was built from `69c6bfa6daee300a79668c19e4621a82965a3ff0` in [Windows tag run 43609825723](https://github.com/1atex/night-browser/actions/runs/43609825723). Both the preview and publication jobs passed. All 52 Node checks and the full native suite passed, including first-run/installer, import, saved tabs, pointer interactions, rendering, ordinary Windows startup, memory and launcher checks.
+
+The paired [Island v0.3.1-browser-preview.3](https://github.com/1atex/night-island/releases/tag/v0.3.1-browser-preview.3) uses `02e0aa2e5f1c36cf0d98eeac982bd6126a9dcfdc`. [Island tag run 43609824247](https://github.com/1atex/night-island/actions/runs/43609824247) passed 238 Rust tests with 15 existing ignored tests and built the release executable without demo hooks.
+
+`tests/native/island.py` launches both actual applications and clicks Island's native buttons. It verifies the handshake, public progress, private-download exclusion, pause/resume/cancel, disabled connection and released worker, reconnect after Island exits/restarts, completion and reveal-in-folder. Cancellation drains IO completion packets before freeing buffers on both sides. The focused test also passed in [run 43609622397](https://github.com/1atex/night-browser/actions/runs/43609622397).
+
+The published installer, portable ZIP and Island executable were downloaded and matched their release SHA-256 files. ZIP CRC passed. The embedded BUILD.json identifies the expected Night commit, version and pinned Gecko revision; the packaged pipe worker contains the tested completion-draining shutdown. Onboarding and Island download captures were visually inspected. Synthetic rendering results and their limitations are documented in [PERFORMANCE.md](PERFORMANCE.md); no Gecko/SpiderMonkey speedup is claimed.
+
+| File | SHA-256 |
+| --- | --- |
+| Portable ZIP | `b38538e601256842ae6a4a6d0d2831b12b5578e35bb5c485e7ac56a10a1b26f5` |
+| Windows setup | `481471dc6ce338f54e9f9ae7208fc8035e662590b9c220b635ddf1236b44c865` |
+| Island EXE | `c96d13087a44fcba8a29d2142d0592de8b02e13f614fa1e7b8d8fd4ceacc5dcb` |
