@@ -212,3 +212,28 @@ The cross-app test checks indicator navigation, progress, pause/resume/cancel, i
 | night-browser-0.9.1-preview-windows-x64.zip | `b48f399d78bbaa3349f77d77b0586356d6160c564f72e9535fc325bc9f53fc72` |
 | night-browser-0.9.1-preview-windows-x64-setup.exe | `76c0e8cfb9c2014133597879f24c885ea995b06810d68baaf5d9a2b8ac3bf67d` |
 | night-island.exe | `bb798eadeb88890c0bcd83c3c025da8459390944de60a67ea069025d08e9b0c0` |
+
+
+## Start-page and visual integration checks (0.9.2)
+
+The last-page test closes an ordinary tab with a saved folder tab unloaded, verifies that the start page appears, and checks the local server receives no request for the saved page. It types without clicking after last-page close, sidebar new-tab and Ctrl+T. An explicit saved-page selection restores it; Ctrl+W unloads it while preserving the folder entry. The start form accepts an address and reflects a changed default search engine. This passed locally and on Windows. Existing saved-tab tests retain cancellation of before-unload prompts and form restoration.
+
+The real Windows pair passed [focused run 43644211103](https://github.com/1atex/night-browser/actions/runs/43644211103). It rejects an unrelated EXE name, reconnects to `night-island (1).exe`, negotiates appearance and native panel opening, and checks the indicator and appearance switches. Clicking the browser capsule opens the actual Island Downloads panel. Existing pointer-driven pause/resume/cancel/reveal, duplicate suppression, private exclusion and restart checks remain active. The pinned companion includes the required `7d9bc80` foundation.
+
+All 58 Node tests passed. Island formatting, Clippy with warnings denied and 555 Rust tests passed (553 app + 2 helper, 119 existing ignored) in [run 43644186298](https://github.com/1atex/night-island/actions/runs/43644186298). The standalone release build also passed in [run 43644182439](https://github.com/1atex/night-island/actions/runs/43644182439).
+
+The actual Windows browser capsule, connected settings and native Island download panel captures were inspected. Additional Linux visual fixtures cover Graphite and a light palette, the 240 px sidebar minimum and long download names. They have no running idle animations. Those palette fixtures simulate state and are not substitutes for the Windows connection test. Appearance sharing covers RGB panel/accent colors and the motion setting, not native window glass or a shared font installation.
+
+## Published 0.9.2 result
+
+[Browser v0.9.2-preview.1](https://github.com/1atex/night-browser/releases/tag/v0.9.2-preview.1) uses `331d58554a5ab791aa4563aebea8ac7f1c6fc0f4` and passed the complete native Windows suite in [tag run 43644602067](https://github.com/1atex/night-browser/actions/runs/43644602067). The first attempt stopped while capturing the split-view screenshot after its geometry assertions passed. The second attempt reran the complete job on the same revision and passed, including the screenshot; no check was removed. Both build and publication jobs succeeded.
+
+The paired [Island v0.3.3-browser-preview.1](https://github.com/1atex/night-island/releases/tag/v0.3.3-browser-preview.1) uses `62882637a8a6e09f874e1737cf9c9a016dc7b13e` and passed [tag run 43644604774](https://github.com/1atex/night-island/actions/runs/43644604774). Both public executables and the browser ZIP were downloaded and verified against their published SHA-256 files. ZIP CRC, source manifests, native tab-selection patches and 87 packaged Night source files passed verification with text line endings normalized. The browser BuildID is `20261114214642`.
+
+The published [start-flow result](https://github.com/1atex/night-browser/releases/download/v0.9.2-preview.1/start-flow-result.json) and [Island result](https://github.com/1atex/night-browser/releases/download/v0.9.2-preview.1/island-result.json) contain passing assertions. The ordinary first-launch capture, start-flow screenshot and native-pair captures were inspected. The striped address bar in automation captures is Marionette's indicator, not the shipped visual theme.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| night-browser-0.9.2-preview-windows-x64.zip | `a3384a8be874160d0686d0b658188ecf8afcbd6ae0dba863a476dcc849ded4ed` |
+| night-browser-0.9.2-preview-windows-x64-setup.exe | `af25ff6e6db7f9234aeb44e013ec84e87061011873a26d00a6449e374195704c` |
+| night-island.exe | `5a2198b3419828b12b155bbcecf52701aebaf2933a9cea2501f28a4370c28b06` |
