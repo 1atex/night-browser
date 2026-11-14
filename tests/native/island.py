@@ -43,6 +43,9 @@ def run(binary, app_ini, island, output):
     user32.ClientToScreen.argtypes = [ctypes.c_void_p, ctypes.POINTER(Point)]
     user32.SetForegroundWindow.argtypes = [ctypes.c_void_p]
     user32.PostMessageW.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_size_t, ctypes.c_ssize_t]
+    user32.FindWindowW.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p]
+    user32.FindWindowW.restype = ctypes.c_void_p
+    user32.GetWindowThreadProcessId.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong)]
     report = output.resolve()/'island-state.json'
     root = Path(tempfile.mkdtemp(prefix='night-island-integration-'))
     duplicate = root/'night-island (1).exe'
@@ -78,8 +81,11 @@ def run(binary, app_ini, island, output):
         return next((i for i in state()['state']['items'] if i['name']==name and i['state']==desired), None)
     def launch(tab='Downloads', executable=duplicate): return subprocess.Popen([str(executable)],env=env | {'NI_DEBUG_TAB':tab})
     def close_island():
-        hwnd = state().get('hwnd')
-        if hwnd:user32.PostMessageW(hwnd,0x10,0,0)
+        hwnd = user32.FindWindowW('NightIsland.Window', None)
+        pid = ctypes.c_ulong()
+        if hwnd:
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            if pid.value == process.pid:user32.PostMessageW(hwnd,0x10,0,0)
         process.wait(timeout=15)
     def snapshot(filename):
         hwnd = state()['hwnd']
@@ -97,8 +103,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         wait_for(lambda: browser.execute_script("return document.getElementById('island-status')?.textContent === 'Связь выключена';"))
         browser.find_element('css selector', '[data-pref="night.island.downloads"]').click()
         wait_for(lambda: chrome('return NightIsland.reason === "peer-name" && NightIsland.status === "unavailable";'),timeout=45)
-        wait_for(lambda: state().get('hwnd'))
-        assert not state()['state']['connected']
+        assert chrome('return !NightIsland.ready;')
         browser.set_context('content')
         assert browser.execute_script("return document.getElementById('island-status').textContent === 'Не удалось распознать Island' && !document.getElementById('island-retry').hidden;")
         (output/'night-island-rejected.png').write_bytes(base64.b64decode(browser.screenshot()))
