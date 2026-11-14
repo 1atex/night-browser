@@ -196,6 +196,7 @@ window.addEventListener(
       width.value = Services.prefs.getIntPref("night.ui.sidebar-width", 320);
       width.addEventListener("input", () => Services.prefs.setIntPref("night.ui.sidebar-width", Number(width.value)));
       row(layout, "Ширина боковой панели", "Потяни край панели мышью или используй ползунок.", width);
+      toggle(layout, "Кнопки окна при наведении", "Сворачивание, размер и закрытие — в правом верхнем углу.", "night.ui.window-controls-autohide", true);
       toggle(layout, "Поиск вкладок на панели", "Всегда доступен по Alt+P.", "night.ui.show-tab-search", false);
       toggle(layout, "Счётчик вкладок", "Количество загруженных и выгруженных страниц.", "night.ui.show-memory-status", false);
       toggle(layout, "Кнопки инструментов", "Разделение экрана и запросы. Настройки остаются доступны.", "night.ui.show-tools", true);

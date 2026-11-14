@@ -104,12 +104,6 @@
   height: 42px;
   z-index: 105;
 }
-:root[night-sidebar-navigation] #nav-bar > .titlebar-buttonbox-container {
-  position: absolute;
-  right: 8px;
-  top: 7px;
-}
-:root[night-sidebar-navigation] .titlebar-button { padding: 9px 10px !important; }
 :root[night-sidebar-navigation] #nav-bar-customization-target::before {
   content: "";
   order: 1;

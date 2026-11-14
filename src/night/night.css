@@ -4,6 +4,9 @@
 @import url("chrome://browser/content/night/menu.css");
 @import url("chrome://browser/content/night/sidebar-layout.css");
 @import url("chrome://browser/content/night/panels.css");
+@import url("chrome://browser/content/night/window-controls.css");
+:root[night-starting] { background: var(--night-background) !important; }
+:root[night-starting] :is(#navigator-toolbox, #browser) { visibility: hidden; }
 :root[night-browser] {
   color-scheme: dark;
   --toolbar-color: #dedfe7;
@@ -257,3 +260,5 @@
   #night-tools .night-network-layout { overflow: auto; }
   #night-tools .night-reply { display: flex !important; grid-column: 1 / -1; min-height: 160px; }
 }
+
+#night-startup-error { position: fixed; inset: 35% 15% auto; color: var(--night-text); font: 16px/1.6 var(--night-font); }

@@ -1,0 +1,27 @@
+#night-window-controls {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 110;
+  padding: 5px 6px 7px;
+  -moz-window-dragging: no-drag;
+}
+#night-window-controls > .titlebar-buttonbox-container {
+  display: flex !important;
+  margin: 0 !important;
+  padding: 3px;
+  border: 1px solid var(--night-line);
+  border-radius: var(--night-pill);
+  background: var(--night-background);
+  box-shadow: 0 4px 16px #0004;
+}
+#night-window-controls .titlebar-button { width: 36px; height: 30px; padding: 8px 10px !important; border-radius: var(--night-pill); }
+#night-window-controls .titlebar-button:not(.titlebar-close):hover { background: var(--night-hover) !important; }
+#night-window-controls .titlebar-close:hover { background: #c42b3e !important; }
+#night-window-controls[data-autohide]:not(:hover):not(:focus-within) > .titlebar-buttonbox-container { opacity: 0; transform: translateY(-5px); pointer-events: none; }
+#night-window-controls[data-autohide]:not(:hover):not(:focus-within) { height: 10px; padding-bottom: 0; }
+:root:is([inFullscreen], [inDOMFullscreen], [customizing], [night-starting]) #night-window-controls { display: none; }
+@media (hover: none) { #night-window-controls[data-autohide] > .titlebar-buttonbox-container { opacity: 1 !important; transform: none !important; pointer-events: auto !important; } }
+@media (prefers-reduced-motion: no-preference) {
+  :root[night-motion] #night-window-controls > .titlebar-buttonbox-container { transition: opacity 120ms ease, transform 180ms var(--night-ease); }
+}
