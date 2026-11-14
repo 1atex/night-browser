@@ -60,6 +60,14 @@ def package(runtime, output, archive, platform):
     replace_once(toolkit, "moz-src/browser/components/tabbrowser/TabUnloader.sys.mjs",
                  "tab.undiscardable || tab.selected",
                  "tab.undiscardable || tab.selected || tab.ownerDocument?.defaultView?.gNightBrowser?.memory.shouldKeepLoaded(tab)")
+    replace_once(toolkit, "moz-src/browser/components/customizableui/CustomizableUI.sys.mjs",
+                 "class OverflowableToolbar {",
+                 "class OverflowableToolbar {\n"
+                 "  setNightWrapped(enabled) {\n"
+                 "    if (this._nightWrapped === enabled) return;\n"
+                 "    this._nightWrapped = enabled;\n"
+                 "    if (enabled) this.#disable(); else this.#enable();\n"
+                 "  }\n")
     newtab = "chrome/browser/builtin-addons/newtab/prerendered/"
     for name in ["activity-stream.html", "activity-stream-noscripts.html"]:
         if newtab + name not in browser:
@@ -128,7 +136,7 @@ def package(runtime, output, archive, platform):
         "source": f"https://github.com/1atex/night-browser/tree/{revision}",
     }, indent=2))
     (output / "README.txt").write_text(
-        "Night Browser 0.5.2 Preview\n\n"
+        "Night Browser 0.6.0 Preview\n\n"
         "Распакуй всю папку в доступное для записи место и запусти Night.exe.\n"
         "Профиль хранится в папке profile рядом с Night.exe.\n"
         "Боковая панель: рабочие области, закреплённые вкладки, поиск.\n"

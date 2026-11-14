@@ -35,7 +35,7 @@
   "app.update.auto": false,
   "night.ui.palette": "graphite",
   "night.ui.density": "comfortable",
-  "night.ui.sidebar-width": 232,
+  "night.ui.sidebar-width": 320,
   "night.ui.animations": true,
   "night.ui.toolbar-autohide": false,
   "browser.urlbar.suggest.topsites": false,
@@ -74,5 +74,9 @@
   "browser.aboutwelcome.experimentsGate.enabled": false,
   "termsofuse.bypassNotification": true,
   "browser.bypassAutoTriggerActions": true,
-  "browser.toolbars.bookmarks.visibility": "never"
+  "browser.toolbars.bookmarks.visibility": "never",
+  "night.ui.navigation-layout": "sidebar",
+  "night.ui.show-tab-search": false,
+  "night.ui.show-memory-status": false,
+  "night.ui.show-tools": true
 }

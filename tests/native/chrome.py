@@ -93,7 +93,12 @@ def run(binary, app_ini, output):
         wait_for(lambda: chrome("const i=d.querySelector('#night-pinned-tabs .night-tab-icon img');return i?.naturalWidth>0;"))
         chrome("w.gBrowser.unpinTab(w.gBrowser.selectedTab);")
         normal_y = chrome("return d.getElementById('tabbrowser-tabbox').getBoundingClientRect().y;")
-        assert normal_y > 35, normal_y
+        assert normal_y < 12, normal_y
+        chrome("Services.prefs.setStringPref('night.ui.navigation-layout','top');")
+        settle()
+        assert chrome("return d.getElementById('tabbrowser-tabbox').getBoundingClientRect().y;") > 35
+        chrome("Services.prefs.setStringPref('night.ui.navigation-layout','sidebar');")
+        settle()
         chrome("s.toolbar.toggleAutohide();")
         move(650, 400)
         wait_for(hidden)

@@ -166,3 +166,46 @@ test("relocates installed extension paths without changing extension payload dat
   assert.equal(copy.addons[0].name, "C:\\Zen");
   assert.equal(db.addons[0].path, "C:\\Zen\\extensions\\a.xpi");
 });
+
+test("keeps nested folders, workspace pins, global essentials and saved favicons separate", () => {
+  const make = (id, extra = {}) => ({zenSyncId: id, zenWorkspace: "work", pinned: true, entries: [{url: `https://example.test/${id}`}], index: 1, ...extra});
+  const icon = "data:image/png;base64,aGVsbG8=";
+  const result = convertZenSession({windows: [{activeZenSpace: "work", tabs: [make("nested", {_zenIsActiveTab: true})]}]}, {
+    spaces: [{uuid: "work", name: "Работа"}, {uuid: "home", name: "Дом"}],
+    folders: [
+      {id: "parent", name: "Проекты", workspaceId: "work", collapsed: true},
+      {id: "child", name: "API", workspaceId: "work", parentId: "parent"},
+      {id: "empty", name: "Пустая", workspaceId: "home"},
+    ],
+    tabs: [make("nested", {groupId: "child", image: icon}), make("global", {zenEssential: true}), make("scoped")],
+  });
+  const window = result.session.windows[0];
+  const layout = JSON.parse(window.extData["night-workspaces"]);
+  assert.equal(layout.folders.length, 3);
+  assert.equal(layout.folders.find(f => f.id === "child").parentId, "parent");
+  assert.equal(layout.folders.find(f => f.id === "parent").collapsed, true);
+  const nested = window.tabs.find(t => t.extData["night-node"] === "nested");
+  assert.equal(nested.extData["night-folder"], "child");
+  assert.equal(nested.extData["night-pinned"], "true");
+  assert.equal(nested.extData["night-favicon"], icon);
+  assert.equal(nested.pinned, false);
+  assert.equal(window.tabs.filter(t => t.pinned).length, 1);
+  assert.equal(window.tabs.find(t => t.extData["night-node"] === "scoped").extData["night-pinned"], "true");
+});
+
+test("retains legacy nested folder parent, collapse and named pin metadata", () => {
+  const result = convertZenSession({}, {}, {
+    spaces: [{uuid: "work", name: "Work"}],
+    pins: [
+      {uuid: "a", title: "Root", isGroup: true, workspaceUuid: "work", isFolderCollapsed: true},
+      {uuid: "b", title: "Nested", isGroup: true, workspaceUuid: "work", parentUuid: "a"},
+      {uuid: "p", title: "Custom title", url: "https://example.test", workspaceUuid: "work", parentUuid: "b", editedTitle: true},
+    ],
+  });
+  const window = result.session.windows[0];
+  const folders = JSON.parse(window.extData["night-workspaces"]).folders;
+  assert.equal(folders.find(f => f.id === "b").parentId, "a");
+  assert.equal(folders.find(f => f.id === "a").collapsed, true);
+  assert.equal(window.tabs[0].extData["night-folder"], "b");
+  assert.equal(window.tabs[0].extData["night-title"], "Custom title");
+});

@@ -106,6 +106,8 @@ export class NightMemory {
   }
 
   #snapshot(tab) {
+    if (tab.closing || tab.hasAttribute("pending"))
+      return { pending: tab.hasAttribute("pending"), closing: tab.closing, remote: false };
     const browser = tab.linkedBrowser;
     const context = browser?.browsingContext;
     return {
@@ -126,6 +128,18 @@ export class NightMemory {
       private: PrivateBrowsingUtils.isWindowPrivate(this.#window),
       lastUsed: this.#lastUsed.get(tab),
     };
+  }
+
+  describe(tab) {
+    return unloadDecision(this.#snapshot(tab), this.settings, this.#now());
+  }
+
+  async unload(tab) {
+    if (this.#destroyed || !this.tabs.includes(tab)) return false;
+    const eligible = () => ["unload", "recent"].includes(this.describe(tab));
+    if (!eligible()) return false;
+    await this.#window.gBrowser.prepareDiscardBrowser(tab);
+    return !this.#destroyed && eligible() && this.#window.gBrowser.discardBrowser(tab, false);
   }
 
   async checkNow() {

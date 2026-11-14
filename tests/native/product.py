@@ -80,7 +80,7 @@ def run(binary, app_ini, output):
             noZen: !w.gZenWorkspaces && !w.document.getElementById('zen-main-app-wrapper'),
             sidebar: w.document.getElementById('night-sidebar').getBoundingClientRect().width}};
         """, script_args=[url])
-        assert state == {"active": "development", "hidden": True, "pinVisible": True, "noZen": True, "sidebar": 232}, state
+        assert state == {"active": "development", "hidden": True, "pinVisible": True, "noZen": True, "sidebar": 320}, state
         state = browser.execute_script(f"""
           const w = {WIN}, s = w.gNightBrowser.shell;
           s.workspaces.move(w.productOriginal, 'development');

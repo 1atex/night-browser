@@ -1,6 +1,9 @@
 import { NightWorkspaces } from "resource:///modules/night/NightWorkspaces.sys.mjs";
 import { NightToolbar } from "resource:///modules/night/NightToolbar.sys.mjs";
 
+import { SessionStore } from "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs";
+import { validIcon } from "resource:///modules/night/WorkspaceModel.mjs";
+
 const XHTML = "http://www.w3.org/1999/xhtml";
 const EVENTS = [
   "TabOpen",
@@ -25,6 +28,10 @@ export class NightShell {
   #sidebar;
   #list;
   #pins;
+  #tree;
+  #folders = new Map();
+  #folderVersion = null;
+  #resize = null;
   #selector;
   #status;
   #menu;
@@ -91,8 +98,8 @@ export class NightShell {
     });
     const heading = this.#element("header", "", { class: "night-sidebar-header" });
     heading.append(
-      this.#element("span", "Вкладки"),
-      this.#button("", "Новая вкладка · Ctrl+T", () => this.workspaces.newTab(), {
+
+      this.#button("Новая вкладка", "Новая вкладка · Ctrl+T", () => this.workspaces.newTab(), {
         id: "night-new-tab",
       }),
       this.#button("", "Только сайт · Alt+Shift+F", () => this.toolbar.toggleFocus(), {
@@ -134,8 +141,9 @@ export class NightShell {
     this.#filter.addEventListener("input", () => this.render());
     this.#pins = this.#element("div", "", {
       id: "night-pinned-tabs",
-      "aria-label": "Закреплённые сайты",
+      "aria-label": "Избранное во всех пространствах",
     });
+    this.#tree = this.#element("div", "", {id: "night-folder-tree", "aria-label": "Папки и закрепления пространства"});
     this.#list = this.#element("div", "", {
       id: "night-tab-list",
       role: "tablist",
@@ -210,15 +218,49 @@ export class NightShell {
           { id: "night-import-button" },
         ),
       );
-    this.#sidebar.append(
-      heading,
-      this.#filter,
-      this.#pins,
-      this.#empty,
-      this.#list,
-      workspace,
-      footer,
-    );
+    const scroll = this.#element("div", "", {id: "night-tabs-scroll"});
+    scroll.append(this.#pins, workspace, this.#tree, heading, this.#empty, this.#list);
+    this.#sidebar.append(this.#filter, scroll, footer);
+    const resize = this.#element("div", "", {id: "night-sidebar-resizer", role: "separator", tabindex: "0", "aria-orientation": "vertical", "aria-label": "Ширина боковой панели", "aria-valuemin": "240", "aria-valuemax": "420"});
+    const setWidth = value => Services.prefs.setIntPref("night.ui.sidebar-width", Math.max(240, Math.min(420, Math.round(value))));
+    resize.addEventListener("pointerdown", event => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      resize.setPointerCapture(event.pointerId);
+      this.#resize = event.pointerId;
+      doc.documentElement.setAttribute("night-resizing", "true");
+    });
+    resize.addEventListener("pointermove", event => {
+      if (this.#resize === event.pointerId) setWidth(event.clientX - this.#sidebar.getBoundingClientRect().left);
+    });
+    resize.addEventListener("lostpointercapture", () => {this.#resize = null; doc.documentElement.removeAttribute("night-resizing");});
+    resize.addEventListener("pointerup", event => {if (resize.hasPointerCapture(event.pointerId)) resize.releasePointerCapture(event.pointerId);});
+    resize.addEventListener("keydown", event => {
+      if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+        event.preventDefault();
+        const width = Services.prefs.getIntPref("night.ui.sidebar-width", 320);
+        setWidth(event.key === "Home" ? 240 : event.key === "End" ? 420 : width + (event.key === "ArrowRight" ? 8 : -8));
+      }
+    });
+    this.#sidebar.append(resize);
+    this.#dropTarget(this.#tree, () => this.workspaces.move(this.#dragged, this.workspaces.active));
+    this.#dropTarget(this.#list, () => {
+      if (typeof this.#dragged !== "string") this.workspaces.setPinned(this.#dragged, "none");
+      this.workspaces.move(this.#dragged, this.workspaces.active);
+    });
+    this.#dropTarget(this.#pins, () => {
+      if (typeof this.#dragged !== "string") this.workspaces.setPinned(this.#dragged, "global");
+    });
+    workspace.addEventListener("dragenter", () => {
+      if (!this.#dragged || doc.getElementById("night-workspace-drop")) return;
+      const targets = this.#element("div", "", {id: "night-workspace-drop"});
+      for (const item of this.workspaces.items) {
+        const target = this.#button(item.name, `Перенести в «${item.name}»`, () => {});
+        this.#dropTarget(target, () => this.workspaces.move(this.#dragged, item.id));
+        targets.append(target);
+      }
+      workspace.after(targets);
+    });
     doc.getElementById("browser").prepend(this.#sidebar);
     const toggle = doc.createXULElement("toolbarbutton");
     toggle.id = "night-sidebar-toggle";
@@ -263,13 +305,18 @@ export class NightShell {
     );
     root.style.setProperty(
       "--night-sidebar-width",
-      `${Math.max(196, Math.min(280, Services.prefs.getIntPref("night.ui.sidebar-width", 232)))}px`,
+      `${Math.max(240, Math.min(420, Services.prefs.getIntPref("night.ui.sidebar-width", 320)))}px`,
     );
+    root.toggleAttribute("night-show-search", Services.prefs.getBoolPref("night.ui.show-tab-search", false));
+    root.toggleAttribute("night-show-memory", Services.prefs.getBoolPref("night.ui.show-memory-status", false));
+    root.toggleAttribute("night-show-tools", Services.prefs.getBoolPref("night.ui.show-tools", true));
+    this.#window.document.getElementById("night-sidebar-resizer")?.setAttribute("aria-valuenow", String(Services.prefs.getIntPref("night.ui.sidebar-width", 320)));
   }
 
   toggleSidebar() {
     const root = this.#window.document.documentElement;
     root.toggleAttribute("night-sidebar-collapsed");
+    this.toolbar.observe();
     if (!root.hasAttribute("night-sidebar-collapsed"))
       this.#animate(
         this.#sidebar,
@@ -348,6 +395,7 @@ export class NightShell {
 
   #workspaceMenu(anchor) {
     this.#showMenu(anchor, [
+      ["Новая папка", () => this.#prompt("Название папки", "", name => this.workspaces.createFolder(name))],
       [
         "Переименовать",
         () =>
@@ -367,8 +415,8 @@ export class NightShell {
     const browser = this.#window.gBrowser;
     const items = [
       [
-        tab.pinned ? "Открепить" : "Закрепить для всех областей",
-        () => (tab.pinned ? browser.unpinTab(tab) : browser.pinTab(tab)),
+        this.workspaces.isPinned(tab) ? "Открепить" : "Закрепить в пространстве",
+        () => this.workspaces.setPinned(tab, this.workspaces.isPinned(tab) ? "none" : "workspace"),
       ],
       [
         this.#owner.memory.isProtected(tab)
@@ -379,6 +427,12 @@ export class NightShell {
           this.render();
         },
       ],
+      ["В избранное всех пространств", () => this.workspaces.setPinned(tab, "global")],
+      ["Выгрузить сейчас", async () => {
+        const unloaded = await this.#owner.memory.unload(tab);
+        this.render();
+        if (!unloaded) this.#status.textContent = "Вкладка защищена, уже выгружена или страница не разрешила выгрузку";
+      }],
       ["Открыть рядом с текущей", () => this.split(tab)],
       ["Дублировать", () => this.#window.duplicateTabIn(tab, "tab")],
       [
@@ -464,31 +518,90 @@ export class NightShell {
       event.preventDefault();
       this.#tabMenu(tab, main);
     });
-    row.addEventListener("dragstart", (event) => {
-      this.#dragged = tab;
-      event.dataTransfer.setData("text/x-night-tab", "tab");
-      event.dataTransfer.effectAllowed = "move";
-    });
-    row.addEventListener("dragover", (event) => {
-      if (this.#dragged && this.#dragged !== tab) {
-        event.preventDefault();
-        row.setAttribute("data-drag-over", "true");
+    this.#draggable(row, tab);
+    this.#dropTarget(row, () => {
+      if (this.#dragged === tab) return;
+      if (tab.pinned && typeof this.#dragged !== "string") {
+        this.workspaces.setPinned(this.#dragged, "global");
+        browser.moveTabTo(this.#dragged, {tabIndex: tab.index});
+      } else {
+        if (typeof this.#dragged !== "string" && !this.workspaces.folderOf(tab))
+          this.workspaces.setPinned(this.#dragged, this.workspaces.isPinned(tab) ? "workspace" : "none");
+        this.workspaces.move(this.#dragged, this.workspaces.workspaceOf(tab), this.workspaces.folderOf(tab), tab);
       }
     });
-    row.addEventListener("dragleave", () =>
-      row.removeAttribute("data-drag-over"),
-    );
-    row.addEventListener("drop", (event) => {
-      event.preventDefault();
-      row.removeAttribute("data-drag-over");
-      if (this.#dragged && this.#dragged.pinned === tab.pinned)
-        browser.moveTabTo(this.#dragged, { tabIndex: tab.index });
-      this.#dragged = null;
-    });
-    row.addEventListener("dragend", () => {
-      this.#dragged = null;
-    });
     return { row, main, icon, title, state, close };
+  }
+
+  #draggable(row, node) {
+    row.draggable = true;
+    row.addEventListener("dragstart", event => {
+      this.#dragged = node;
+      event.stopPropagation();
+      event.dataTransfer.setData("text/x-night-node", "move");
+      event.dataTransfer.effectAllowed = "move";
+    });
+    row.addEventListener("dragend", () => this.#endDrag());
+  }
+
+  #endDrag() {
+    this.#dragged = null;
+    this.#window.document.getElementById("night-workspace-drop")?.remove();
+    for (const node of this.#sidebar.querySelectorAll("[data-drag-over]")) node.removeAttribute("data-drag-over");
+  }
+
+  #dropTarget(node, action) {
+    node.addEventListener("dragover", event => {
+      if (!this.#dragged) return;
+      event.preventDefault(); event.stopPropagation();
+      node.setAttribute("data-drag-over", "true");
+      event.dataTransfer.dropEffect = "move";
+    });
+    node.addEventListener("dragleave", event => {
+      if (!node.contains(event.relatedTarget)) node.removeAttribute("data-drag-over");
+    });
+    node.addEventListener("drop", event => {
+      if (!this.#dragged) return;
+      event.preventDefault(); event.stopPropagation();
+      try { action(event); } finally {this.#endDrag(); this.render();}
+    });
+  }
+
+  #folder(folder) {
+    let parts = this.#folders.get(folder.id);
+    if (!parts) {
+      const row = this.#element("section", "", {class: "night-folder", "data-folder": folder.id});
+      const main = this.#button("", folder.name, () => this.workspaces.toggleFolder(folder.id), {class: "night-folder-main"});
+      const chevron = this.#element("span", "›", {class: "night-folder-chevron", "aria-hidden": "true"});
+      const icon = this.#element("span", "", {class: "night-folder-icon", "aria-hidden": "true"});
+      const title = this.#element("span", "", {class: "night-tab-title"});
+      const children = this.#element("div", "", {class: "night-folder-children"});
+      children.id = `night-folder-${this.#folders.size}-${Date.now()}`;
+      main.setAttribute("aria-controls", children.id);
+      main.append(chevron, icon, title); row.append(main, children);
+      this.#draggable(main, folder.id);
+      this.#dropTarget(main, event => {
+        const before = event.clientY > 0 && event.clientY - main.getBoundingClientRect().top < 10;
+        this.workspaces.move(this.#dragged, folder.workspace, before ? folder.parentId : folder.id, before ? folder.id : null);
+      });
+      main.addEventListener("contextmenu", event => {
+        event.preventDefault();
+        this.#showMenu(main, [
+          ["Новая папка внутри", () => this.#prompt("Название папки", "", name => this.workspaces.createFolder(name, folder.id))],
+          ["Переименовать", () => this.#prompt("Название папки", folder.name, name => this.workspaces.renameFolder(folder.id, name))],
+          ["На уровень выше", () => this.workspaces.move(folder.id, folder.workspace, this.workspaces.folders.find(item => item.id === folder.parentId)?.parentId ?? null)],
+          ...this.workspaces.items.filter(item => item.id !== folder.workspace).map(item => [`В пространство «${item.name}»`, () => this.workspaces.move(folder.id, item.id)]),
+          ["Удалить папку, сохранить вкладки", () => this.workspaces.removeFolder(folder.id)],
+        ]);
+      });
+      parts = {row, main, title, children}; this.#folders.set(folder.id, parts);
+    }
+    parts.title.textContent = folder.name;
+    parts.main.title = folder.name;
+    parts.main.setAttribute("aria-label", folder.name);
+    parts.main.setAttribute("aria-expanded", String(!folder.collapsed || !!this.#filter.value));
+    parts.children.hidden = folder.collapsed && !this.#filter.value;
+    return parts;
   }
 
   render() {
@@ -518,7 +631,7 @@ export class NightShell {
       const internal = /^about:(home|newtab|preferences|blank)(?:[?#]|$)/.exec(uri);
       const label = internal
         ? internal[1] === "preferences" ? "Настройки" : "Новая вкладка"
-        : tab.label === "New Tab" ? "Новая вкладка" : tab.label;
+        : SessionStore.getCustomTabValue(tab, "night-title") || (tab.label === "New Tab" ? "Новая вкладка" : tab.label);
       if (
         query &&
         !`${label} ${uri}`
@@ -542,28 +655,19 @@ export class NightShell {
         label + (tab.hasAttribute("pending") ? " · выгружена" : "");
       main.setAttribute("aria-label", main.title);
       title.textContent = label;
+      const live = tab.getAttribute("image");
+      if (validIcon(live) && SessionStore.getCustomTabValue(tab, "night-favicon") !== live)
+        SessionStore.setCustomTabValue(tab, "night-favicon", live);
       const image = internal
         ? `chrome://browser/content/night/icons/${internal[1] === "preferences" ? "settings" : "newtab"}.svg`
-        : tab.getAttribute("image");
-      if (
-        image &&
-        /^(data:image\/|https?:|page-icon:|moz-anno:favicon:|chrome:|resource:|moz-extension:)/.test(image)
-      ) {
-        if (icon.dataset.image !== image) {
-          const favicon = this.#element("img", "", {
-              src: image,
-              alt: "",
-              width: "16",
-              height: "16",
-              referrerpolicy: "no-referrer",
-            });
-          favicon.addEventListener("error", () => favicon.remove(), { once: true });
-          icon.replaceChildren(favicon);
-          icon.dataset.image = image;
-        }
-      } else {
-        delete icon.dataset.image;
-        icon.replaceChildren();
+        : validIcon(live) ? live : SessionStore.getCustomTabValue(tab, "night-favicon");
+      const fallback = /^https?:/.test(uri) ? `page-icon:${uri}` : "chrome://browser/content/night/icons/globe.svg";
+      const source = validIcon(image) ? image : fallback;
+      if (icon.dataset.image !== source) {
+        const favicon = this.#element("img", "", {src: source, alt: "", width: "16", height: "16", referrerpolicy: "no-referrer"});
+        favicon.addEventListener("error", () => { favicon.src = fallback; }, {once: true});
+        icon.replaceChildren(favicon);
+        icon.dataset.image = source;
       }
       state.textContent = tab.soundPlaying
         ? "♪"
@@ -575,10 +679,26 @@ export class NightShell {
               ? "◫"
               : "";
       close.hidden = tab.pinned;
-      (tab.pinned ? pins : normal).push(row);
+      if (tab.pinned) pins.push(row);
+      else normal.push(tab);
     }
     this.#syncChildren(this.#pins, pins);
-    this.#syncChildren(this.#list, normal);
+    const visible = new Set(normal);
+    const folders = new Map(this.workspaces.folders.map(folder => [folder.id, folder]));
+    if (this.#folderVersion !== this.workspaces.folders) {
+      for (const parts of this.#folders.values()) parts.row.remove();
+      this.#folders.clear();
+      this.#folderVersion = this.workspaces.folders;
+    }
+    for (const [id, parts] of this.#folders) if (!folders.has(id)) {parts.row.remove(); this.#folders.delete(id);}
+    const buildTree = parent => this.workspaces.children(parent).flatMap(node => {
+      if (typeof node !== "string") return visible.has(node) && this.workspaces.isPinned(node) ? [this.#rows.get(node).row] : [];
+      const folder = folders.get(node), parts = this.#folder(folder), children = buildTree(node);
+      this.#syncChildren(parts.children, children);
+      return query && !children.length && !folder.name.toLocaleLowerCase().includes(query) ? [] : [parts.row];
+    });
+    this.#syncChildren(this.#tree, buildTree(null));
+    this.#syncChildren(this.#list, this.workspaces.children().filter(node => typeof node !== "string" && visible.has(node) && !this.workspaces.isPinned(node)).map(tab => this.#rows.get(tab).row));
     this.#empty.hidden = !query || pins.length + normal.length > 0;
     if (this.#renderedWorkspace !== this.workspaces.active) {
       this.#renderedWorkspace = this.workspaces.active;
@@ -641,6 +761,7 @@ export class NightShell {
         this.#menu?.remove();
         this.#menu = null;
         this.#filter.value = "";
+        this.#window.document.documentElement.removeAttribute("night-search-open");
         this.render();
         return;
       }
@@ -653,6 +774,8 @@ export class NightShell {
         this.#window.document.documentElement.removeAttribute(
           "night-sidebar-collapsed",
         );
+        this.#window.document.documentElement.setAttribute("night-search-open", "true");
+        this.toolbar.observe();
         this.#filter.focus();
       }
       if (key === "b") this.toggleSidebar();

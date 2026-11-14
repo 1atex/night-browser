@@ -176,6 +176,8 @@ window.addEventListener(
       }
       themes.append(grid);
       const layout = card("Интерфейс");
+      choice(layout, "Адрес и навигация", "В боковой панели или отдельной полосой над сайтом.",
+        "night.ui.navigation-layout", [["sidebar", "В боковой панели"], ["top", "Сверху"]], "sidebar");
       choice(
         layout,
         "Плотность",
@@ -187,19 +189,13 @@ window.addEventListener(
         ],
         "comfortable",
       );
-      choice(
-        layout,
-        "Ширина боковой панели",
-        "Больше места названиям или самой странице.",
-        "night.ui.sidebar-width",
-        [
-          [208, "Узкая"],
-          [232, "Обычная"],
-          [264, "Широкая"],
-        ],
-        232,
-        true,
-      );
+      const width = element("input", "", {type: "range", min: "240", max: "420", step: "1", "data-pref": "night.ui.sidebar-width"});
+      width.value = Services.prefs.getIntPref("night.ui.sidebar-width", 320);
+      width.addEventListener("input", () => Services.prefs.setIntPref("night.ui.sidebar-width", Number(width.value)));
+      row(layout, "Ширина боковой панели", "Потяни край панели мышью или используй ползунок.", width);
+      toggle(layout, "Поиск вкладок на панели", "Всегда доступен по Alt+P.", "night.ui.show-tab-search", false);
+      toggle(layout, "Счётчик вкладок", "Количество загруженных и выгруженных страниц.", "night.ui.show-memory-status", false);
+      toggle(layout, "Кнопки инструментов", "Разделение экрана и запросы. Настройки остаются доступны.", "night.ui.show-tools", true);
       toggle(
         layout,
         "Анимации интерфейса",
@@ -278,6 +274,26 @@ window.addEventListener(
       };
       updateMetrics();
       summary.append(metrics);
+      summary.append(element("p", "Счётчик показывает вкладки в этом окне отдельно от расхода процессов. Интерфейс, расширения, графика и кэш тоже занимают память.", {class: "card-caption"}));
+      row(summary, "Что занимает память", "Страницы, расширения и служебные процессы с их текущим расходом.",
+        button("Открыть процессы", () => browserWindow.openTrustedLinkIn("about:processes", "tab")));
+      const details = card("Почему вкладки остаются загруженными", "Закрепление не мешает выгрузке. Исключение для домена действует и без воспроизведения.");
+      const reasons = {visible: "На экране", unavailable: "Выгружена", protected: "Защищена вручную или перехватом", media: "Воспроизведение, звонок или демонстрация", loading: "Загружается", private: "Приватная вкладка", internal: "Внутренняя страница", "site-exception": "Домен в исключениях", recent: "Ещё не истёк таймер", disabled: "Выгрузка отключена", unload: "Можно выгрузить"};
+      const tabDetails = element("div", "", {id: "memory-tab-details"});
+      const refreshDetails = () => {
+        tabDetails.replaceChildren();
+        for (const tab of browserWindow.gBrowser.tabs) {
+          if (tab.closing) continue;
+          const reason = memory.describe(tab);
+          row(tabDetails, tab.label, reasons[reason] || reason,
+            ["recent", "unload"].includes(reason) ? button("Выгрузить", async () => {
+              status(await memory.unload(tab) ? "Вкладка выгружена" : "Вкладка сейчас защищена или страница не разрешила выгрузку");
+              refreshDetails(); updateMetrics();
+            }) : null);
+        }
+      };
+      details.append(button("Обновить", () => {refreshDetails(); updateMetrics();}), tabDetails);
+      refreshDetails();
       const policy = card("Неактивные вкладки");
       toggle(
         policy,
@@ -489,6 +505,13 @@ window.addEventListener(
           { class: "card-caption" },
         ),
       );
+      if (Services.prefs.getBoolPref("night.import.completed", false)) {
+        const repair = card("Восстановить структуру прошлого импорта", "Вернуть папки и закрепления по сохранённому снимку Zen. История, пароли и данные сайтов сохранятся. Несовпадающие и неоднозначные вкладки останутся как есть.");
+        repair.append(button("Восстановить папки", async () => {
+          const result = await NightImport.repair(browserWindow);
+          status(`Восстановлено: ${result.matched}. Пропущено: ${result.skipped}. Резервная копия: ${result.backup}`);
+        }));
+      }
       if (!NightImport.supported) {
         intro.append(
           element("p", "Импорт доступен в версии для Windows."),
@@ -565,7 +588,7 @@ window.addEventListener(
         ),
         element(
           "p",
-          "Закреплённые сайты станут общими для областей. Папки и split view развернутся во вкладки. Zen Mods, оформление и привязки клавиш Zen не переносятся. Основной пароль остаётся прежним; отдельные сайты и расширения могут запросить повторный вход.",
+          "Избранное останется общим, закрепления и вложенные папки сохранят свои пространства. Split view станут отдельными вкладками в прежних папках. Zen Mods, оформление и привязки клавиш Zen не переносятся. Основной пароль остаётся прежним; отдельные сайты и расширения могут запросить повторный вход.",
           { class: "card-caption" },
         ),
       );
@@ -641,7 +664,7 @@ window.addEventListener(
           height: "72",
         }),
         element("h2", "Night Browser"),
-        element("p", "0.5.2 · Preview"),
+        element("p", "0.6.0 · Preview"),
       );
       info.append(identity);
       row(

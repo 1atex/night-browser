@@ -74,18 +74,23 @@ def measure(binary, app_ini, url, output, label):
               const done = arguments[arguments.length-1], w = Services.wm.getMostRecentWindow('navigator:browser');
               const { NightMemory } = ChromeUtils.importESModule('resource:///modules/night/NightMemory.sys.mjs');
               let now = 0; const memory = new NightMemory(w, () => false, () => now);
-              memory.protect(w.gBrowser.tabs[1], true);
+              w.memoryExcepted = w.gBrowser.tabs[1];
+              w.memoryPinned = w.gBrowser.tabs[2];
+              memory.protect(w.memoryExcepted, true);
+              w.gBrowser.pinTab(w.memoryExcepted);
+              w.gBrowser.pinTab(w.memoryPinned);
               now = 15 * 60000;
-              memory.checkNow().then(count => { memory.destroy(); done(count); }, error => { memory.destroy(); done({error: String(error)}); });
+              memory.checkNow().then(async count => { await memory.checkNow(); await memory.checkNow(); memory.destroy(); done(count); }, error => { memory.destroy(); done({error: String(error)}); });
             """)
             assert unloaded == 5, unloaded
         time.sleep(5)
         after = samples(pid)
         states = browser.execute_script("""
-          const tabs = [...Services.wm.getMostRecentWindow('navigator:browser').gBrowser.tabs];
-          return {tabs: tabs.length, sleeping: tabs.filter(t => t.hasAttribute('pending')).length, selectedLoaded: !tabs.find(t => t.selected).hasAttribute('pending'), exceptedLoaded: !tabs[1].hasAttribute('pending')};
+          const w = Services.wm.getMostRecentWindow('navigator:browser'), tabs = [...w.gBrowser.tabs];
+          return {tabs: tabs.length, sleeping: tabs.filter(t => t.hasAttribute('pending')).length, selectedLoaded: !tabs.find(t => t.selected).hasAttribute('pending'), exceptedLoaded: !(w.memoryExcepted || tabs[1]).hasAttribute('pending'), pinnedSleeping: w.memoryPinned?.hasAttribute('pending') ?? null};
         """)
         assert states["selectedLoaded"] and states["exceptedLoaded"], states
+        if app_ini: assert states["sleeping"] == 5 and states["pinnedSleeping"], states
         return {"before": before, "after": after, "unloaded": unloaded, "state": states}
     finally:
         browser.cleanup()

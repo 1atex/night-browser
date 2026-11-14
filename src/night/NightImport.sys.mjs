@@ -14,6 +14,7 @@ function file(path) {
   result.initWithPath(path);
   return result;
 }
+const optionalColumn = (row, name) => {try {return row.getResultByName(name);} catch {return null;}};
 const readText = async (path) =>
   (await IOUtils.exists(path)) ? IOUtils.readUTF8(path) : "";
 
@@ -229,12 +230,18 @@ export const NightImport = {
             containerTabId: row.getResultByName("container_id"),
             isEssential: !!row.getResultByName("is_essential"),
             isGroup: !!row.getResultByName("is_group"),
+            parentUuid: optionalColumn(row, "folder_parent_uuid"),
+            folderIcon: optionalColumn(row, "folder_icon"),
+            isFolderCollapsed: !!optionalColumn(row, "is_folder_collapsed"),
+            editedTitle: !!optionalColumn(row, "edited_title"),
+            position: optionalColumn(row, "position"),
           }));
       } finally {
         await db.close();
       }
     }
     const converted = convertZenSession(session, sidebar, legacy);
+    await IOUtils.writeJSON(PathUtils.join(destination, "night-zen-source.jsonlz4"), {session, sidebar, legacy}, {compress: true});
     await IOUtils.writeJSON(
       PathUtils.join(destination, "sessionstore.jsonlz4"),
       converted.session,
@@ -268,6 +275,59 @@ export const NightImport = {
       workspaces: converted.workspaces,
       warnings: [...warnings, ...converted.warnings],
     };
+  },
+
+  async repair(window) {
+    const { SessionStore } = ChromeUtils.importESModule("moz-src:///browser/components/sessionstore/SessionStore.sys.mjs");
+    const { savedTabEntry } = ChromeUtils.importESModule("resource:///modules/night/WorkspaceModel.mjs");
+    const profile = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
+    let source;
+    for (const name of ["night-zen-source.jsonlz4", "zen-sessions.jsonlz4", "zen-sessions-backup/clean.jsonlz4"]) {
+      try {
+        const value = await IOUtils.readJSON(PathUtils.join(profile, ...name.split("/")), {decompress: true});
+        source = name === "night-zen-source.jsonlz4" ? value : {sidebar: value};
+        break;
+      } catch {}
+    }
+    if (!source) throw new Error("Снимок прошлого импорта не найден. Для восстановления папок потребуется новый импорт из Zen.");
+    const converted = convertZenSession(source.session, source.sidebar, source.legacy);
+    const incoming = converted.session.windows.flatMap(item => item.tabs);
+    const layout = JSON.parse(converted.session.windows[0].extData["night-workspaces"]);
+    const shell = window.gNightBrowser.shell;
+    const candidates = [...window.gBrowser.tabs];
+    const matches = [];
+    for (const imported of incoming) {
+      const url = savedTabEntry(imported)?.url;
+      const identity = imported.extData?.["night-node"];
+      let tab = candidates.find(candidate => identity && SessionStore.getCustomTabValue(candidate, "night-node") === identity);
+      if (!tab) {
+        const same = candidates.filter(candidate => candidate.linkedBrowser.currentURI.spec === url &&
+          Number(candidate.getAttribute("usercontextid") || 0) === Number(imported.userContextId || 0) &&
+          shell.workspaces.workspaceOf(candidate) === imported.extData?.["night-workspace"]);
+        if (same.length === 1) tab = same[0];
+        else if (!same.length && incoming.filter(item => savedTabEntry(item)?.url === url && Number(item.userContextId || 0) === Number(imported.userContextId || 0)).length === 1) {
+          const global = candidates.filter(candidate => candidate.pinned && candidate.linkedBrowser.currentURI.spec === url && Number(candidate.getAttribute("usercontextid") || 0) === Number(imported.userContextId || 0));
+          if (global.length === 1) tab = global[0];
+        }
+      }
+      if (!tab) continue;
+      candidates.splice(candidates.indexOf(tab), 1);
+      matches.push([tab, imported]);
+    }
+    if (!matches.length) throw new Error("Не удалось однозначно сопоставить вкладки с прошлым импортом. Текущие вкладки не изменены.");
+    const backup = `night-layout-backup-${Date.now()}.jsonlz4`;
+    const current = SessionStore.getWindowState(window);
+    await IOUtils.writeJSON(PathUtils.join(profile, backup), typeof current === "string" ? JSON.parse(current) : current, {compress: true});
+    for (const [tab, imported] of matches) {
+      if (tab.pinned && !imported.pinned) window.gBrowser.unpinTab(tab);
+      if (!tab.pinned && imported.pinned) window.gBrowser.pinTab(tab);
+      for (const key of ["night-workspace", "night-folder", "night-pinned", "night-title", "night-favicon", "night-order", "night-node"])
+        if (imported.extData?.[key]) SessionStore.setCustomTabValue(tab, key, imported.extData[key]);
+        else SessionStore.deleteCustomTabValue(tab, key);
+    }
+    shell.workspaces.adoptLayout(layout);
+    shell.render();
+    return {matched: matches.length, skipped: incoming.length - matches.length, backup};
   },
 
   restart() {

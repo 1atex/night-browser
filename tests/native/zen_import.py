@@ -102,6 +102,8 @@ def run(package, zen, extension, output):
             const tab=w.gBrowser.addTrustedTab(arguments[0]+'/workspace');
             tab.setAttribute('zen-workspace-id',space.uuid);
             w.gBrowser.selectedTab=tab;
+            const parent=w.gZenFolders.createFolder([],{{label:'Import parent',workspaceId:space.uuid}});
+            w.gZenFolders.createFolder([tab],{{label:'Import nested',workspaceId:space.uuid,insertAfter:parent.groupContainer.lastElementChild}});
             return {{space:space.uuid,version:Services.appinfo.platformVersion}};
           }})().then(done,e=>done({{error:String(e)}}));
         """, script_args=[url])
@@ -179,7 +181,7 @@ def run(package, zen, extension, output):
             const db=await ExtensionStorageLocalIDB.openForPrincipal(ExtensionStorageIDB.getStoragePrincipal(extension));
             const stored=await db.get('night-import-fixture');db.close();
             const w={WIN};
-            return {{bookmark:bookmark?.title,login:logins.some(l=>l.username==='fixture-user'&&l.password==='fixture-password'),addon:!!addon?.isActive,addonStorage:stored['night-import-fixture'],spaces:w.gNightBrowser.shell.workspaces.items.map(x=>x.name),tabs:[...w.gBrowser.tabs].map(t=>t.linkedBrowser.currentURI.spec),zenStyle:Services.prefs.getBoolPref('toolkit.legacyUserProfileCustomizations.stylesheets',false),signatureRequired:Services.prefs.getBoolPref('xpinstall.signatures.required',true)}};
+            return {{bookmark:bookmark?.title,login:logins.some(l=>l.username==='fixture-user'&&l.password==='fixture-password'),addon:!!addon?.isActive,addonStorage:stored['night-import-fixture'],spaces:w.gNightBrowser.shell.workspaces.items.map(x=>x.name),folders:w.gNightBrowser.shell.workspaces.folders,scoped:[...w.gBrowser.tabs].filter(t=>!t.pinned&&w.gNightBrowser.shell.workspaces.folderOf(t)).length,tabs:[...w.gBrowser.tabs].map(t=>t.linkedBrowser.currentURI.spec),zenStyle:Services.prefs.getBoolPref('toolkit.legacyUserProfileCustomizations.stylesheets',false),signatureRequired:Services.prefs.getBoolPref('xpinstall.signatures.required',true)}};
           }})().then(done,e=>done({{error:String(e)}}));
         """, script_args=[url])
         (output/'zen-import-restored.json').write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding='utf-8')
@@ -188,6 +190,9 @@ def run(package, zen, extension, output):
         assert state['login'] and state['addon'] and state['signatureRequired'], state
         assert state['addonStorage'] == 'addon-value', state
         assert 'Night import work' in state['spaces'] and not state['zenStyle'], state
+        parent = next(f for f in state['folders'] if f['name'] == 'Import parent')
+        nested = next(f for f in state['folders'] if f['name'] == 'Import nested')
+        assert nested['parentId'] == parent['id'] and state['scoped'] >= 1, state
         imported.set_context('content')
         imported.navigate(url+'/restored')
         assert imported.execute_script("return document.cookie.includes('night_fixture=cookie-value') && localStorage.getItem('night-fixture')==='stored-value';")

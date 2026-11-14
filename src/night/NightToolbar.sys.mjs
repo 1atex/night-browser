@@ -8,6 +8,7 @@ export class NightToolbar {
   #toolbox;
   #trigger;
   #observer;
+  #sizeObserver;
   #timer = null;
   #inside = false;
   #popups = new Set();
@@ -37,15 +38,20 @@ export class NightToolbar {
     });
     this.#observer.observe(this.#root, {
       attributes: true,
-      attributeFilter: ["inFullscreen", "inDOMFullscreen", "customizing"],
+      attributeFilter: ["inFullscreen", "inDOMFullscreen", "customizing", "night-sidebar-collapsed"],
     });
-    Services.prefs.addObserver("night.ui.toolbar-autohide", this);
+    this.#sizeObserver = new window.ResizeObserver(() => {
+      this.#root.style.setProperty("--night-navigation-height", `${Math.ceil(this.#toolbox.getBoundingClientRect().height)}px`);
+    });
+    this.#sizeObserver.observe(this.#toolbox);
+    Services.prefs.addObserver("night.ui.", this);
     this.#menu = new NightMenu(window, this);
     this.observe();
   }
 
   get automatic() {
-    return (this.#focus || Services.prefs.getBoolPref("night.ui.toolbar-autohide", false)) &&
+    return (this.#focus || Services.prefs.getBoolPref("night.ui.toolbar-autohide", false) ||
+      (Services.prefs.getStringPref("night.ui.navigation-layout", "sidebar") === "sidebar" && this.#root.hasAttribute("night-sidebar-collapsed"))) &&
       !this.#root.hasAttribute("inFullscreen") &&
       !this.#root.hasAttribute("inDOMFullscreen") &&
       !this.#root.hasAttribute("customizing");
@@ -53,6 +59,8 @@ export class NightToolbar {
 
   observe() {
     this.#root.toggleAttribute("night-toolbar-auto", this.automatic);
+    this.#root.toggleAttribute("night-sidebar-navigation", Services.prefs.getStringPref("night.ui.navigation-layout", "sidebar") === "sidebar" && !this.automatic && !this.#root.hasAttribute("inFullscreen") && !this.#root.hasAttribute("inDOMFullscreen") && !this.#root.hasAttribute("customizing"));
+    this.#window.document.getElementById("nav-bar").overflowable?.setNightWrapped(this.#root.hasAttribute("night-sidebar-navigation"));
     const button = this.#window.document.getElementById("night-autohide-button");
     const enabled = Services.prefs.getBoolPref("night.ui.toolbar-autohide", false);
     button?.toggleAttribute("checked", enabled);
@@ -105,6 +113,8 @@ export class NightToolbar {
 
   #update() {
     this.#root.toggleAttribute("night-toolbar-auto", this.automatic);
+    this.#root.toggleAttribute("night-sidebar-navigation", Services.prefs.getStringPref("night.ui.navigation-layout", "sidebar") === "sidebar" && !this.automatic && !this.#root.hasAttribute("inFullscreen") && !this.#root.hasAttribute("inDOMFullscreen") && !this.#root.hasAttribute("customizing"));
+    this.#window.document.getElementById("nav-bar").overflowable?.setNightWrapped(this.#root.hasAttribute("night-sidebar-navigation"));
     if (!this.automatic || this.#held()) this.reveal();
     else this.#scheduleHide();
   }
@@ -155,7 +165,8 @@ export class NightToolbar {
     this.#menu.destroy();
     this.#window.clearTimeout(this.#timer);
     this.#observer.disconnect();
-    Services.prefs.removeObserver("night.ui.toolbar-autohide", this);
+    this.#sizeObserver.disconnect();
+    Services.prefs.removeObserver("night.ui.", this);
     for (const node of [this.#trigger, this.#toolbox]) {
       node.removeEventListener("pointerenter", this);
       node.removeEventListener("pointerleave", this);

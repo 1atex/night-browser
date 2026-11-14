@@ -1,3 +1,5 @@
+import { normalizeFolders, savedTabEntry, validIcon } from "./WorkspaceModel.mjs";
+
 export function parseIni(text) {
   const result = Object.create(null);
   let section;
@@ -79,10 +81,25 @@ export function convertZenSession(session = {}, sidebar = {}, legacy = {}) {
     .map((sourceWindow, index) => {
       let tabs = [...(sourceWindow.tabs ?? [])];
       if (index === 0) {
-        const ids = new Set(tabs.map((tab) => tab.zenSyncId).filter(Boolean));
+        const ids = new Map(tabs.map((tab, i) => [tab.zenSyncId || tab.zenPinnedId, i]).filter(([id]) => id));
         for (const tab of sidebar.tabs ?? []) {
-          if (!tab.zenSyncId || !ids.has(tab.zenSyncId)) tabs.push(tab);
-          if (tab.zenSyncId) ids.add(tab.zenSyncId);
+          const id = tab.zenSyncId || tab.zenPinnedId;
+          if (!id || !ids.has(id)) {
+            if (id) ids.set(id, tabs.length);
+            tabs.push(tab);
+          } else {
+            const offset = ids.get(id);
+            const original = tabs[offset];
+            const primary = original._zenIsActiveTab ? original : tab;
+            const secondary = primary === original ? tab : original;
+            tabs[offset] = { ...secondary, ...primary };
+            if (!validIcon(primary.image) && validIcon(secondary.image)) tabs[offset].image = secondary.image;
+            if (!savedTabEntry(primary)?.url || /^about:(blank|newtab)$/.test(savedTabEntry(primary).url))
+              if (savedTabEntry(secondary)?.url && !/^about:(blank|newtab)$/.test(savedTabEntry(secondary).url)) {
+                tabs[offset].entries = secondary.entries;
+                tabs[offset].index = secondary.index;
+              }
+          }
         }
         for (const pin of legacy.pins ?? []) {
           if (
@@ -96,7 +113,10 @@ export function convertZenSession(session = {}, sidebar = {}, legacy = {}) {
             index: 1,
             pinned: true,
             zenEssential: !!pin.isEssential,
+            zenSyncId: pin.uuid,
             zenWorkspace: pin.workspaceUuid,
+            groupId: pin.parentUuid,
+            zenStaticLabel: pin.editedTitle ? pin.title : undefined,
             userContextId: pin.containerTabId || 0,
           });
         }
@@ -105,13 +125,28 @@ export function convertZenSession(session = {}, sidebar = {}, legacy = {}) {
         Math.max(0, (sourceWindow.selected ?? 1) - 1)
       ];
       const active =
+        String(sourceWindow.activeZenSpace ?? sourceWindow.workspaceID ?? "") ||
         getWorkspace(selectedSource ?? {}) ||
-        String(sourceWindow.workspaceID ?? "") ||
         items[0].id;
       const activeId = items.some((item) => item.id === active)
         ? active
         : items[0].id;
       const converted = [];
+      const sidebarOrder = new Map((sidebar.tabs ?? []).map((tab, position) => [tab.zenSyncId || tab.zenPinnedId, position * 1024]));
+      const rawFolders = sidebar.folders ?? sourceWindow.folders ?? (legacy.pins ?? []).filter(pin => pin.isGroup).map(pin => ({
+        id: pin.uuid, name: pin.title, workspaceId: pin.workspaceUuid, parentId: pin.parentUuid,
+        collapsed: pin.isFolderCollapsed, userIcon: pin.folderIcon, position: pin.position,
+      }));
+      const folderData = rawFolders.filter(folder => !folder.splitViewGroup).map((folder, i) => ({
+        ...folder, workspace: folder.workspaceId || activeId, icon: folder.userIcon,
+        position: Number.isFinite(folder.position) ? folder.position : i * 1024,
+      }));
+      const groups = sidebar.groups ?? sourceWindow.groups ?? [];
+      for (const group of groups)
+        if (!folderData.some(folder => folder.id === group.id) && !rawFolders.some(folder => folder.id === group.id && folder.splitViewGroup))
+          folderData.push({ id: group.id, name: group.name || group.label || "Группа", workspace: activeId, collapsed: !!group.collapsed });
+      const folders = normalizeFolders(folderData, items.map(item => item.id));
+      const folderMap = new Map(folders.map(folder => [folder.id, folder]));
       let selected = 1;
       for (const source of tabs) {
         if (
@@ -122,26 +157,54 @@ export function convertZenSession(session = {}, sidebar = {}, legacy = {}) {
         )
           continue;
         const tab = structuredClone(source);
-        const workspace = getWorkspace(source) || activeId;
+        const splitFolder = rawFolders.find(folder => folder.id === source.groupId && folder.splitViewGroup);
+        const parent = folderMap.get(splitFolder?.parentId || source.groupId);
+        const workspace = parent?.workspace || getWorkspace(source) || activeId;
         for (const key of Object.keys(tab))
           if (/^(?:zen|_zen)/.test(key)) delete tab[key];
         tab.entries = tab.entries.map((entry) => ({
           ...entry,
           url: /^about:zen/.test(entry.url) ? "about:newtab" : entry.url,
         }));
-        if (tab.groupId || tab.splitViewId)
+        if (tab.splitViewId || splitFolder)
           warnings.add(
-            "Папки, группы и split view перенесены отдельными вкладками.",
+            "Split view перенесены отдельными вкладками внутри прежних папок.",
           );
         delete tab.groupId;
         delete tab.splitViewId;
         delete tab.searchMode;
         tab.hidden = false;
-        tab.pinned = !!(source.pinned || source.zenEssential);
-        tab.extData = { ...(tab.extData ?? {}), "night-workspace": workspace };
-        if (source === selectedSource) selected = converted.length + 1;
+        tab.pinned = !!source.zenEssential;
+        tab.extData = {
+          ...(tab.extData ?? {}), "night-workspace": workspace,
+          "night-node": String(source.zenSyncId || source.zenPinnedId || `import-tab-${index}-${converted.length}`),
+          "night-order": String(sidebarOrder.get(source.zenSyncId || source.zenPinnedId) ?? ((sidebar.tabs?.length ?? 0) + converted.length) * 1024),
+        };
+        if (parent && !tab.pinned) tab.extData["night-folder"] = parent.id;
+        if ((source.pinned || parent) && !tab.pinned) tab.extData["night-pinned"] = "true";
+        if (source.zenStaticLabel) tab.extData["night-title"] = String(source.zenStaticLabel).slice(0, 200);
+        if (validIcon(source.image)) tab.extData["night-favicon"] = source.image;
+        if (source === selectedSource || (selectedSource?.zenSyncId && source.zenSyncId === selectedSource.zenSyncId)) selected = converted.length + 1;
         converted.push(tab);
         count++;
+      }
+      const positions = new Map(converted.map(tab => [tab.extData["night-node"], Number(tab.extData["night-order"])]));
+      for (const folder of folders) {
+        const children = converted.filter(tab => tab.extData["night-folder"] === folder.id);
+        if (children.length) folder.position = Math.min(...children.map(tab => Number(tab.extData["night-order"]))) - 1;
+        positions.set(folder.id, folder.position);
+      }
+      for (let pass = 0; pass < folders.length; pass++) {
+        let changed = false;
+        for (const folder of folders) {
+          const previous = rawFolders.find(item => item.id === folder.id)?.prevSiblingInfo;
+          if (previous?.id && positions.has(previous.id) && positions.get(previous.id) >= folder.position) {
+            folder.position = positions.get(previous.id) + 1;
+            positions.set(folder.id, folder.position);
+            changed = true;
+          }
+        }
+        if (!changed) break;
       }
       if (!converted.length)
         converted.push({
@@ -154,7 +217,7 @@ export function convertZenSession(session = {}, sidebar = {}, legacy = {}) {
         selected,
         cookies: sourceWindow.cookies,
         extData: {
-          "night-workspaces": JSON.stringify({ items, active: activeId }),
+          "night-workspaces": JSON.stringify({ items, active: activeId, folders, layoutVersion: 2 }),
         },
       };
     });

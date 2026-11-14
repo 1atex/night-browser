@@ -76,6 +76,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -u tests/native/chrome.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/chrome-results.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test folders, resize and background restoration
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/sidebar.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/sidebar-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Inspect ordinary first launch and Windows identity
         run: ./tests/native/first-launch.ps1 -Package dist/Night -Output test-artifacts
       - name: Test migration from an actual Zen profile
@@ -101,6 +106,8 @@ jobs:
         run: python -u tests/native/launcher.py --launcher dist/Night/Night.exe
       - name: Create download archive
         run: |
+          Copy-Item test-artifacts/sidebar-result.json dist/sidebar-result.json
+          Copy-Item test-artifacts/night-sidebar-filled.png dist/night-sidebar-filled.png
           Copy-Item test-artifacts/memory.json dist/memory.json
           Copy-Item test-artifacts/night-first-launch.png dist/night-first-launch.png
           Copy-Item test-artifacts/night-settings-ordinary.png dist/night-settings.png
@@ -112,17 +119,19 @@ jobs:
           Copy-Item test-artifacts/night-address-ordinary.png dist/night-address.png
           Copy-Item test-artifacts/night-menu-ordinary.png dist/night-menu.png
           Copy-Item test-artifacts/night-suggestions-ordinary.png dist/night-suggestions.png
-          7z a -tzip dist/night-browser-0.5.2-preview-windows-x64.zip ./dist/Night
+          7z a -tzip dist/night-browser-0.6.0-preview-windows-x64.zip ./dist/Night
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $hash = (Get-FileHash dist/night-browser-0.5.2-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
-          "$hash  night-browser-0.5.2-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          $hash = (Get-FileHash dist/night-browser-0.6.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  night-browser-0.6.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
       - name: Upload Windows preview
         uses: actions/upload-artifact@v4
         with:
           name: night-browser-windows-x64-preview
           path: |
-            dist/night-browser-0.5.2-preview-windows-x64.zip
+            dist/night-browser-0.6.0-preview-windows-x64.zip
             dist/SHA256SUMS.txt
+            dist/sidebar-result.json
+            dist/night-sidebar-filled.png
             dist/memory.json
             dist/night-first-launch.png
             dist/night-settings.png
@@ -164,8 +173,10 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           gh release create "$RELEASE_TAG" \
-            release-assets/night-browser-0.5.2-preview-windows-x64.zip \
+            release-assets/night-browser-0.6.0-preview-windows-x64.zip \
             release-assets/SHA256SUMS.txt \
+            release-assets/sidebar-result.json \
+            release-assets/night-sidebar-filled.png \
             release-assets/memory.json \
             release-assets/night-first-launch.png \
             release-assets/night-settings.png \
