@@ -21,7 +21,7 @@ export function allowedActions(download) {
 
 export function downloadItem(id, download) {
   if (download.source?.isPrivate) return null;
-  const name = (download.target.path.split(/[\\/]/).pop() || "Файл").replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 160);
+  const name = [...(download.target.path.split(/[\\/]/).pop() || "Файл").replace(/\p{Cc}/gu, "")].slice(0, 160).join("") || "Файл";
   return { id, name, state: downloadState(download),
     current: Math.max(0, Math.floor(download.currentBytes || 0)),
     total: download.hasProgress ? Math.max(0, Math.floor(download.totalBytes || 0)) : null,
@@ -37,7 +37,7 @@ export function validCommand(message) {
 export function validSnapshot(message) {
   return message?.v === 1 && message.type === "downloads" && Array.isArray(message.items) &&
     message.items.length <= MAX_DOWNLOADS && message.items.every(item =>
-      typeof item.id === "string" && item.id.length <= 64 && typeof item.name === "string" && item.name.length <= 160 &&
+      typeof item.id === "string" && item.id.length <= 64 && typeof item.name === "string" && [...item.name].length <= 160 &&
       STATES.has(item.state) && Number.isSafeInteger(item.current) && item.current >= 0 &&
       (item.total === null || Number.isSafeInteger(item.total) && item.total >= 0) &&
       Array.isArray(item.actions) && item.actions.every(action => ACTIONS.has(action)));

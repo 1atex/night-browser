@@ -29,3 +29,11 @@ test("commands are versioned and bounded", () => {
   for (const change of [{v: 2}, {action: "open"}, {id: "x".repeat(65)}, {request: null}]) assert.equal(validCommand({...command, ...change}), false);
   assert.equal(validSnapshot({v: 1, type: "downloads", items: Array(33).fill(downloadItem("id", item()))}), false);
 });
+
+test("long Unicode filenames remain valid protocol strings", () => {
+  const value = {...item(), target: {path: "C:\\Downloads\\" + "a".repeat(159) + "🌙🌙.zip"}};
+  const result = downloadItem("id", value);
+  assert.equal(result.name, "a".repeat(159) + "🌙");
+  assert.equal(validSnapshot({v:1, type:"downloads", items:[result]}), true);
+  assert.equal(downloadItem("id", {...item(), target:{path:"C:\\\u0085"}}).name, "Файл");
+});

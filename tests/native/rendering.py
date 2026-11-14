@@ -41,6 +41,10 @@ def run(binary, app_ini, output, optimized):
           SessionStore.setWindowState(w,JSON.stringify({windows:[{tabs,selected:1,extData:{'night-workspaces':JSON.stringify({items:[{id:'bench',name:'Benchmark'}],active:'bench',folders})}}]}),true);
         ''', origin)
         wait_for(lambda: chrome("return b.tabs.length===100&&d.querySelectorAll('.night-tab').length===100&&[...b.tabs].filter(t=>t.hasAttribute('pending')).length===99;"))
+        chrome("b.tabs[50].setAttribute('busy','true');b.tabs[50].dispatchEvent(new w.CustomEvent('TabAttrModified',{bubbles:true,detail:{changed:['busy']}}));")
+        wait_for(lambda: chrome("const row=[...d.querySelectorAll('.night-tab')].find(n=>n.querySelector('.night-tab-title')?.textContent==='Page 50');return row?.hasAttribute('data-loading');"))
+        chrome("b.tabs[50].removeAttribute('busy');b.tabs[50].dispatchEvent(new w.CustomEvent('TabAttrModified',{bubbles:true,detail:{changed:['busy']}}));")
+        wait_for(lambda: chrome("const row=[...d.querySelectorAll('.night-tab')].find(n=>n.querySelector('.night-tab-title')?.textContent==='Page 50');return row&&!row.hasAttribute('data-loading');"))
         full = chrome('''
           const host=d.getElementById('night-sidebar');
           const observer=new w.MutationObserver(()=>{});observer.observe(host,{subtree:true,childList:true,characterData:true,attributes:true});

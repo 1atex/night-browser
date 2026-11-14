@@ -24,9 +24,12 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 - Управление окном справа сверху при наведении; постоянная видимость включается в настройках.
 - Крестик у сохранённой вкладки отправляет её в сон, сохраняя папку и состояние. Удаление доступно отдельно в контекстном меню.
 
+- Загрузки в Night Island: прогресс, пауза, продолжение, отмена и показ файла. Включается отдельно в обоих приложениях.
+- Обновление изменившихся строк боковой панели без перезаписи остального дерева вкладок.
+
 ## Запуск и разработка
 
-[Установщик Night 0.8.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.3/night-browser-0.8.0-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.3/night-browser-0.8.0-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.8.0-preview.3)
+[Установщик Night 0.9.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.9.0-preview.1/night-browser-0.9.0-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.9.0-preview.1/night-browser-0.9.0-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.9.0-preview.1)
 
 Установщик работает без прав администратора. Приложение находится в `%LOCALAPPDATA%\Programs\Night Browser`, профиль — в `%LOCALAPPDATA%\NightBrowser\profile`. Повторная установка обновляет приложение; удаление программы сохраняет профиль. Выбор браузера по умолчанию остаётся за пользователем в настройках Windows.
 
@@ -42,4 +45,4 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 
 Тестовая версия пока без автоматических обновлений и подписи Windows. MPL-2.0.
 
-[Предложение по интеграции с Night Island](docs/night/ISLAND_INTEGRATION.md)
+[Подключение Night Island](docs/night/ISLAND_INTEGRATION.md) · [Замеры отрисовки и дальнейшая работа с движком](docs/night/PERFORMANCE.md)
