@@ -1,104 +1,23 @@
-:root[night-browser] {
-  --night-sidebar-width: 320px;
-  --night-navigation-height: 90px;
-}
+:root[night-browser] { --night-sidebar-width: 320px; --night-navigation-height: 90px; }
 #night-sidebar {
   position: relative;
   width: min(var(--night-sidebar-width), 45vw);
   min-width: min(var(--night-sidebar-width), 45vw);
   padding: 12px 12px 8px;
   gap: 8px;
-  font-size: 13px;
-  background: linear-gradient(125deg, #ffffff03, transparent 65%);
 }
 #night-tabs-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
   scrollbar-width: thin;
-  scrollbar-color: #ffffff15 transparent;
+  scrollbar-color: #ffffff26 transparent;
   padding-right: 2px;
 }
-#night-tab-list {
-  overflow: visible;
-  min-height: 45px;
-  gap: 2px;
-}
-#night-pinned-tabs {
-  gap: 6px;
-  padding: 2px 0 10px;
-}
-.night-tab[data-pinned] {
-  min-height: 40px;
-  border-radius: 9px;
-  background: #ffffff06;
-  box-shadow: none;
-}
-.night-tab[data-pinned] .night-tab-icon,
-.night-tab[data-pinned] .night-tab-icon img {
-  width: 18px;
-  height: 18px;
-}
-.night-tab[data-pinned][data-selected] {
-  background: #c3ccd918;
-  border-color: #c3ccd94a;
-}
-.night-tab-main {
-  font-size: 13px !important;
-  min-height: 36px;
-  padding: 8px 9px;
-  gap: 10px;
-}
-.night-tab[data-sleeping] {
-  opacity: 1;
-}
-.night-tab[data-sleeping] .night-tab-title {
-  color: #a0a2ad;
-}
-.night-tab[data-sleeping] .night-tab-icon {
-  opacity: .75;
-}
-.night-tab[data-selected] {
-  background: #c3ccd912;
-  box-shadow: inset 0 1px #ffffff04;
-}
-.night-tab[data-selected]::before {
-  display: none;
-}
-.night-sidebar-header {
-  margin-top: 10px;
-  padding: 8px 0 5px;
-  border-top: 1px solid #ffffff0b;
-  -moz-window-dragging: no-drag;
-}
-#night-new-tab {
-  width: auto;
-  flex: 1;
-  height: 34px;
-  padding-left: 30px;
-  text-align: left;
-  font-size: 12px;
-  opacity: .75;
-  background-position: 8px center !important;
-}
-#night-focus-button { opacity: .65; }
-.night-workspace-row {
-  margin: 4px 0 7px;
-  padding: 0 2px 0 10px;
-  background: transparent;
-  border-color: transparent;
-  border-radius: 8px;
-}
-#night-workspace-select { font-size: 13px !important; padding: 8px; }
-#night-tab-search { flex-shrink: 0; }
 :root:not([night-show-search]):not([night-search-open]) #night-tab-search,
 :root:not([night-show-memory]) #night-memory-status,
 :root:not([night-show-tools]) :is(#night-split-button, #night-network-button),
 #night-import-button { display: none; }
-#night-sidebar footer { margin-top: auto; padding-top: 5px; }
-.night-footer-actions { justify-content: flex-start; gap: 2px; padding-right: 32px; }
-.night-footer-actions button { width: 32px; height: 32px; }
-.night-footer-actions #night-settings-button { margin-left: auto; }
 .night-folder { margin: 2px 0; }
 .night-folder-main {
   display: flex;
@@ -108,8 +27,8 @@
   text-align: left;
   gap: 8px;
   padding: 6px 7px;
-  font-weight: 550 !important;
-  color: #d0d1d9 !important;
+  font-weight: 600 !important;
+  color: var(--night-text) !important;
 }
 .night-folder-chevron {
   width: 8px;
@@ -171,14 +90,18 @@
 }
 :root[night-sidebar-navigation] #urlbar-container {
   order: 100;
-  flex: 1 0 calc(100% - 4px);
-  width: calc(100% - 4px) !important;
+  flex: 1 0 calc(100% - 42px);
+  width: calc(100% - 42px) !important;
   min-width: 0 !important;
-  margin: 6px 2px 2px;
+  margin: 6px 40px 2px 2px;
 }
 :root[night-sidebar-navigation] #urlbar { font-size: 13px; }
 :root[night-sidebar-navigation] #urlbar[focused] {
+  position: fixed;
+  left: 12px;
+  top: 44px;
   width: min(680px, calc(100vw - 28px)) !important;
+  height: 42px;
   z-index: 105;
 }
 :root[night-sidebar-navigation] #nav-bar > .titlebar-buttonbox-container {
@@ -210,8 +133,12 @@
 :root[night-sidebar-navigation] #browser { padding-top: 7px; }
 :root[night-sidebar-navigation] #night-sidebar { padding-top: var(--night-navigation-height); }
 :root[night-sidebar-navigation] #tabbrowser-tabbox { border-radius: 12px; }
-:root[night-motion] .night-folder-chevron { transition: transform 140ms ease; }
+:root[night-motion] .night-folder-chevron { transition: transform 240ms var(--night-spring); }
 :root[night-sidebar-navigation] #night-sidebar-toggle { order: -1; }
 :root[night-sidebar-navigation] #nav-bar-overflow-button { display: none; }
 
-#night-memory-status[data-message] { display: block !important; color: #d2c2b1 !important; line-height: 1.5; }
+:root[night-sidebar-navigation] #unified-extensions-button {
+  position: absolute;
+  right: 8px;
+  top: 49px;
+}

@@ -39,6 +39,7 @@ def run(binary, app_ini, output):
         browser.navigate("about:home")
         wait_for(lambda: browser.execute_script("return /^\\d{2}:\\d{2}$/.test(document.querySelector('#clock')?.textContent);"))
         assert browser.execute_script("return [...document.scripts].map(s => s.src);") == ["resource://newtab/prerendered/night-start.js"]
+        assert browser.execute_script("return ['React','ReactDOM','Redux','ReactRedux'].every(name=>typeof window.wrappedJSObject[name]==='undefined');"), 'Activity Stream libraries leaked into the start page'
         browser.set_context("chrome")
         browser.execute_async_script(f"const done = arguments[arguments.length-1]; const w = {WIN}; w.requestAnimationFrame(() => w.requestAnimationFrame(done));")
         (output / "night-home.png").write_bytes(base64.b64decode(browser.screenshot()))
@@ -66,6 +67,7 @@ def run(binary, app_ini, output):
             browser.execute_script("const {CustomizableUI}=ChromeUtils.importESModule('moz-src:///browser/components/customizableui/CustomizableUI.sys.mjs');CustomizableUI.addWidgetToArea('compatibility_night_test-browser-action',CustomizableUI.AREA_ADDONS);")
             click_toolbar('unified-extensions-button')
             wait_for(lambda: browser.execute_script(f"return {WIN}.document.getElementById('unified-extensions-panel').state==='open';"))
+            (output / "night-extensions.png").write_bytes(base64.b64decode(browser.screenshot()))
             browser.execute_script(f"{WIN}.document.getElementById('unified-extensions-panel').hidePopup();")
             Addons(browser).uninstall(addon)
         print("PASS: Firefox WebExtension content script, pinned action, badge, popup and extensions menu", flush=True)

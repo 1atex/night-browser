@@ -122,18 +122,19 @@ jobs:
           Copy-Item test-artifacts/chrome-result.json dist/chrome-result.json
           Copy-Item test-artifacts/night-focus-ordinary.png dist/night-focus.png
           Copy-Item test-artifacts/night-address-ordinary.png dist/night-address.png
+          Copy-Item test-artifacts/night-extensions-ordinary.png dist/night-extensions.png
           Copy-Item test-artifacts/night-menu-ordinary.png dist/night-menu.png
           Copy-Item test-artifacts/night-suggestions-ordinary.png dist/night-suggestions.png
-          7z a -tzip dist/night-browser-0.6.0-preview-windows-x64.zip ./dist/Night
+          7z a -tzip dist/night-browser-0.7.0-preview-windows-x64.zip ./dist/Night
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $hash = (Get-FileHash dist/night-browser-0.6.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
-          "$hash  night-browser-0.6.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          $hash = (Get-FileHash dist/night-browser-0.7.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  night-browser-0.7.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
       - name: Upload Windows preview
         uses: actions/upload-artifact@v4
         with:
           name: night-browser-windows-x64-preview
           path: |
-            dist/night-browser-0.6.0-preview-windows-x64.zip
+            dist/night-browser-0.7.0-preview-windows-x64.zip
             dist/SHA256SUMS.txt
             dist/sidebar-result.json
             dist/night-sidebar-filled.png
@@ -146,6 +147,7 @@ jobs:
             dist/chrome-result.json
             dist/night-focus.png
             dist/night-address.png
+            dist/night-extensions.png
             dist/night-menu.png
             dist/night-suggestions.png
           compression-level: 0
@@ -178,7 +180,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           gh release create "$RELEASE_TAG" \
-            release-assets/night-browser-0.6.0-preview-windows-x64.zip \
+            release-assets/night-browser-0.7.0-preview-windows-x64.zip \
             release-assets/SHA256SUMS.txt \
             release-assets/sidebar-result.json \
             release-assets/night-sidebar-filled.png \
@@ -191,6 +193,7 @@ jobs:
             release-assets/chrome-result.json \
             release-assets/night-focus.png \
             release-assets/night-address.png \
+            release-assets/night-extensions.png \
             release-assets/night-menu.png \
             release-assets/night-suggestions.png \
             --verify-tag --prerelease \

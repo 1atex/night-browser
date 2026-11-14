@@ -1,0 +1,40 @@
+:root {
+  --night-background: #080809;
+  --night-page: #101012;
+  --night-surface: #1c1c1f;
+  --night-panel: #202023;
+  --night-accent: #c3ccd9;
+  --night-text: #f5f5f7;
+  --night-secondary: #ffffffa6;
+  --night-muted: #ffffff66;
+  --night-line: #ffffff12;
+  --night-hover: #ffffff17;
+  --night-selected: #ffffff29;
+  --night-field: #ffffff14;
+  --night-radius: 12px;
+  --night-pill: 999px;
+  --night-font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --night-ease: cubic-bezier(.16, 1, .3, 1);
+  --night-spring: cubic-bezier(.34, 1.45, .64, 1);
+  --night-shadow: 0 16px 48px #0006, 0 3px 12px #0004;
+  color-scheme: dark;
+}
+:root:is([night-palette="graphite"], [data-palette="graphite"]) {
+  --night-background: #17171a;
+  --night-page: #17171a;
+  --night-surface: #252528;
+  --night-panel: #29292c;
+}
+:root:is([night-palette="midnight"], [data-palette="midnight"]) {
+  --night-background: #101824;
+  --night-page: #131b27;
+  --night-surface: #202c3d;
+  --night-panel: #263242;
+  --night-accent: #9ecbff;
+}
+:root:is([night-palette="mist"], [data-palette="mist"]) {
+  --night-background: #252528;
+  --night-page: #252528;
+  --night-surface: #323235;
+  --night-panel: #38383b;
+}

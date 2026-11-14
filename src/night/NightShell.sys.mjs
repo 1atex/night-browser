@@ -299,7 +299,7 @@ export class NightShell {
     );
     root.setAttribute(
       "night-palette",
-      ["graphite", "midnight", "mist"].includes(palette) ? palette : "graphite",
+      ["night", "graphite", "midnight", "mist"].includes(palette) ? palette : "night",
     );
     root.setAttribute(
       "night-density",
@@ -342,7 +342,7 @@ export class NightShell {
       return null;
     return node.animate(frames, {
       duration,
-      easing: "cubic-bezier(.2,.7,.2,1)",
+      easing: "cubic-bezier(.34,1.45,.64,1)",
     });
   }
 

@@ -104,6 +104,17 @@ try {
   [System.Windows.Forms.SendKeys]::SendWait("^l")
   [System.Windows.Forms.SendKeys]::SendWait("about:home{ENTER}")
   Start-Sleep -Seconds 1
+  $extensionButton = [System.Windows.Automation.AutomationElement]::FromHandle($window).FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | Where-Object { $_.Current.Name -eq "Расширения" -and -not $_.Current.IsOffscreen -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button } | Select-Object -First 1
+  if (-not $extensionButton) { throw "Extensions button is missing" }
+  $extensionBounds = $extensionButton.Current.BoundingRectangle
+  [NightWindowInfo]::SetCursorPos([int]($extensionBounds.Left+$extensionBounds.Width/2),[int]($extensionBounds.Top+$extensionBounds.Height/2)) | Out-Null
+  [NightWindowInfo]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+  [NightWindowInfo]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+  Start-Sleep -Seconds 1
+  $bitmap = New-Object System.Drawing.Bitmap(($rect.right-$rect.left),($rect.bottom-$rect.top))
+  $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+  try { $graphics.CopyFromScreen($rect.left,$rect.top,0,0,$bitmap.Size);$bitmap.Save((Join-Path $outputPath "night-extensions-ordinary.png"),[System.Drawing.Imaging.ImageFormat]::Png) } finally { $graphics.Dispose();$bitmap.Dispose() }
+  [System.Windows.Forms.SendKeys]::SendWait("{ESC}")
   [System.Windows.Forms.SendKeys]::SendWait("^l")
   [System.Windows.Forms.SendKeys]::SendWait("example.org/guide")
   Start-Sleep -Seconds 2

@@ -1,7 +1,7 @@
 (() => {
+  const { NightBrowser } = ChromeUtils.importESModule("resource:///modules/night/NightBrowser.sys.mjs");
   const start = () => {
     try {
-      const { NightBrowser } = ChromeUtils.importESModule("resource:///modules/night/NightBrowser.sys.mjs");
       NightBrowser.init(window);
     } catch (error) {
       console.error("Night startup failed", error);

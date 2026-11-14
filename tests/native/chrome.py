@@ -75,13 +75,19 @@ def run(binary, app_ini, output):
         browser.set_context('content')
         browser.navigate('about:newtab')
         wait_for(lambda: browser.execute_script("return !!document.getElementById('query');"))
+        chrome("Services.prefs.setStringPref('night.ui.palette','midnight');")
+        browser.set_context('content')
+        wait_for(lambda: browser.execute_script("return document.documentElement.dataset.palette==='midnight';"))
+        chrome("Services.prefs.setStringPref('night.ui.palette','night');")
+        browser.set_context('content')
+        wait_for(lambda: browser.execute_script("return document.documentElement.dataset.palette==='night';"))
         browser.find_element('id', 'query').click()
         assert browser.execute_script("return getComputedStyle(document.getElementById('query')).outlineStyle;") == 'none'
         assert browser.execute_script("return [...document.querySelectorAll('.tile-icon img')].every(i=>i.complete&&i.naturalWidth>0);")
         wait_for(lambda: chrome("const i=d.querySelector('.night-tab[data-selected] .night-tab-icon img');return i?.complete&&i.naturalWidth>0&&i.src==='chrome://browser/content/night/icons/newtab.svg';"))
         screenshot('night-home-focus.png')
         bar = chrome("const b=d.querySelector('#urlbar .urlbar-background');return {radius:w.getComputedStyle(b).borderTopLeftRadius,outline:w.getComputedStyle(b).outlineStyle};")
-        assert bar == {'radius':'11px','outline':'none'}, bar
+        assert bar == {'radius':'999px','outline':'none'}, bar
         browser.set_context('content')
         browser.navigate(origin)
         wait_for(lambda: chrome("const t=w.gBrowser.selectedTab,i=d.querySelector('.night-tab[data-selected] .night-tab-icon img');return !t.hasAttribute('busy')&&i?.complete&&i.naturalWidth>0&&i.getAttribute('src')===t.getAttribute('image');"))
@@ -92,6 +98,24 @@ def run(binary, app_ini, output):
         chrome("w.gBrowser.pinTab(w.gBrowser.selectedTab);")
         wait_for(lambda: chrome("const i=d.querySelector('#night-pinned-tabs .night-tab-icon img');return i?.naturalWidth>0;"))
         chrome("w.gBrowser.unpinTab(w.gBrowser.selectedTab);")
+        wait_for(lambda: chrome("const i=d.getElementById('night-address-icon');return i?.complete&&i.naturalWidth>0&&i.getAttribute('src')===w.gBrowser.selectedTab.getAttribute('image');"))
+        keys(Keys.CONTROL, 'l')
+        wait_for(lambda: chrome("return d.getElementById('urlbar').hasAttribute('focused');"))
+        address_geometry = chrome("const box=d.getElementById('urlbar').getBoundingClientRect();return {width:box.width,right:box.right,viewport:w.innerWidth};")
+        assert address_geometry['width'] >= 600 and address_geometry['right'] <= address_geometry['viewport'], address_geometry
+        chrome("w.gURLBar.value=arguments[0];w.gURLBar.inputField.dispatchEvent(new w.Event('input',{bubbles:true}));", origin+'/sidebar')
+        wait_for(lambda: chrome("return w.gURLBar.view.isOpen;"))
+        screenshot('night-sidebar-address.png')
+        keys(Keys.RETURN)
+        wait_for(lambda: chrome("return w.gBrowser.selectedBrowser.currentURI.spec===arguments[0];", origin+'/sidebar'))
+        screenshot('night-site-address.png')
+        identity = chrome("return ['trust-icon-container','identity-icon-box'].map(id=>d.getElementById(id)).filter(n=>n?.getBoundingClientRect().width>0)[0]?.getBoundingClientRect().toJSON();")
+        assert identity, 'Site identity must remain accessible'
+        browser.actions.sequence('pointer', 'mouse').pointer_move(x=round(identity['x']+identity['width']/2), y=round(identity['y']+identity['height']/2), origin='viewport').pointer_down(button=0).pointer_up(button=0).perform()
+        wait_for(lambda: chrome("return ['trustpanel-popup','identity-popup'].some(id=>d.getElementById(id)?.state==='open');"))
+        screenshot('night-site-security.png')
+        keys(Keys.ESCAPE)
+        wait_for(lambda: chrome("return !['trustpanel-popup','identity-popup'].some(id=>d.getElementById(id)?.state==='open');"))
         normal_y = chrome("return d.getElementById('tabbrowser-tabbox').getBoundingClientRect().y;")
         assert normal_y < 12, normal_y
         chrome("Services.prefs.setStringPref('night.ui.navigation-layout','top');")
@@ -119,6 +143,7 @@ def run(binary, app_ini, output):
         wait_for(visible)
         chrome("w.gURLBar.value=arguments[0];w.gURLBar.inputField.dispatchEvent(new w.Event('input',{bubbles:true}));", origin+'/next')
         wait_for(lambda: chrome("return w.gURLBar.view.isOpen;"))
+        settle()
         suggestion_geometry = chrome("const input=d.querySelector('#urlbar .urlbar-input-container').getBoundingClientRect(),background=d.querySelector('#urlbar .urlbar-background').getBoundingClientRect(),view=d.querySelector('#urlbar .urlbarView').getBoundingClientRect();return {gap:view.top-input.bottom,backgroundExtra:background.bottom-input.bottom};")
         assert suggestion_geometry['gap'] >= 6 and suggestion_geometry['backgroundExtra'] <= 1, suggestion_geometry
         keys(Keys.RETURN)
@@ -188,10 +213,16 @@ def run(binary, app_ini, output):
         browser.restart(clean=False)
         wait_for(lambda: chrome("return r.hasAttribute('night-toolbar-auto');"))
         chrome("Services.prefs.setBoolPref('night.ui.toolbar-autohide',false);")
-        result = {'home_focus_outline':'none','internal_and_site_favicons':True,'favicon_updates_and_pins':True,'native_address_navigation':True,'keyboard_and_edge_reveal':True,'popup_keeps_toolbar_visible':True,'menu_keyboard_zoom_find_devtools':True,'focus_mode_fills_window':True,'overlay_preserves_page_size':True,'native_fullscreen_roundtrip':True,'toolbar_reduced_motion':True,'settings_persist_after_restart':True}
+        result = {'home_focus_outline':'none','internal_and_site_favicons':True,'favicon_updates_and_pins':True,'native_address_navigation':True,'sidebar_address_expands':True,'address_favicon_tracks_site':True,'keyboard_and_edge_reveal':True,'popup_keeps_toolbar_visible':True,'menu_keyboard_zoom_find_devtools':True,'focus_mode_fills_window':True,'overlay_preserves_page_size':True,'native_fullscreen_roundtrip':True,'toolbar_reduced_motion':True,'settings_persist_after_restart':True}
         (output / 'chrome-result.json').write_text(json.dumps(result,indent=2))
         print('PASS: actual urlbar styles, home focus, favicons, dynamic icons/pins, native address navigation, edge/keyboard reveal, popup visibility, full-window focus mode and persisted settings',flush=True)
     finally:
+        if not (output / 'chrome-result.json').exists() and browser.session:
+            try:
+                state=chrome("return {root:r.outerHTML.slice(0,2000),active:d.activeElement?.id,bar:d.getElementById('urlbar').outerHTML.slice(0,500),panels:[...d.querySelectorAll('panel,menupopup')].filter(p=>p.state!=='closed').map(p=>[p.id,p.state])};")
+                (output / 'chrome-failure-state.json').write_text(json.dumps(state,indent=2))
+            except Exception:
+                pass
         browser.cleanup()
         browser.instance = None
         server.shutdown()

@@ -50,6 +50,9 @@ def package(runtime, output, archive, platform):
     for file in source.rglob("*"):
         if file.is_file() and file.suffix != ".mjs":
             browser[f"chrome/browser/content/browser/night/{file.relative_to(source).as_posix()}"] = file.read_bytes()
+    license_directory = output / "licenses"
+    shutil.copytree(ROOT / "licenses", license_directory)
+    browser["chrome/browser/content/browser/night/material-license.txt"] = (ROOT / "licenses/Material-Symbols-Apache-2.0.txt").read_bytes()
     preferences = "chrome/browser/content/browser/preferences/"
     browser[preferences + "advanced.xhtml"] = browser[preferences + "preferences.xhtml"]
     replace_once(browser, preferences + "advanced.xhtml", "</head>", '<link rel="stylesheet" href="chrome://browser/content/night/advanced.css" /></head>')
@@ -73,6 +76,7 @@ def package(runtime, output, archive, platform):
         if newtab + name not in browser:
             raise ValueError("Firefox new-tab integration point changed")
         browser[newtab + name] = (source / "start.html").read_bytes()
+    browser[newtab + "night-theme.css"] = (source / "theme.css").read_bytes()
     browser[newtab + "night-start.css"] = (source / "start.css").read_bytes()
     browser[newtab + "night-start.js"] = (source / "start.js").read_bytes()
     browser[newtab + "night-newtab.svg"] = (source / "icons/newtab.svg").read_bytes()
@@ -136,7 +140,7 @@ def package(runtime, output, archive, platform):
         "source": f"https://github.com/1atex/night-browser/tree/{revision}",
     }, indent=2))
     (output / "README.txt").write_text(
-        "Night Browser 0.6.0 Preview\n\n"
+        "Night Browser 0.7.0 Preview\n\n"
         "Распакуй всю папку в доступное для записи место и запусти Night.exe.\n"
         "Профиль хранится в папке profile рядом с Night.exe.\n"
         "Боковая панель: рабочие области, закреплённые вкладки, поиск.\n"

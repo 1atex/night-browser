@@ -1,11 +1,11 @@
 :root[night-browser] #nav-bar {
-  --toolbarbutton-inner-padding: 8px;
-  --toolbarbutton-border-radius: 9px;
+  --toolbarbutton-inner-padding: 9px;
+  --toolbarbutton-border-radius: 999px;
   --toolbarbutton-hover-background: #c3ccd910;
   --toolbarbutton-active-background: #c3ccd91c;
-  --toolbarbutton-icon-fill: #b6becd;
+  --toolbarbutton-icon-fill: #ffffffa6;
   --toolbarbutton-icon-fill-attention: #d5e2f5;
-  padding: 7px 10px;
+  padding: 6px 10px;
   min-height: 48px;
 }
 :root[night-browser]:not([customizing]) #nav-bar-customization-target > toolbarspring {
@@ -18,7 +18,7 @@
   padding-inline: 1px;
 }
 :root[night-browser] #nav-bar .toolbarbutton-1 > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
-  border-radius: 9px;
+  border-radius: var(--night-pill);
 }
 :root[night-browser] #nav-bar .toolbarbutton-1:not([disabled]):is(:hover, [open], [checked]) > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
   background-color: #c3ccd914 !important;
@@ -47,21 +47,21 @@
   height: 16px;
   min-height: 16px;
   padding: 8px;
-  border-radius: 9px;
+  border-radius: var(--night-pill);
   background-size: 16px;
 }
 :root[night-browser] #night-sidebar-toggle:hover .toolbarbutton-text {
   background-color: #c3ccd910;
 }
 :root[night-browser] #urlbar {
-  --urlbar-background-color: color-mix(in srgb, var(--night-background), white 4%);
-  --urlbar-background-color-focus: var(--night-surface);
-  --urlbar-border-radius: 11px;
-  --urlbar-background-border-radius: 11px;
-  --urlbar-background-border-top-radius-open: 11px;
-  --urlbar-background-border: 1px solid #ffffff0e;
-  --urlbar-background-border-focused: 1px solid #c3ccd92b;
-  --urlbar-background-border-open: 1px solid #c3ccd92b;
+  --urlbar-background-color: var(--night-field);
+  --urlbar-background-color-focus: var(--night-panel);
+  --urlbar-border-radius: 999px;
+  --urlbar-background-border-radius: 999px;
+  --urlbar-background-border-top-radius-open: 999px;
+  --urlbar-background-border: 1px solid transparent;
+  --urlbar-background-border-focused: 1px solid #ffffff26;
+  --urlbar-background-border-open: 1px solid #ffffff26;
   --urlbar-background-outline-focused: none;
   --urlbar-input-container-outline-open: none;
   --urlbar-input-container-outline-open-focused: none;
@@ -75,8 +75,8 @@
   --urlbar-box-background-color-focus: #c3ccd90c;
   --urlbar-box-background-color-hover: #c3ccd914;
   --urlbar-box-background-color-active: #c3ccd922;
-  --urlbarview-background-color-selected: #c3ccd910;
-  --urlbarview-background-color-hover: #c3ccd90a;
+  --urlbarview-background-color-selected: var(--night-selected);
+  --urlbarview-background-color-hover: var(--night-hover);
   --urlbarview-text-color-selected: #f0f1f5;
   --urlbarview-text-color-hover: #e0e3eb;
   --urlbarview-text-color-secondary: #a3adbf;
@@ -86,13 +86,13 @@
   --urlbarview-row-padding-block: 8px;
   --urlbarview-row-padding-inline: 10px;
   --urlbarview-row-gutter: 2px;
-  --urlbarview-row-border-radius: 9px;
+  --urlbarview-row-border-radius: var(--night-pill);
   --urlbarview-results-padding: 8px;
-  font: 12px "Segoe UI", system-ui, sans-serif;
+  font: 13px var(--night-font);
 }
 :root[night-browser] #urlbar .urlbar-background {
   outline: none !important;
-  border-radius: 11px !important;
+  border-radius: var(--night-pill) !important;
   clip-path: none !important;
   inset: 0 !important;
   box-shadow: none !important;
@@ -130,8 +130,8 @@
   padding: 5px;
   width: auto;
   border: 1px solid #ffffff15;
-  border-radius: 13px;
-  background: var(--night-surface);
+  border-radius: 12px;
+  background: var(--night-panel);
   box-shadow: 0 14px 36px #0005;
   overflow-clip-margin: 0;
 }
@@ -145,7 +145,7 @@
   border-top: 0;
 }
 :root[night-browser] #urlbar .urlbarView-row {
-  border-radius: 9px;
+  border-radius: var(--night-pill);
 }
 :root[night-browser] #urlbar .urlbarView-title {
   font-weight: 400;
@@ -163,10 +163,10 @@
   --panel-shadow: 0 16px 48px #0006;
   --arrowpanel-menuitem-border-radius: 8px;
   --arrowpanel-menuitem-padding: 9px;
-  font: 12px "Segoe UI", system-ui, sans-serif;
+  font: 13px var(--night-font);
 }
 :root[night-browser] #unified-extensions-panel .unified-extensions-item {
-  border-radius: 9px;
+  border-radius: var(--night-pill);
   margin-block: 3px;
 }
 :root[night-browser] #unified-extensions-panel .unified-extensions-item-name {
@@ -246,7 +246,8 @@
   opacity: 1;
   pointer-events: auto;
 }
-:root[night-toolbar-popup] #navigator-toolbox {
+:root[night-toolbar-popup] #navigator-toolbox,
+:root[night-browser] #navigator-toolbox:has(#urlbar[popover-open]) {
   transition: none !important;
 }
 :root[night-toolbar-auto]:not([night-motion]) #navigator-toolbox {
@@ -305,6 +306,25 @@
 }
 @media (prefers-reduced-motion: no-preference) {
   :root[night-motion][night-toolbar-auto] #navigator-toolbox {
-    transition: transform 170ms cubic-bezier(.2,.7,.2,1), opacity 130ms ease;
+    transition: transform 170ms var(--night-spring), opacity 130ms ease;
   }
 }
+
+:root[night-browser] #urlbar-container { min-height: 42px; }
+:root[night-browser] #urlbar { --urlbar-height: 38px; }
+:root[night-browser] #urlbar[focused] .urlbar-background { box-shadow: var(--night-shadow) !important; }
+:root[night-browser] #urlbar .urlbar-input-container { padding-inline: 10px; }
+:root[night-browser] #urlbar .searchmode-switcher { --button-icon-fill: var(--night-secondary); }
+:root[night-browser] #urlbar:not([focused]):not([searchmode]) .searchmode-switcher { display: none; }
+:root[night-browser] #urlbar[focused] #night-address-icon { display: none; }
+#night-address-icon { width: 16px; height: 16px; flex-shrink: 0; margin-inline: 2px 8px; object-fit: contain; }
+:root[night-browser] #urlbar .urlbar-go-button { list-style-image: url("chrome://browser/content/night/icons/forward.svg"); }
+:root[night-browser] #identity-box[pageproxystate="valid"].chromeUI #identity-icon-label { display: none; }
+:root[night-browser] #night-sidebar-toggle .toolbarbutton-text {
+  display: flex;
+  font-size: 0;
+  background: url("chrome://browser/content/night/icons/sidebar.svg") center/18px no-repeat;
+}
+:root[night-browser] #night-sidebar-toggle .toolbarbutton-icon { display: none; }
+:root[night-browser] #identity-box.chromeUI > #identity-icon-box,
+:root[night-browser] #trust-icon-container.chromeUI { display: none; }

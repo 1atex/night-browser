@@ -1,0 +1,48 @@
+:root[night-browser] :is(panel, menupopup) {
+  --panel-background: var(--night-panel);
+  --panel-color: var(--night-text);
+  --panel-border-color: #ffffff1f;
+  --panel-border-radius: 12px;
+  --panel-shadow: var(--night-shadow);
+  --arrowpanel-background: var(--night-panel);
+  --arrowpanel-color: var(--night-text);
+  --arrowpanel-border-color: #ffffff1f;
+  --arrowpanel-menuitem-border-radius: 8px;
+  --arrowpanel-menuitem-padding: 9px;
+  --arrowpanel-dimmed: var(--night-hover);
+  --arrowpanel-dimmed-further: var(--night-selected);
+  --button-border-radius: 999px;
+  --button-background-color: var(--night-field);
+  --button-background-color-hover: var(--night-hover);
+  --button-background-color-active: var(--night-selected);
+  --button-background-color-primary: var(--night-accent);
+  --button-background-color-primary-hover: #e2e6ed;
+  --button-text-color-primary: #17171a;
+  --background-color-information: #ffffff0d;
+  --background-color-success: #ffffff0d;
+  --background-color-warning: #d9b4771c;
+  font: 13px var(--night-font);
+}
+:root[night-browser] :is(panel, menupopup) :is(button, toolbarbutton) { font-family: var(--night-font); }
+:root[night-browser] :is(#downloadsPanel, #unified-extensions-panel) { --panel-padding: 8px; }
+:root[night-browser] .unified-extensions-item { border-radius: 8px; margin-block: 2px; }
+:root[night-browser] .unified-extensions-item-name { font-size: 13px; font-weight: 600; }
+:root[night-browser] .unified-extensions-item-message { font-size: 12px; color: var(--night-secondary); }
+:root[night-browser] menupopup :is(menuitem, menu) { border-radius: 8px; padding-block: 7px; }
+:root[night-browser] menupopup :is(menuitem, menu)[_moz-menuactive="true"] { background: color-mix(in srgb, var(--night-accent) 28%, transparent); color: white; }
+:root[night-browser] {
+  --trustpanel-graphic-bg: #ffffff0d;
+  --trustpanel-highlight-bg: #ffffff0d;
+  --trustpanel-inner-border: 1px solid var(--night-line);
+}
+:root[night-browser] #trustpanel-popup[tracking-protection="enabled"] {
+  --trustpanel-image-legacy: url("chrome://browser/content/night/icons/shield.svg");
+  --trustpanel-image-nova: url("chrome://browser/content/night/icons/shield.svg");
+}
+:root[night-browser] #trustpanel-graphic-section { border-radius: 12px; }
+:root[night-browser] #trustpanel-graphic { opacity: .8; }
+:root[night-browser] :is(#trustpanel-popup, #identity-popup, #permission-popup) { --panel-padding: 8px; }
+:root[night-browser] .searchmode-switcher-panel-list { font: 13px var(--night-font); background: var(--night-panel); color: var(--night-text); }
+:root[night-browser] #star-button { list-style-image: url("chrome://browser/content/night/icons/bookmark.svg"); }
+:root[night-browser] #star-button[starred] { fill: var(--night-accent); }
+:root[night-browser] #tracking-protection-icon { list-style-image: url("chrome://browser/content/night/icons/shield.svg"); }

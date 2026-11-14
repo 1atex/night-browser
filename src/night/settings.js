@@ -136,6 +136,7 @@ window.addEventListener(
         "graphite",
       );
       for (const [key, label] of [
+        ["night", "Чёрная"],
         ["graphite", "Графит"],
         ["midnight", "Полночь"],
         ["mist", "Туман"],
@@ -165,7 +166,9 @@ window.addEventListener(
           element("span", label),
           element(
             "small",
-            key === "graphite"
+            key === "night"
+              ? "Глубокий чёрный"
+              : key === "graphite"
               ? "Нейтральный серый"
               : key === "midnight"
                 ? "Холоднее и глубже"
@@ -666,7 +669,7 @@ window.addEventListener(
           height: "72",
         }),
         element("h2", "Night Browser"),
-        element("p", "0.6.0 · Preview"),
+        element("p", "0.7.0 · Preview"),
       );
       info.append(identity);
       row(
@@ -692,6 +695,8 @@ window.addEventListener(
         ),
       );
       const credits = card("Открытые технологии");
+      row(credits, "Material Symbols", "Значки Google, Apache License 2.0.",
+        button("Лицензия", () => browserWindow.openTrustedLinkIn("chrome://browser/content/night/material-license.txt", "tab")));
       row(
         credits,
         "Firefox / Gecko 160",

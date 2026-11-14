@@ -7,8 +7,8 @@
 }
 #night-main-menu {
   --panel-padding: 0;
-  --panel-border-radius: 16px;
-  --panel-background: var(--night-surface);
+  --panel-border-radius: 12px;
+  --panel-background: var(--night-panel);
   --panel-border-color: #ffffff17;
   --panel-shadow: 0 16px 48px #0006;
 }
@@ -18,8 +18,8 @@
   overflow-y: auto;
   scrollbar-width: thin;
   padding: 8px;
-  color: #e0e3eb;
-  font: 12px "Segoe UI", system-ui, sans-serif;
+  color: var(--night-text);
+  font: 13px var(--night-font);
 }
 .night-menu-body * {
   box-sizing: border-box;
@@ -29,7 +29,7 @@
   align-items: center;
   gap: 11px;
   width: 100%;
-  min-height: 33px;
+  min-height: 36px;
   padding: 7px 10px;
   background: transparent;
   border: 1px solid transparent;
@@ -40,7 +40,7 @@
   cursor: pointer;
 }
 .night-menu-body button:hover {
-  background: #c3ccd910;
+  background: color-mix(in srgb, var(--night-accent) 28%, transparent);
 }
 .night-menu-body button:active {
   background: #c3ccd91c;
@@ -56,14 +56,14 @@
   flex: 0 0 16px;
   background: currentColor;
   mask: var(--menu-icon) center/contain no-repeat;
-  opacity: 0.65;
+  opacity: .75;
 }
 .night-menu-label {
   flex: 1;
   white-space: nowrap;
 }
 .night-menu-body kbd {
-  color: #969ca9;
+  color: var(--night-muted);
   font: 10px "Segoe UI", system-ui, sans-serif;
 }
 .night-menu-windows {
@@ -72,10 +72,11 @@
   padding: 2px 2px 8px;
 }
 .night-menu-windows button {
-  background: #c3ccd907;
-  border-color: #ffffff09;
+  background: var(--night-field);
+  border-color: transparent;
   gap: 8px;
   padding: 10px;
+  border-radius: var(--night-pill);
 }
 .night-menu-group {
   padding: 5px 0;
@@ -97,7 +98,7 @@
   min-height: 29px;
   justify-content: center;
   padding: 6px;
-  background: #c3ccd907;
+  background: var(--night-field);
 }
 #night-menu-zoom-reset {
   width: 54px;

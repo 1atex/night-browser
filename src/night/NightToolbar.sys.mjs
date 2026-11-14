@@ -1,4 +1,5 @@
 import { NightMenu } from "resource:///modules/night/NightMenu.sys.mjs";
+import { NightAddress } from "resource:///modules/night/NightAddress.sys.mjs";
 
 const XHTML = "http://www.w3.org/1999/xhtml";
 
@@ -14,6 +15,7 @@ export class NightToolbar {
   #popups = new Set();
   #focus = false;
   #menu;
+  #address;
 
   constructor(window) {
     this.#window = window;
@@ -46,6 +48,7 @@ export class NightToolbar {
     this.#sizeObserver.observe(this.#toolbox);
     Services.prefs.addObserver("night.ui.", this);
     this.#menu = new NightMenu(window, this);
+    this.#address = new NightAddress(window);
     this.observe();
   }
 
@@ -163,6 +166,7 @@ export class NightToolbar {
 
   destroy() {
     this.#menu.destroy();
+    this.#address.destroy();
     this.#window.clearTimeout(this.#timer);
     this.#observer.disconnect();
     this.#sizeObserver.disconnect();

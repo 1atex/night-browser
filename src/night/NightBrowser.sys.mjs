@@ -6,6 +6,15 @@ import { NightWindows } from "resource:///modules/night/NightWindows.sys.mjs";
 import { NightShell } from "resource:///modules/night/NightShell.sys.mjs";
 import { NightMemory } from "resource:///modules/night/NightMemory.sys.mjs";
 
+ChromeUtils.registerWindowActor("NightStart", {
+  parent: { esModuleURI: "resource:///modules/night/NightStartParent.sys.mjs" },
+  child: {
+    esModuleURI: "resource:///modules/night/NightStartChild.sys.mjs",
+    events: { DOMContentLoaded: {} },
+  },
+  matches: ["about:home", "about:newtab"],
+});
+
 const XHTML = "http://www.w3.org/1999/xhtml";
 
 class NightWindow {
