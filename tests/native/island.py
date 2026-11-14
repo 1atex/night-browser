@@ -16,7 +16,7 @@ WIN = "Services.wm.getMostRecentWindow('navigator:browser')"
 PAYLOAD = b'Night download integration\n' * 262144
 
 class Site(BaseHTTPRequestHandler):
-    delay = 0.12
+    delay = 0.3
     def log_message(self, *_): pass
     def do_GET(self):
         start = int(self.headers.get('Range', 'bytes=0-').split('=')[1].split('-')[0])
@@ -113,8 +113,16 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         assert all(i['name']!='private.zip' for i in state()['state']['items'])
         click_rect(state()['pin'])
         user32.SetCursorPos(10,800)
-        wait_for(lambda: state().get('expanded') is False)
-        click_rect(state()['collapsed'],delay=0.01)
+        settled = {'rect': None, 'since': time.monotonic()}
+        def collapsed_settled():
+            current = state()
+            rect = current.get('collapsed') if current.get('expanded') is False else None
+            if not rect or rect != settled['rect']:
+                settled.update(rect=rect, since=time.monotonic())
+                return False
+            return time.monotonic() - settled['since'] >= 1.2
+        wait_for(collapsed_settled)
+        click_rect(state()['collapsed'],delay=0.15)
         wait_for(lambda: state().get('expanded') and state().get('tab') == 'Downloads')
         time.sleep(0.8)
         click_rect(state()['pin'])
