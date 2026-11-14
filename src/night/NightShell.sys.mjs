@@ -446,8 +446,8 @@ export class NightShell {
         },
       ],
       ["В избранное всех пространств", () => this.workspaces.setPinned(tab, "global")],
-      ["Выгрузить сейчас", async () => {
-        const unloaded = await this.#owner.memory.unload(tab);
+      [this.#isSaved(tab) ? "Отправить в сон" : "Выгрузить сейчас", async () => {
+        const unloaded = await (this.#isSaved(tab) ? this.#owner.memory.deactivate(tab) : this.#owner.memory.unload(tab));
         this.render();
         if (!unloaded) this.#report("Вкладка защищена, уже выгружена или страница не разрешила выгрузку");
       }],
@@ -467,7 +467,6 @@ export class NightShell {
           ]);
       }
     if (this.#isSaved(tab)) {
-      items.push(["Отправить в сон", () => this.#closeTab(tab)]);
       items.push([this.workspaces.folderOf(tab) ? "Удалить из папки" : "Удалить закреплённую вкладку", () => this.#closeTab(tab, true)]);
     } else items.push(["Закрыть", () => this.#closeTab(tab)]);
     this.#showMenu(anchor, items);
