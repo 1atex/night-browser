@@ -198,3 +198,17 @@ The published installer, portable ZIP and Island executable were downloaded and 
 | Portable ZIP | `b38538e601256842ae6a4a6d0d2831b12b5578e35bb5c485e7ac56a10a1b26f5` |
 | Windows setup | `481471dc6ce338f54e9f9ae7208fc8035e662590b9c220b635ddf1236b44c865` |
 | Island EXE | `c96d13087a44fcba8a29d2142d0592de8b02e13f614fa1e7b8d8fd4ceacc5dcb` |
+
+## Published 0.9.1 result
+
+[Browser v0.9.1-preview.2](https://github.com/1atex/night-browser/releases/tag/v0.9.1-preview.2) was built from `0713d60e2febe17d724eadf99727baeb37971f78` in [Windows tag run 43638521985](https://github.com/1atex/night-browser/actions/runs/43638521985). All 53 Node checks, the full native Windows suite and publication passed. The first 0.9.1 tag was cancelled before publication after a native test clicked during the collapse transition. The test now waits for settled geometry and separates a click from hover expansion. The corrected focused run [43638360529](https://github.com/1atex/night-browser/actions/runs/43638360529) and the complete tag run both passed.
+
+The paired [Island v0.3.2-browser-preview.1](https://github.com/1atex/night-island/releases/tag/v0.3.2-browser-preview.1) was built from `55afc0f34a6f3e161f4e9358e1a06a0154991dd2` in [tag run 43638024187](https://github.com/1atex/night-island/actions/runs/43638024187). It includes the requested `7d9bc801af2e41627ad7d15a6d2400bbda150aca` foundation through a history-preserving merge. Formatting, Clippy with warnings denied and 554 Rust tests passed; 119 pre-existing tests remain ignored. Browser workflows load the companion pin from `scripts/preview/island.json` and assert this ancestor before testing.
+
+The cross-app test checks indicator navigation, progress, pause/resume/cancel, in-flight command feedback and duplicate prevention, private exclusion, worker cleanup on disable, reconnect after restart, the connection settings and retry button, completion and reveal. The public Windows binaries were downloaded and checked against SHA-256. ZIP CRC, both manifests and packaged Night source files were checked. The integration settings and native download cards were visually inspected. These checks cover the runner's Windows environment and test profiles; they do not establish engine or real-site rendering speedups.
+
+| File | SHA-256 |
+| --- | --- |
+| night-browser-0.9.1-preview-windows-x64.zip | `b48f399d78bbaa3349f77d77b0586356d6160c564f72e9535fc325bc9f53fc72` |
+| night-browser-0.9.1-preview-windows-x64-setup.exe | `76c0e8cfb9c2014133597879f24c885ea995b06810d68baaf5d9a2b8ac3bf67d` |
+| night-island.exe | `bb798eadeb88890c0bcd83c3c025da8459390944de60a67ea069025d08e9b0c0` |
