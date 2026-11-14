@@ -41,6 +41,7 @@ export const NightIsland = {
   },
 
   setStatus(status) {
+    if (this.status === status) return;
     this.status = status;
     Services.obs.notifyObservers(null, "night-island-status", status);
   },
@@ -179,8 +180,11 @@ export const NightIsland = {
         file.initWithPath(download.target.path);
         file.reveal();
       }
+      if (this.enabled && generation === this.generation && worker === this.worker) {
+        this.track(download);
+        this.snapshot();
+      }
       reply(true);
-      if (this.enabled && generation === this.generation) this.track(download);
     })().catch(() => reply(false));
   },
 
@@ -193,6 +197,16 @@ export const NightIsland = {
       this.worker = null;
     }
     this.port = null;
+  },
+
+  retryNow() {
+    if (!this.enabled || this.ready) return;
+    clearTimeout(this.retry);
+    this.retry = null;
+    this.closeTransport();
+    this.retryDelay = 1000;
+    this.setStatus("connecting");
+    this.connect();
   },
 
   disconnected() {

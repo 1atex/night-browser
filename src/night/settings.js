@@ -710,17 +710,53 @@ window.addEventListener(
     }
     function integrations() {
       const {NightIsland} = ChromeUtils.importESModule("resource:///modules/night/NightIsland.sys.mjs");
-      const section = card("Night Island", "Прогресс загрузок в островке, пауза, продолжение и переход к файлу.");
-      toggle(section, "Показывать загрузки в Island", "Включи Night Browser в настройках интеграций Island. Загрузки из приватных окон не передаются.", "night.island.downloads", false);
-      const state = element("p", "", {class: "card-caption", role: "status"});
-      section.append(state);
+      const supported = Services.appinfo.OS === "WINNT";
+      const section = card("Night Island", "Управляй загрузками, не возвращаясь к окну браузера.");
+      const connection = element("div", "", {class: "island-connection"});
+      const mark = element("img", "", {src: "chrome://browser/content/night/icons/island.svg", alt: ""});
+      const summary = element("div", "", {class: "island-connection-copy"});
+      const state = element("strong", "", {id: "island-status", role: "status", "aria-live": "polite", "aria-atomic": "true"});
+      const hint = element("p", "", {id: "island-hint"});
+      const retry = button("Подключить снова", () => NightIsland.retryNow());
+      retry.id = "island-retry";
+      summary.append(state, hint);
+      connection.append(mark, summary, retry);
+      section.append(connection);
+      toggle(section, "Показывать загрузки в Island", "Прогресс, пауза, продолжение и открытие папки с готовым файлом.", "night.island.downloads", false);
+      section.querySelector('[data-pref="night.island.downloads"]').disabled = !supported;
+      const steps = element("ol", "", {class: "island-setup", id: "island-setup"});
+      const install = element("li");
+      install.append(element("span", "Запусти Island с поддержкой интеграции. "));
+      const releases = element("a", "Скачать совместимую версию", {href: "https://github.com/1atex/night-island/releases", target: "_blank", rel: "noopener"});
+      install.append(releases);
+      steps.append(install, element("li", "В Island открой Настройки → Интеграции и включи «Загрузки Night Browser»."));
+      section.append(steps);
+      const note = element("p", "Передаются только имя файла и состояние загрузки. Ссылки, путь к файлу и загрузки из приватных окон остаются в браузере.", {class: "island-privacy"});
+      section.append(note);
       const update = () => {
-        state.textContent = ({disabled: "Выключено", connecting: "Подключение…", connected: "Подключено", waiting: "Ожидаем Night Island с поддержкой браузера", unavailable: "Не удалось подключиться"})[NightIsland.status];
+        const key = supported ? NightIsland.status : "unsupported";
+        const labels = {
+          disabled: ["Связь выключена", "Включи передачу загрузок, когда Island будет готов."],
+          connecting: ["Подключаемся к Island…", "Загрузки в браузере продолжаются как обычно."],
+          connected: ["Island подключён", "Нажми на индикатор загрузки в островке, чтобы открыть её управление."],
+          waiting: ["Ожидаем Island", "Соединение восстановится автоматически, когда Island будет доступен."],
+          unavailable: ["Не удалось подключиться", "Проверь, что интеграция включена в обоих приложениях."],
+          unsupported: ["Доступно в Windows", "Связь с Island работает в версии браузера для Windows."],
+        };
+        const [title, description] = labels[key] ?? labels.unavailable;
+        state.textContent = title;
+        hint.textContent = description;
+        connection.dataset.state = key;
+        retry.hidden = !["waiting", "unavailable"].includes(key);
+        steps.hidden = !supported || key === "connected";
       };
       update();
       Services.obs.addObserver(update, "night-island-status");
-      let listening = true;
-      const remove = () => { if (listening) { listening = false; Services.obs.removeObserver(update, "night-island-status"); } };
+      const remove = () => {
+        Services.obs.removeObserver(update, "night-island-status");
+        window.removeEventListener("hashchange", remove);
+        window.removeEventListener("unload", remove);
+      };
       window.addEventListener("hashchange", remove, {once: true});
       window.addEventListener("unload", remove, {once: true});
     }

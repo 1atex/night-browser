@@ -1,4 +1,5 @@
 import argparse
+import base64
 import ctypes
 import json
 import os
@@ -45,7 +46,7 @@ def run(binary, app_ini, island, output):
     root = Path(tempfile.mkdtemp(prefix='night-island-integration-'))
     config = root/'NightIsland';config.mkdir()
     (config/'settings.json').write_text(json.dumps({'browser_downloads': True, 'weather': False, 'update_check': False, 'activity_track': False, 'capture_self_hidden': False, 'capture_hidden': False, 'character': 'none', 'game_mode': False}))
-    env = os.environ | {'APPDATA': str(root), 'NI_INSTANCE': root.name, 'NI_DEBUG_TAB': '14', 'NI_BROWSER_TEST_OUTPUT': str(report)}
+    env = os.environ | {'APPDATA': str(root), 'NI_INSTANCE': root.name, 'NI_DEBUG_TAB': 'Downloads', 'NI_BROWSER_TEST_OUTPUT': str(report)}
     server = ThreadingHTTPServer(('127.0.0.1', 0), Site)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     origin = f'http://127.0.0.1:{server.server_port}'
@@ -86,6 +87,13 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         browser.start_session();browser.timeout.script=30
         wait_for(lambda: chrome('return NightIsland.status === "connected";'),timeout=45)
         wait_for(lambda: state()['state']['connected'])
+        browser.set_context('content')
+        browser.navigate('about:preferences#integrations')
+        wait_for(lambda: browser.execute_script("return document.getElementById('island-status')?.textContent === 'Island подключён';"))
+        assert browser.execute_script("return document.getElementById('island-retry').hidden && document.getElementById('island-setup').hidden;")
+        browser.set_context('chrome')
+        browser.set_window_rect(width=1200,height=850)
+        (output/'night-island-settings.png').write_bytes(base64.b64decode(browser.screenshot()))
         browser.execute_async_script(f'''
           const done=arguments[arguments.length-1],w={WIN};
           (async()=>{{const {{Downloads}}=ChromeUtils.importESModule('resource://gre/modules/Downloads.sys.mjs');w.integrationDownloads={{}};
@@ -99,7 +107,17 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         time.sleep(0.7)
         assert all(i['name']!='private.zip' for i in state()['state']['items'])
         snapshot('night-island-active.png')
+        chrome('''w.integrationSend=NightIsland.send;NightIsland.send=function(text){
+          const frame=JSON.parse(text);if(frame.type==='result')w.setTimeout(()=>w.integrationSend.call(this,text),1600);
+          else w.integrationSend.call(this,text);
+        };''')
         command('sample.zip','pause')
+        wait_for(lambda: bool(state()['state'].get('pending')))
+        seen = chrome('return NightIsland.seen.size;')
+        command('sample.zip','pause')
+        assert chrome('return NightIsland.seen.size;') == seen
+        wait_for(lambda: not state()['state'].get('pending'))
+        chrome('NightIsland.send=w.integrationSend;delete w.integrationSend;')
         wait_for(lambda: find('sample.zip','paused'))
         assert chrome('return w.integrationDownloads["sample.zip"].canceled && w.integrationDownloads["sample.zip"].hasPartialData;')
         snapshot('night-island-downloads.png')
@@ -117,7 +135,11 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         assert chrome('return w.integrationDownloads["sample.zip"].canceled && !w.integrationDownloads["sample.zip"].hasPartialData;')
         close_island()
         wait_for(lambda: chrome('return NightIsland.status === "waiting";'))
+        browser.set_context('content')
+        wait_for(lambda: browser.execute_script("return document.getElementById('island-status').textContent === 'Ожидаем Island';"))
+        assert browser.execute_script("return !document.getElementById('island-retry').hidden && !document.getElementById('island-setup').hidden;")
         process=launch()
+        browser.find_element('id','island-retry').click()
         wait_for(lambda: chrome('return NightIsland.status === "connected";'),timeout=40)
         Site.delay=0.002
         chrome('w.integrationDownloads["sample.zip"].start().catch(()=>{});')
@@ -127,7 +149,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         time.sleep(0.5)
         assert not state()['state']['error']
         assert chrome('return w.integrationDownloads["sample.zip"].succeeded;')
-        (output/'island-result.json').write_text(json.dumps({'real_island':True,'versioned_handshake':True,'download_progress':True,'native_pointer_pause_resume_cancel':True,'private_excluded':True,'disable_disconnects':True,'reconnect_after_restart':True,'complete_reveal':True}))
+        (output/'island-result.json').write_text(json.dumps({'real_island':True,'versioned_handshake':True,'download_progress':True,'native_pointer_pause_resume_cancel':True,'private_excluded':True,'disable_disconnects':True,'reconnect_after_restart':True,'complete_reveal':True,'pending_prevents_repeat':True,'connection_settings':True,'manual_reconnect':True}))
         print('PASS: actual Island pipe, native buttons, private exclusion, disconnect/reconnect and download lifecycle')
     finally:
         if not (output/'island-result.json').exists():

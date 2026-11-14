@@ -135,9 +135,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: 1atex/night-island
-          ref: 02e0aa2e5f1c36cf0d98eeac982bd6126a9dcfdc
+          ref: 9e76fd010dd95f28185e7f6babd91f8330884f05
           path: test-island
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.93.0
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: test-island -> target
