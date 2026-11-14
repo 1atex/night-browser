@@ -1,0 +1,64 @@
+name: Island connection check
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install -r tests/native/requirements.txt
+      - name: Download pinned native runtime
+        run: |
+          $pin = Get-Content scripts/preview/runtime.json -Raw | ConvertFrom-Json
+          $installer = Join-Path $env:RUNNER_TEMP "firefox-upstream.exe"
+          Invoke-WebRequest -Uri $pin.windows_x64.url -OutFile $installer
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLower() -ne $pin.windows_x64.sha256) {
+            throw "Upstream checksum mismatch"
+          }
+          7z x -y "-o$env:RUNNER_TEMP\firefox-upstream" $installer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Assemble Night preview
+        run: |
+          python scripts/preview/package.py --runtime "$env:RUNNER_TEMP/firefox-upstream/core" --output dist/Night --archive "$env:RUNNER_TEMP/firefox-upstream.exe" --platform windows_x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          $source = (Resolve-Path scripts/preview/Launcher.cs).Path
+          $importSource = (Resolve-Path scripts/preview/ProfileImport.cs).Path
+          $executable = Join-Path (Resolve-Path dist/Night).Path "Night.exe"
+          $icon = (Resolve-Path src/night/branding/night.ico).Path
+          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll "/win32icon:$icon" "/out:$executable" $source $importSource
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/checkout@v4
+        with:
+          repository: 1atex/night-island
+          ref: 44302f388bb02e78b7980b31f52fca06b891b969
+          path: test-island
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: test-island -> target
+          cache-on-failure: true
+      - name: Build Island integration fixture
+        run: cargo build --manifest-path test-island/Cargo.toml --locked --features demo --bin night-island
+      - name: Test actual Island download controls
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/island.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --island test-island/target/debug/night-island.exe --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: island-connection-tests
+          path: test-artifacts/
+          retention-days: 14

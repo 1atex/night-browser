@@ -135,12 +135,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: 1atex/night-island
-          ref: cf136011cfc30b3969c158ecb15b1acf13b6838a
+          ref: 44302f388bb02e78b7980b31f52fca06b891b969
           path: test-island
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: test-island -> target
+          cache-on-failure: true
       - name: Build Island integration fixture
         run: cargo build --manifest-path test-island/Cargo.toml --locked --features demo --bin night-island
       - name: Test actual Island download controls
