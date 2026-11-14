@@ -102,16 +102,30 @@ export const NightIsland = {
     if (port.isNull()) { this.disconnected(); return; }
     this.native = {ctypes, libc, win32};
     this.port = port;
-    this.worker = new ChromeWorker("chrome://browser/content/night/island-pipe.js");
-    this.worker.onmessage = event => {
+    const worker = new ChromeWorker("chrome://browser/content/night/island-pipe.js");
+    this.worker = worker;
+    let released = false;
+    const release = () => { if (!released) { released = true; libc.CloseHandle(port); } };
+    worker.onmessage = event => {
       const message = event.data;
+      if (message.type === "closed") {
+        release();
+        if (this.worker === worker) {
+          this.worker = null; this.port = null; this.disconnected();
+        }
+        return;
+      }
+      if (this.worker !== worker) return;
       if (message.type === "connected") {
         this.send(JSON.stringify({v: 1, type: "hello", capabilities: ["downloads"]}));
       } else if (message.type === "frame") {
         try { this.receive(JSON.parse(message.text)); } catch { this.disconnected(); }
-      } else if (message.type === "closed") this.disconnected();
+      }
     };
-    this.worker.onerror = event => { event.preventDefault(); this.disconnected(); };
+    worker.onerror = event => {
+      event.preventDefault(); worker.terminate(); release();
+      if (this.worker === worker) { this.worker = null; this.port = null; this.disconnected(); }
+    };
     this.post({type: "init", port: String(ctypes.cast(port, ctypes.uintptr_t).value)});
     this.connectionTimer = setTimeout(() => { if (!this.ready) this.disconnected(); }, 5000);
   },
@@ -173,8 +187,6 @@ export const NightIsland = {
     this.connectionTimer = null;
     this.ready = false;
     if (this.worker) {
-      this.worker.onmessage = null;
-      this.worker.onerror = null;
       this.post({type: "close"});
       this.worker = null;
     }

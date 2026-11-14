@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { downloadItem, allowedActions, validCommand, validSnapshot } from "../../src/night/IslandDownloads.mjs";
 
-const item = () => ({source: {isPrivate: false, url: "https://private.example/secret"}, target: {path: "C:\\Users\\Name\\Downloads\\archive.zip"}, stopped: false, currentBytes: 12, hasProgress: true, totalBytes: 20});
+const item = () => ({source: {isPrivate: false, url: "https://private.example/secret"}, tryToKeepPartialData: true, target: {partFilePath: "archive.zip.part", path: "C:\\Users\\Name\\Downloads\\archive.zip"}, stopped: false, currentBytes: 12, hasProgress: true, totalBytes: 20});
 
 test("download metadata excludes source URLs and paths", () => {
   const result = downloadItem("id", item());
@@ -16,6 +16,11 @@ test("download commands follow terminal and paused states", () => {
   assert.deepEqual(allowedActions({...item(), stopped: true, canceled: true, hasPartialData: false}), []);
   assert.deepEqual(allowedActions({...item(), stopped: true, succeeded: true}), ["reveal"]);
   assert.deepEqual(allowedActions({...item(), stopped: true, error: {}}), ["resume", "cancel"]);
+});
+
+test("non-resumable downloads cannot be offered a destructive pause", () => {
+  assert.deepEqual(allowedActions({...item(), tryToKeepPartialData: false}), ["cancel"]);
+  assert.deepEqual(allowedActions({...item(), target: {path: "archive.zip"}}), ["cancel"]);
 });
 
 test("commands are versioned and bounded", () => {

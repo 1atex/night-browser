@@ -72,6 +72,16 @@ def run(binary, app_ini, output):
         browser.timeout.script = 30
         wait_for(lambda: chrome('return !!s?.toolbar;'))
         assert chrome("return !d.getElementById('night-autohide-button').hasAttribute('checked');")
+        for url, label in [('chrome://browser/content/night/welcome.xhtml', 'Первый запуск'), ('about:preferences', 'Настройки')]:
+            browser.set_context('content')
+            browser.navigate(url)
+            wait_for(lambda: chrome("return d.getElementById('night-address-page').textContent===arguments[0];", label))
+            chrome("w.gBrowser.selectedBrowser.focus();")
+            wait_for(lambda: chrome("return w.getComputedStyle(d.getElementById('night-address-page')).display!=='none';"))
+            keys(Keys.CONTROL, 'l')
+            wait_for(lambda: chrome("return d.activeElement.id==='urlbar-input'&&w.getComputedStyle(d.getElementById('night-address-page')).display==='none';"))
+            assert chrome("return w.gURLBar.value;") == url
+            keys(Keys.ESCAPE)
         browser.set_context('content')
         browser.navigate('about:newtab')
         wait_for(lambda: browser.execute_script("return !!document.getElementById('query');"))
@@ -214,7 +224,7 @@ def run(binary, app_ini, output):
         browser.restart(clean=False)
         wait_for(lambda: chrome("return r.hasAttribute('night-toolbar-auto');"))
         chrome("Services.prefs.setBoolPref('night.ui.toolbar-autohide',false);")
-        result = {'home_focus_outline':'none','internal_and_site_favicons':True,'favicon_updates_and_pins':True,'native_address_navigation':True,'sidebar_address_expands':True,'address_favicon_tracks_site':True,'keyboard_and_edge_reveal':True,'popup_keeps_toolbar_visible':True,'menu_keyboard_zoom_find_devtools':True,'focus_mode_fills_window':True,'overlay_preserves_page_size':True,'native_fullscreen_roundtrip':True,'toolbar_reduced_motion':True,'settings_persist_after_restart':True}
+        result = {'internal_address_label_and_editing':True,'home_focus_outline':'none','internal_and_site_favicons':True,'favicon_updates_and_pins':True,'native_address_navigation':True,'sidebar_address_expands':True,'address_favicon_tracks_site':True,'keyboard_and_edge_reveal':True,'popup_keeps_toolbar_visible':True,'menu_keyboard_zoom_find_devtools':True,'focus_mode_fills_window':True,'overlay_preserves_page_size':True,'native_fullscreen_roundtrip':True,'toolbar_reduced_motion':True,'settings_persist_after_restart':True}
         (output / 'chrome-result.json').write_text(json.dumps(result,indent=2))
         print('PASS: actual urlbar styles, home focus, favicons, dynamic icons/pins, native address navigation, edge/keyboard reveal, popup visibility, full-window focus mode and persisted settings',flush=True)
     finally:

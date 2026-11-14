@@ -15,7 +15,7 @@ WIN = "Services.wm.getMostRecentWindow('navigator:browser')"
 PAYLOAD = b'Night download integration\n' * 262144
 
 class Site(BaseHTTPRequestHandler):
-    delay = 0.04
+    delay = 0.12
     def log_message(self, *_): pass
     def do_GET(self):
         start = int(self.headers.get('Range', 'bytes=0-').split('=')[1].split('-')[0])
@@ -91,13 +91,14 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
           (async()=>{{const {{Downloads}}=ChromeUtils.importESModule('resource://gre/modules/Downloads.sys.mjs');w.integrationDownloads={{}};
           for(const [name,isPrivate] of [['sample.zip',false],['private.zip',true]]){{
             const folder=PathUtils.join(PathUtils.tempDir,'night-'+Date.now());await IOUtils.makeDirectory(folder);
-            const download=await Downloads.createDownload({{source:{{url:{json.dumps(origin+'/download')},isPrivate}},target:PathUtils.join(folder,name)}});
+            const download=await Downloads.createDownload({{source:{{url:{json.dumps(origin+'/download')},isPrivate}},target:{{path:PathUtils.join(folder,name),partFilePath:PathUtils.join(folder,name+'.part')}},tryToKeepPartialData:true}});
             w.integrationDownloads[name]=download;await (await Downloads.getList(isPrivate?Downloads.PRIVATE:Downloads.PUBLIC)).add(download);download.start().catch(()=>{{}});
           }}return true;}})().then(done,e=>done({{error:String(e)}}));
         ''')
         wait_for(lambda: find('sample.zip','active'))
         time.sleep(0.7)
         assert all(i['name']!='private.zip' for i in state()['state']['items'])
+        snapshot('night-island-active.png')
         command('sample.zip','pause')
         wait_for(lambda: find('sample.zip','paused'))
         assert chrome('return w.integrationDownloads["sample.zip"].canceled && w.integrationDownloads["sample.zip"].hasPartialData;')
@@ -128,7 +129,15 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         (output/'island-result.json').write_text(json.dumps({'real_island':True,'versioned_handshake':True,'download_progress':True,'native_pointer_pause_resume_cancel':True,'private_excluded':True,'disable_disconnects':True,'reconnect_after_restart':True,'complete_reveal':True}))
         print('PASS: actual Island pipe, native buttons, private exclusion, disconnect/reconnect and download lifecycle')
     finally:
+        if not (output/'island-result.json').exists():
+            (output/'island-failure-state.json').write_text(json.dumps(state()))
+            try:
+                snapshot('night-island-failure.png')
+                details=chrome('return {status:NightIsland.status,ready:NightIsland.ready,items:[...NightIsland.entries].map(([id,d])=>({id,stopped:d.stopped,canceled:d.canceled,partial:d.hasPartialData,bytes:d.currentBytes,keep:d.tryToKeepPartialData})),seen:[...NightIsland.seen]};')
+                (output/'island-failure-browser.json').write_text(json.dumps(details))
+            except Exception:pass
         if browser.session:browser.quit()
+        browser.cleanup();browser.instance=None
         if process and process.poll() is None:
             try:close_island()
             except Exception:process.terminate();process.wait(timeout=10)

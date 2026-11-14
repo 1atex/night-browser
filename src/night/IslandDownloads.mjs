@@ -13,7 +13,7 @@ export function downloadState(download) {
 export function allowedActions(download) {
   const state = downloadState(download);
   if (state === "complete") return ["reveal"];
-  if (state === "active") return ["pause", "cancel"];
+  if (state === "active") return download.tryToKeepPartialData && download.target?.partFilePath ? ["pause", "cancel"] : ["cancel"];
   if (state === "paused") return ["resume", "cancel"];
   if (state === "failed") return ["resume", "cancel"];
   return [];

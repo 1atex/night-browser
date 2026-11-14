@@ -54,7 +54,6 @@ function shutdown() {
     if (writePending) libc.GetOverlappedResult(pipe, writeOverlapped.address(), count.address(), true);
     libc.CloseHandle(pipe);
   }
-  if (port && !port.isNull()) libc.CloseHandle(port);
   self.postMessage({type: "closed"});
   self.close();
 }
@@ -78,7 +77,7 @@ function loop() {
     const count = DWORD(), key = win32.ULONG_PTR(), overlapped = win32.OVERLAPPED.ptr();
     const ok = libc.GetQueuedCompletionStatus(port, count.address(), key.address(), overlapped.address(), wakeCount > 0 ? 0 : 0xffffffff);
     if (!ok && ctypes.winLastError === 258) { setTimeout(loop, 0); return; }
-    if (Number(key.value) === 1) wakeCount++;
+    if (parseInt(key.value.toString(), 10) === 1) wakeCount++;
     else if (!ok || overlapped.isNull()) return shutdown();
     else if (String(overlapped) === String(readOverlapped.address())) {
       readPending = false;
