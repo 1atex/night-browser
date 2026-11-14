@@ -57,6 +57,7 @@ def package(runtime, output, archive, platform):
     browser[preferences + "advanced.xhtml"] = browser[preferences + "preferences.xhtml"]
     replace_once(browser, preferences + "advanced.xhtml", "</head>", '<link rel="stylesheet" href="chrome://browser/content/night/advanced.css" /></head>')
     browser[preferences + "preferences.xhtml"] = (source / "settings.xhtml").read_bytes()
+    replace_once(browser, "chrome/browser/content/browser/browser.xhtml", 'id="main-window"', 'id="main-window" night-browser="true" night-starting="true"')
     replace_once(browser, "chrome/browser/content/browser/browser.xhtml", "</head>",
                  '<link rel="stylesheet" href="chrome://browser/content/night/night.css" />\n'
                  '<script src="chrome://browser/content/night/bootstrap.js" defer="defer"></script>\n</head>')
@@ -183,15 +184,16 @@ def package(runtime, output, archive, platform):
         "source": f"https://github.com/1atex/night-browser/tree/{revision}",
     }, indent=2))
     (output / "README.txt").write_text(
-        "Night Browser 0.7.0 Preview\n\n"
+        "Night Browser 0.8.0 Preview\n\n"
         "Распакуй всю папку в доступное для записи место и запусти Night.exe.\n"
-        "Профиль хранится в папке profile рядом с Night.exe.\n"
+        "В portable-версии профиль хранится в папке profile рядом с Night.exe.\n"
+        "После установки через setup профиль находится в %LOCALAPPDATA%\\NightBrowser\\profile.\n"
         "Боковая панель: рабочие области, закреплённые вкладки, поиск.\n"
         "Правый клик по вкладке: закрепление, перенос в область, исключение из выгрузки.\n"
         "Alt+P: найти вкладку. Alt+B: скрыть панель. Alt+S: разделить экран.\n"
         "Кнопки внизу панели: split view, запросы, память, настройки.\n"
         "Перехват включается вручную для выбранной вкладки.\n\n"
-        "Это тестовая portable-версия. Автоматическое обновление отключено.\n"
+        "Это тестовая версия. Автоматическое обновление отключено.\n"
         "Нативное ядро: Mozilla Firefox / Gecko 160.0.\n"
         "Оболочка, рабочие области, управление памятью и сетевые инструменты: Night.\n"
         "Windows-приложение имеет ресурсы Night и пока не подписано.\n"

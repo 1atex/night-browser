@@ -50,7 +50,7 @@ def samples(pid):
 
 
 def measure(binary, app_ini, url, output, label):
-    browser = Marionette(bin=binary, headless=False, app_args=["-app", app_ini] if app_ini else [], gecko_log=str(output / f"memory-{label}-gecko.log"), startup_timeout=60)
+    browser = Marionette(prefs={"night.onboarding.completed": True}, bin=binary, headless=False, app_args=["-app", app_ini] if app_ini else [], gecko_log=str(output / f"memory-{label}-gecko.log"), startup_timeout=60)
     try:
         browser.start_session()
         browser.timeout.script = 30

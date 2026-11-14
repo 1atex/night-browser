@@ -18,9 +18,9 @@ def block(key, value=b'', children=(), text=False):
 
 
 def version_info():
-    values = {'CompanyName': 'Night', 'FileDescription': 'Night Browser', 'FileVersion': '0.7.0.0',
+    values = {'CompanyName': 'Night', 'FileDescription': 'Night Browser', 'FileVersion': '0.8.0.0',
               'InternalName': 'NightBrowser', 'OriginalFilename': 'NightBrowser.exe',
-              'ProductName': 'Night Browser', 'ProductVersion': '0.7.0',
+              'ProductName': 'Night Browser', 'ProductVersion': '0.8.0',
               'LegalCopyright': 'Night contributors; Mozilla contributors. MPL-2.0.'}
     strings = [block(key, (value + '\0').encode('utf-16le'), text=True) for key, value in values.items()]
     table = block('040904B0', children=strings, text=True)

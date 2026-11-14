@@ -41,10 +41,24 @@ $runtimeExe = Join-Path $testRoot "runtime/NightBrowser.exe"
 $profilePath = Join-Path $testRoot "profile"
 $runtime = Join-Path $testRoot "runtime"
 $browser = $null
+$script:startupFrames = 0
 function Wait-Night {
   $deadline = [DateTime]::UtcNow.AddSeconds(50)
   do {
     $process = Get-Process NightBrowser -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $runtimeExe -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+    if ($process -and $script:startupFrames -lt 12) {
+      $frameRect = New-Object NightWindowInfo+Rect
+      [NightWindowInfo]::GetWindowRect($process.MainWindowHandle,[ref]$frameRect) | Out-Null
+      if ($frameRect.right -gt $frameRect.left -and $frameRect.bottom -gt $frameRect.top) {
+        $frame = New-Object System.Drawing.Bitmap(($frameRect.right-$frameRect.left),($frameRect.bottom-$frameRect.top))
+        $drawing = [System.Drawing.Graphics]::FromImage($frame)
+        try {
+          $drawing.CopyFromScreen($frameRect.left,$frameRect.top,0,0,$frame.Size)
+          $frame.Save((Join-Path $outputPath ("startup-frame-{0:D2}.png" -f $script:startupFrames)),[System.Drawing.Imaging.ImageFormat]::Png)
+          $script:startupFrames++
+        } finally { $drawing.Dispose(); $frame.Dispose() }
+      }
+    }
     if ($process -and [NightWindowInfo]::Property($process.MainWindowHandle,5).StartsWith("Night.Browser.")) { return $process }
     Start-Sleep -Milliseconds 200
   } while ([DateTime]::UtcNow -lt $deadline)
@@ -61,8 +75,12 @@ try {
   if ($version.ProductName -ne "Night Browser" -or $version.FileDescription -ne "Night Browser" -or $version.OriginalFilename -ne "NightBrowser.exe") { throw "Native executable has wrong identity: $($version | Out-String)" }
   if (Test-Path (Join-Path $runtime "firefox.exe")) { throw "Stock executable remains in the package" }
   if ((Get-AuthenticodeSignature $runtimeExe).Status -ne "NotSigned") { throw "Modified runtime carries an invalid upstream signature" }
+  $skeletonKey = "HKCU:\Software\Mozilla\Firefox\PreXULSkeletonUISettings"
+  New-Item -Path $skeletonKey -Force | Out-Null
+  New-ItemProperty -Path $skeletonKey -Name "$runtimeExe|Enabled" -Value 1 -PropertyType DWord -Force | Out-Null
   Start-Process $launcher
   $browser = Wait-Night
+  if ((Get-ItemPropertyValue -Path $skeletonKey -Name "$runtimeExe|Enabled") -ne 0) { throw "Night launcher did not disable its cached native skeleton" }
   Start-Sleep -Seconds 10
   $browser.Refresh()
   $window = $browser.MainWindowHandle

@@ -21,7 +21,7 @@
 #night-window-controls[data-autohide]:not(:hover):not(:focus-within) > .titlebar-buttonbox-container { opacity: 0; transform: translateY(-5px); pointer-events: none; }
 #night-window-controls[data-autohide]:not(:hover):not(:focus-within) { height: 10px; padding-bottom: 0; }
 :root:is([inFullscreen], [inDOMFullscreen], [customizing], [night-starting]) #night-window-controls { display: none; }
-@media (hover: none) { #night-window-controls[data-autohide] > .titlebar-buttonbox-container { opacity: 1 !important; transform: none !important; pointer-events: auto !important; } }
+@media (hover: none) { #night-window-controls[data-autohide] { height: auto; padding-bottom: 7px; } #night-window-controls[data-autohide] > .titlebar-buttonbox-container { opacity: 1 !important; transform: none !important; pointer-events: auto !important; } }
 @media (prefers-reduced-motion: no-preference) {
   :root[night-motion] #night-window-controls > .titlebar-buttonbox-container { transition: opacity 120ms ease, transform 180ms var(--night-ease); }
 }

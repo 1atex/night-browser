@@ -19,7 +19,7 @@ def run(binary, app_ini, output):
     server = ThreadingHTTPServer(("127.0.0.1", 0), EchoHandler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{server.server_port}"
-    browser = Marionette(bin=binary, headless=True, app_args=["-app", app_ini], gecko_log=str(output / "product-gecko.log"), startup_timeout=60)
+    browser = Marionette(prefs={"night.onboarding.completed": True}, bin=binary, headless=True, app_args=["-app", app_ini], gecko_log=str(output / "product-gecko.log"), startup_timeout=60)
 
     def click_toolbar(element_id):
         rect = browser.execute_script(f"return {WIN}.document.getElementById(arguments[0]).getBoundingClientRect().toJSON();", script_args=[element_id])

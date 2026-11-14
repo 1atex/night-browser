@@ -34,7 +34,7 @@ def run(binary, app_ini, output):
     server = ThreadingHTTPServer(('127.0.0.1', 0), Site)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     origin = f'http://127.0.0.1:{server.server_port}'
-    browser = Marionette(bin=binary, headless=True, app_args=['-app', app_ini], gecko_log=str(output / 'chrome-gecko.log'))
+    browser = Marionette(prefs={"night.onboarding.completed": True}, bin=binary, headless=True, app_args=['-app', app_ini], gecko_log=str(output / 'chrome-gecko.log'))
 
     def chrome(script, *args):
         browser.set_context('chrome')

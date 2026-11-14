@@ -45,7 +45,7 @@ internal static class ProfileImport
         if (!match.Success) throw new IOException("Не удалось определить версию профиля или Night.");
         return new Version(int.Parse(match.Groups[1].Value), int.Parse(match.Groups[2].Value), match.Groups[3].Success ? int.Parse(match.Groups[3].Value) : 0);
     }
-    public static int Copy(string root, string source, string stageName)
+    public static int Copy(string root, string source, string stageName, string applicationRoot)
     {
         string stage = Child(root, stageName, "import-stage-");
         string report = stage + ".json";
@@ -54,14 +54,14 @@ internal static class ProfileImport
         try
         {
             source = Path.GetFullPath(source).TrimEnd('\\', '/');
-            if (Contains(root, source) || Contains(source, root)) throw new IOException("Выбери профиль Zen вне папки Night.");
+            if (Contains(root, source) || Contains(source, root) || Contains(applicationRoot, source) || Contains(source, applicationRoot)) throw new IOException("Выбери профиль Zen вне папки Night.");
             Regular(source);
             if (!File.Exists(Path.Combine(source, "prefs.js")) || !File.Exists(Path.Combine(source, "places.sqlite")))
                 throw new IOException("В папке нет профиля браузера: нужны prefs.js и places.sqlite.");
             if (Directory.Exists(stage)) throw new IOException("Папка импорта уже существует.");
             using (var profileLock = new FileStream(Path.Combine(source, "parent.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
             {
-                if (EngineVersion(Path.Combine(source, "compatibility.ini"), "LastVersion") > EngineVersion(Path.Combine(root, "runtime", "browser", "application.ini"), "MaxVersion"))
+                if (EngineVersion(Path.Combine(source, "compatibility.ini"), "LastVersion") > EngineVersion(Path.Combine(applicationRoot, "runtime", "browser", "application.ini"), "MaxVersion"))
                     throw new IOException("Профиль Zen новее движка Night. Сначала обнови Night.");
                 string sourceTree = LongPath(source);
                 string stageTree = LongPath(stage);

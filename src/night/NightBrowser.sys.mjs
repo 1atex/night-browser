@@ -322,5 +322,15 @@ export const NightBrowser = {
   init(window) {
     if (window.gNightBrowser) return;
     window.gNightBrowser = new NightWindow(window);
+    if (!Services.prefs.getBoolPref("night.onboarding.completed", false) &&
+        !ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs").PrivateBrowsingUtils.isWindowPrivate(window)) {
+      const url = "chrome://browser/content/night/welcome.xhtml";
+      const existing = [...window.gBrowser.tabs].find(tab => tab.linkedBrowser.currentURI.spec === url);
+      if (existing) window.gBrowser.selectedTab = existing;
+      else if (![...Services.wm.getEnumerator("navigator:browser")].some(other => other !== window && other.gNightBrowser)) {
+        const current = window.gBrowser.selectedBrowser.currentURI.spec;
+        window.openTrustedLinkIn(url, ["about:blank", "about:home", "about:newtab"].includes(current) ? "current" : "tab");
+      }
+    }
   },
 };

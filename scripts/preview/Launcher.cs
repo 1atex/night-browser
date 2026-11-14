@@ -14,11 +14,13 @@ using System.Runtime.InteropServices.ComTypes;
 [assembly: AssemblyDescription("Night Browser")]
 [assembly: AssemblyCompany("Night")]
 [assembly: AssemblyProduct("Night Browser")]
-[assembly: AssemblyVersion("0.7.0.0")]
+[assembly: AssemblyVersion("0.8.0.0")]
 
 internal static class Launcher
 {
     private static readonly string Root = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+    private static readonly bool Installed = File.Exists(Path.Combine(Root, "installed.marker"));
+    private static readonly string DataRoot = Installed ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NightBrowser") : Root;
     private static readonly string LauncherPath = Path.Combine(Root, "Night.exe");
     private static readonly Guid AppKey = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
     private delegate bool WindowCallback(IntPtr window, IntPtr data);
@@ -65,6 +67,7 @@ internal static class Launcher
     }
     private static string Identity()
     {
+        if (Installed) return "Night.Browser.Installed";
         using (var hash = SHA256.Create())
             return "Night.Browser." + BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(Root.ToLowerInvariant())), 0, 8).Replace("-", "");
     }
@@ -121,6 +124,20 @@ internal static class Launcher
         }, IntPtr.Zero);
         return found;
     }
+    private static string Quote(string value)
+    {
+        var result = new StringBuilder("\"");
+        int slashes = 0;
+        foreach (char character in value)
+        {
+            if (character == '\\') { slashes++; continue; }
+            result.Append('\\', character == '\"' ? slashes * 2 + 1 : slashes);
+            result.Append(character);
+            slashes = 0;
+        }
+        result.Append('\\', slashes * 2);
+        return result.Append('\"').ToString();
+    }
     [STAThread]
     private static int Main(string[] args)
     {
@@ -128,11 +145,17 @@ internal static class Launcher
         {
             AppContext.SetSwitch("Switch.System.IO.UseLegacyPathHandling", false);
             AppContext.SetSwitch("Switch.System.IO.BlockLongPaths", false);
+            Directory.CreateDirectory(DataRoot);
             string identity = Identity();
+            if (args.Length == 1 && args[0] == "--default-browser")
+            {
+                Process.Start(new ProcessStartInfo("ms-settings:defaultapps") { UseShellExecute = true });
+                return 0;
+            }
             if (args.Length == 2 && args[0] == "--identity")
                 return ApplyWindows(int.Parse(args[1]), identity) ? 0 : 2;
             if (args.Length == 3 && args[0] == "--copy-zen")
-                return ProfileImport.Copy(Root, args[1], args[2]);
+                return ProfileImport.Copy(DataRoot, args[1], args[2], Root);
             if (args.Length == 2 && args[0] == "--finish-import")
             {
                 try { using (var previous = Process.GetProcessById(int.Parse(args[1]))) if (!previous.WaitForExit(60000)) return 2; }
@@ -142,26 +165,35 @@ internal static class Launcher
             {
                 try { if (!gate.WaitOne(10000)) throw new IOException("Другой запуск Night ещё завершает импорт."); }
                 catch (AbandonedMutexException) { }
-                try { ProfileImport.Apply(Root); }
+                try { ProfileImport.Apply(DataRoot); }
                 finally { gate.ReleaseMutex(); }
             }
             if (args.Length == 1 && args[0] == "--apply-import") return 0;
             string runtime = Path.Combine(Root, "runtime");
             string executable = Path.Combine(runtime, "NightBrowser.exe");
             string application = Path.Combine(runtime, "browser", "application.ini");
-            string profile = Path.Combine(Root, "profile");
+            string profile = Path.Combine(DataRoot, "profile");
             if (!File.Exists(executable) || !File.Exists(application))
                 throw new FileNotFoundException("Распакуй архив целиком перед запуском Night.");
             Directory.CreateDirectory(profile);
+            using (var skeleton = Registry.CurrentUser.CreateSubKey("Software\\Mozilla\\Firefox\\PreXULSkeletonUISettings"))
+                skeleton.SetValue(executable + "|Enabled", 0, RegistryValueKind.DWord);
             using (var key = Registry.CurrentUser.CreateSubKey("Software\\Mozilla\\Night\\TaskBarIDs"))
                 key.SetValue(runtime, identity, RegistryValueKind.String);
-            Shortcut(identity);
+            if (!Installed) Shortcut(identity);
             var start = new ProcessStartInfo(executable)
             {
                 Arguments = "-app \"" + application + "\" -profile \"" + profile + "\"",
                 WorkingDirectory = runtime,
                 UseShellExecute = false
             };
+            if (args.Length == 2 && args[0] == "--url")
+            {
+                Uri target;
+                if (!Uri.TryCreate(args[1], UriKind.Absolute, out target) || !(target.Scheme == "http" || target.Scheme == "https" || target.Scheme == "file"))
+                    throw new ArgumentException("Некорректный адрес страницы.");
+                start.Arguments += " -url " + Quote(target.AbsoluteUri);
+            }
             start.EnvironmentVariables["MOZ_APP_REMOTINGNAME"] = "night-browser";
             using (var process = Process.Start(start))
             {

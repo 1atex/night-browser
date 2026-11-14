@@ -56,6 +56,22 @@ jobs:
           $icon = (Resolve-Path src/night/branding/night.ico).Path
           & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll "/win32icon:$icon" "/out:$executable" $source $importSource
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build per-user installer
+        run: |
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $compiler)) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          & $compiler scripts/preview/installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test first-run setup and window controls
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/onboarding.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -u tests/native/installer.py --setup dist/night-browser-0.8.0-preview-windows-x64-setup.exe --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test packaged browser on Windows
         run: |
           New-Item -ItemType Directory -Force test-artifacts | Out-Null
@@ -80,6 +96,8 @@ jobs:
         run: |
           $output = (Resolve-Path dist/Night).Path
           python -u tests/native/sidebar.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/sidebar-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -u tests/native/saved_tabs.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test configurable process reserve
         run: |
@@ -125,16 +143,25 @@ jobs:
           Copy-Item test-artifacts/night-extensions-ordinary.png dist/night-extensions.png
           Copy-Item test-artifacts/night-menu-ordinary.png dist/night-menu.png
           Copy-Item test-artifacts/night-suggestions-ordinary.png dist/night-suggestions.png
-          7z a -tzip dist/night-browser-0.7.0-preview-windows-x64.zip ./dist/Night
+          7z a -tzip dist/night-browser-0.8.0-preview-windows-x64.zip ./dist/Night
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $hash = (Get-FileHash dist/night-browser-0.7.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
-          "$hash  night-browser-0.7.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          $hash = (Get-FileHash dist/night-browser-0.8.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  night-browser-0.8.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          $setupHash = (Get-FileHash dist/night-browser-0.8.0-preview-windows-x64-setup.exe -Algorithm SHA256).Hash.ToLower()
+          "$setupHash  night-browser-0.8.0-preview-windows-x64-setup.exe" | Add-Content dist/SHA256SUMS.txt -Encoding ascii
+          Copy-Item test-artifacts/night-onboarding.png dist/night-onboarding.png
+          Copy-Item test-artifacts/installer-result.json dist/installer-result.json
+          Copy-Item test-artifacts/onboarding-result.json dist/onboarding-result.json
       - name: Upload Windows preview
         uses: actions/upload-artifact@v4
         with:
           name: night-browser-windows-x64-preview
           path: |
-            dist/night-browser-0.7.0-preview-windows-x64.zip
+            dist/night-browser-0.8.0-preview-windows-x64.zip
+            dist/night-browser-0.8.0-preview-windows-x64-setup.exe
+            dist/night-onboarding.png
+            dist/installer-result.json
+            dist/onboarding-result.json
             dist/SHA256SUMS.txt
             dist/sidebar-result.json
             dist/night-sidebar-filled.png
@@ -180,7 +207,11 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           gh release create "$RELEASE_TAG" \
-            release-assets/night-browser-0.7.0-preview-windows-x64.zip \
+            release-assets/night-browser-0.8.0-preview-windows-x64.zip \
+            release-assets/night-browser-0.8.0-preview-windows-x64-setup.exe \
+            release-assets/night-onboarding.png \
+            release-assets/installer-result.json \
+            release-assets/onboarding-result.json \
             release-assets/SHA256SUMS.txt \
             release-assets/sidebar-result.json \
             release-assets/night-sidebar-filled.png \

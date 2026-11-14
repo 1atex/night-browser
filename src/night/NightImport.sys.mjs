@@ -20,8 +20,11 @@ const readText = async (path) =>
 
 export const NightImport = {
   status: { phase: "idle", files: 0, bytes: 0 },
-  get root() {
+  get applicationRoot() {
     return Services.dirsvc.get("XREExeF", Ci.nsIFile).parent.parent.path;
+  },
+  get root() {
+    return Services.dirsvc.get("ProfD", Ci.nsIFile).parent.path;
   },
   get supported() {
     return Services.appinfo.OS === "WINNT";
@@ -103,7 +106,7 @@ export const NightImport = {
       const process = Cc["@mozilla.org/process/util;1"].createInstance(
         Ci.nsIProcess,
       );
-      process.init(file(PathUtils.join(this.root, "Night.exe")));
+      process.init(file(PathUtils.join(this.applicationRoot, "Night.exe")));
       ticker = setInterval(async () => {
         try {
           const progress = await IOUtils.readJSON(reportPath);
@@ -169,6 +172,14 @@ export const NightImport = {
       clearInterval(ticker);
       await IOUtils.remove(reportPath, { ignoreAbsent: true }).catch(() => {});
     }
+  },
+
+  currentPreferences() {
+    return Services.prefs.getChildList("night.ui.").map(key => {
+      const type = Services.prefs.getPrefType(key);
+      const value = type === 128 ? Services.prefs.getBoolPref(key) : type === 64 ? Services.prefs.getIntPref(key) : Services.prefs.getStringPref(key);
+      return `user_pref(${JSON.stringify(key)}, ${JSON.stringify(value)});`;
+    }).join("\n") + '\nuser_pref("night.onboarding.completed", true);\n';
   },
 
   async prepare(destination, source) {
@@ -254,7 +265,7 @@ export const NightImport = {
     const prefsPath = PathUtils.join(destination, "prefs.js");
     await IOUtils.writeUTF8(
       prefsPath,
-      importPreferences(await readText(prefsPath)),
+      importPreferences(await readText(prefsPath)) + this.currentPreferences(),
     );
     const addons = PathUtils.join(destination, "extensions.json");
     if (await IOUtils.exists(addons)) {
@@ -334,7 +345,7 @@ export const NightImport = {
     const process = Cc["@mozilla.org/process/util;1"].createInstance(
       Ci.nsIProcess,
     );
-    process.init(file(PathUtils.join(this.root, "Night.exe")));
+    process.init(file(PathUtils.join(this.applicationRoot, "Night.exe")));
     process.runwAsync(
       ["--finish-import", String(Services.appinfo.processID)],
       2,

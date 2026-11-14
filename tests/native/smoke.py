@@ -49,7 +49,7 @@ def run(binary, log, app_ini=None, preview=False, screenshot=None):
     server.paths = []
     threading.Thread(target=server.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{server.server_port}"
-    browser = Marionette(bin=binary, headless=True, app_args=["-app", app_ini] if app_ini else [], gecko_log=log, startup_timeout=60)
+    browser = Marionette(prefs={"night.onboarding.completed": True}, bin=binary, headless=True, app_args=["-app", app_ini] if app_ini else [], gecko_log=log, startup_timeout=60)
     try:
         browser.start_session()
         browser.timeout.script = 20

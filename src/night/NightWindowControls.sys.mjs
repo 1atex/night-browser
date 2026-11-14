@@ -29,7 +29,7 @@ export class NightWindowControls {
   destroy() {
     if (!this.#host) return;
     Services.prefs.removeObserver("night.ui.window-controls-autohide", this);
-    this.#parent.insertBefore(this.#container, this.#next);
+    this.#parent.insertBefore(this.#container, this.#next?.parentNode === this.#parent ? this.#next : null);
     this.#host.remove();
   }
 }
