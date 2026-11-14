@@ -70,10 +70,15 @@ def run(binary, app_ini, output):
         browser.set_context('content')
         browser.switch_to_window(browser.window_handles[-1])
         wait_for(lambda: browser.execute_script('return !!document.querySelector("#query");'))
+        browser.set_context('chrome')
+        engine=browser.execute_async_script('''const done=arguments[arguments.length-1];(async()=>{const {SearchService}=ChromeUtils.importESModule("moz-src:///toolkit/components/search/SearchService.sys.mjs");await SearchService.init();const engines=await SearchService.getVisibleEngines();const next=engines.find(e=>e.id!==SearchService.defaultEngine.id);if(next)await SearchService.setDefault(next,SearchService.CHANGE_REASON.USER);return SearchService.defaultEngine.name;})().then(done,e=>done({error:String(e)}));''')
+        assert isinstance(engine,str),engine
+        browser.set_context('content')
+        wait_for(lambda: browser.execute_script('return document.querySelector("#query").placeholder.includes(arguments[0]);',script_args=[engine]))
         query=browser.find_element('id','query')
         query.click();query.send_keys(f'http://127.0.0.1:{server.server_port}/from-start', '\ue007')
         wait_for(lambda: chrome('return b.selectedBrowser.currentURI.spec.endsWith("/from-start");'))
-        (output/'start-flow-result.json').write_text(json.dumps({'last_open_tab_shows_start':True,'saved_tabs_stay_asleep':True,'start_accepts_typing':True,'new_tab_accepts_typing':True,'ctrl_t_immediate_typing':True,'saved_ctrl_w_unloads':True,'start_accepts_address':True}))
+        (output/'start-flow-result.json').write_text(json.dumps({'last_open_tab_shows_start':True,'saved_tabs_stay_asleep':True,'start_accepts_typing':True,'new_tab_accepts_typing':True,'ctrl_t_immediate_typing':True,'saved_ctrl_w_unloads':True,'start_accepts_address':True,'search_engine_label_updates':True}))
         print('PASS: last page returns home, saved pages stay asleep, new tabs immediately accept typing and Ctrl+W preserves saved pages',flush=True)
     finally:
         if not (output/'start-flow-result.json').exists():
