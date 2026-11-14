@@ -157,3 +157,28 @@ The public ZIP passed SHA-256, ZIP CRC and comparison against 75 source files: 1
 SHA-256: `f77f3839732aa575fc57b6df763bc1b491e9699a3b4b84d7e81de09e917b1e84`.
 
 The published [first launch](https://github.com/1atex/night-browser/releases/download/v0.7.0-preview.2/night-first-launch.png), [extensions panel](https://github.com/1atex/night-browser/releases/download/v0.7.0-preview.2/night-extensions.png), [menu](https://github.com/1atex/night-browser/releases/download/v0.7.0-preview.2/night-menu.png) and [settings](https://github.com/1atex/night-browser/releases/download/v0.7.0-preview.2/night-settings.png) were inspected after download. These are ordinary Windows captures. The empty extensions panel has no upstream illustration; the initial address bar stays compact. Source checks and runtime tests validate the new behavior; the synthetic memory result remains distinct from a real-site performance claim.
+
+## Night 0.8 setup and saved-tab checks
+
+The installer check exercises silent per-user installation, browser URL registration, a profile outside the application directory, in-place upgrade, a Unicode file URL and uninstall. Upgrade and uninstall preserve the profile. The portable launcher remains a separate tested path.
+
+The onboarding check changes appearance preferences, completes the wizard and restarts to verify that it does not repeat. A persisted upstream skeleton preference is reset. The ordinary Windows launch test seeds the per-executable skeleton cache, checks its removal and captures the early window frame and first-run page. It also uses native pointer input to maximize, restore and minimize the window. The automated control test checks the upper-right position, hover reveal and the always-visible setting.
+
+The real Zen fixture imports through the first-run wizard, including explicit consent, progress and restart. Existing encrypted login, cookie, extension-storage, nested-folder, scoped-pin, backup and source-preservation assertions remain active. Appearance choices survive the import and completion is not lost after profile replacement.
+
+The saved-tab test cancels a real before-unload prompt, retries unloading, restarts with the folder entry still sleeping, restores a typed draft on activation, explicitly removes a saved entry and closes an ordinary tab. It uses BiDi because classic Marionette accepts before-unload prompts automatically. Before native pointer actions, the test waits for the sidebar row itself to render; a title update alone is insufficient.
+
+Local Linux onboarding, saved-tab and nested-sidebar checks passed. The complete Windows branch run [43570061876](https://github.com/1atex/night-browser/actions/runs/43570061876) passed all 47 Node checks and every native check at revision `dc9292e82af70b48e38b6df950bd6e8627ee4f2c`. The first-run, window-control and sleeping-folder captures were visually inspected. Sleeping rows have a visible fallback favicon and a state badge; feedback from a cancelled unload clears on a subsequent successful attempt.
+
+## Published 0.8 result
+
+Release [v0.8.0-preview.3](https://github.com/1atex/night-browser/releases/tag/v0.8.0-preview.3), source `dc9292e82af70b48e38b6df950bd6e8627ee4f2c`, passed all 47 Node checks and every Windows runtime check in [tag run 43570592429](https://github.com/1atex/night-browser/actions/runs/43570592429). The run was initially cancelled after the same revision passed on the branch, then rerun in full to publish through Actions when direct release uploads failed authentication. Both build and publication jobs completed successfully. The public binaries come from this tag run, not the earlier branch artifact. The unpublished preview 2 tag is retained in history; its sidebar-render timing race was fixed before preview 3.
+
+Both public binaries were downloaded after publication and passed SHA-256 verification. The ZIP additionally passed CRC and comparison against 80 source files at the tag, including the initial-paint guard and skeleton preference. It contains 111 entries, version 0.8.0 and BuildID `20261114071317`, with no pre-created profile or installed marker. Native executable names, launcher configuration and process-reserve preferences were checked.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Portable ZIP | 145,535,442 | `c5c3b3b8c6fcbaf2c4ff30c59d9ee6f91906b3602d41a7c452a743f62a17888e` |
+| Windows installer | 135,424,060 | `b8b4c245e2a88669103274178b88ae8d9c87ffeb07169b99980fa87fcdbcb0bb` |
+
+The public [ordinary first-run capture](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.3/night-first-launch.png), [window controls](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.3/night-window-controls.png) and [sleeping folder tab](https://github.com/1atex/night-browser/releases/download/v0.8.0-preview.3/night-sleeping-folder.png) were visually inspected after download. The latter two come from automated tests; their striped address-bar indicator belongs to Marionette. Installer, onboarding, saved-tab and Zen migration result files ship alongside the binaries. This verifies the tested Windows environment and fixtures, not every GPU configuration or the user's real profile.
