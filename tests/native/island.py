@@ -45,7 +45,7 @@ def run(binary, app_ini, island, output):
     report = output.resolve()/'island-state.json'
     root = Path(tempfile.mkdtemp(prefix='night-island-integration-'))
     config = root/'NightIsland';config.mkdir()
-    (config/'settings.json').write_text(json.dumps({'browser_downloads': True, 'weather': False, 'update_check': False, 'activity_track': False, 'capture_self_hidden': False, 'capture_hidden': False, 'character': 'none', 'game_mode': False}))
+    (config/'settings.json').write_text(json.dumps({'browser_downloads': True, 'weather': False, 'update_check': False, 'activity_track': False, 'capture_self_hidden': False, 'capture_hidden': False, 'character': 'none', 'game_mode': False, 'open_delay_ms': 1000}))
     env = os.environ | {'APPDATA': str(root), 'NI_INSTANCE': root.name, 'NI_DEBUG_TAB': 'Downloads', 'NI_BROWSER_TEST_OUTPUT': str(report)}
     server = ThreadingHTTPServer(('127.0.0.1', 0), Site)
     threading.Thread(target=server.serve_forever, daemon=True).start()
