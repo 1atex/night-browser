@@ -78,5 +78,6 @@
   "night.ui.navigation-layout": "sidebar",
   "night.ui.show-tab-search": false,
   "night.ui.show-memory-status": false,
-  "night.ui.show-tools": true
+  "night.ui.show-tools": true,
+  "dom.ipc.processPrelaunch.fission.number": 1
 }

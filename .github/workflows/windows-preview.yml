@@ -81,6 +81,11 @@ jobs:
           $output = (Resolve-Path dist/Night).Path
           python -u tests/native/sidebar.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/sidebar-results.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test configurable process reserve
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/preallocation.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts 2>&1 | Tee-Object -FilePath test-artifacts/preallocation-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Inspect ordinary first launch and Windows identity
         run: ./tests/native/first-launch.ps1 -Package dist/Night -Output test-artifacts
       - name: Test migration from an actual Zen profile

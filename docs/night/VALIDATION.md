@@ -125,3 +125,9 @@ The public ZIP passed SHA-256, ZIP CRC and source-content verification after dow
 SHA-256: `5987037642469900481d95c5f6970b00f7daf94f662eeebc9b0f7403771ad051`.
 
 Published evidence: [own menu](https://github.com/1atex/night-browser/releases/download/v0.5.2-preview.1/night-menu.png), [address suggestions](https://github.com/1atex/night-browser/releases/download/v0.5.2-preview.1/night-suggestions.png), [first launch](https://github.com/1atex/night-browser/releases/download/v0.5.2-preview.1/night-first-launch.png) and [chrome checks](https://github.com/1atex/night-browser/releases/download/v0.5.2-preview.1/chrome-result.json). The ordinary Windows menu and suggestion captures were visually inspected from the matching source artifact; the menu was inspected again from the public release. Closing with Alt+F4 and shortcut relaunch passed without forcing process termination.
+
+## Night 0.6 workspace and memory checks
+
+`tests/native/sidebar.py` restores a converted Zen session with global favorites, workspace pins, nested/empty folders and cached icons. A local HTTP request log verifies that only the selected page loads: folding the tree, displaying saved icons, moving tabs/folders and repairing metadata do not load background pages. The test resizes the sidebar with pointer input, checks workspace isolation and cycle prevention, creates a pre-repair session backup and restarts the browser with all eight background tabs still pending.
+
+The real Zen migration fixture also creates nested folders inside Zen and verifies their hierarchy and scoped pins after copying. `tests/native/preallocation.py` checks that the engine maintains one spare process, removes it when the settings switch is disabled, persists that choice through restart and recreates one when enabled. The memory workload includes an unprotected pinned tab and a protected pinned tab, repeats the unload scan and verifies that the former stays discarded while the latter stays loaded.

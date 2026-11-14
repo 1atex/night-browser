@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import platform
 import statistics
 import threading
@@ -103,7 +104,7 @@ def run(stock, night, app_ini, output):
     threading.Thread(target=server.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{server.server_port}"
     try:
-        result = {"platform": platform.platform(), "method": "Visible browser minimized before measurement. Fresh profiles, 7 same-origin local tabs, each allocates and touches 32 MiB. Median of 5 samples at 1 second intervals; all descendants included. Night idle clock advanced 15 minutes; active tab and one explicit exception protected. No forced GC or working-set trimming. Windows USS is private working set; private bytes is commit. This is not a real-site workload or rendering benchmark."}
+        result = {"platform": platform.platform(), "headless": os.environ.get("MOZ_HEADLESS") == "1", "method": "Browser minimized before measurement; headless mode is recorded separately. Fresh profiles, 7 same-origin local tabs, each allocates and touches 32 MiB. Median of 5 samples at 1 second intervals; all descendants included. Night idle clock advanced 15 minutes; active tab and one explicit exception protected. No forced GC or working-set trimming. Windows USS is private working set; private bytes is commit. This is not a real-site workload or rendering benchmark."}
         result["firefox"] = measure(stock, None, url, output, "firefox")
         result["night"] = measure(night, app_ini, url, output, "night")
         (output / "memory.json").write_text(json.dumps(result, indent=2))

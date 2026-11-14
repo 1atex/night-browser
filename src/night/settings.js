@@ -294,6 +294,8 @@ window.addEventListener(
       };
       details.append(button("Обновить", () => {refreshDetails(); updateMetrics();}), tabDetails);
       refreshDetails();
+      const reserve = card("Резерв для новых вкладок");
+      toggle(reserve, "Готовить один процесс заранее", "Ускоряет открытие следующего сайта и занимает дополнительную память. Можно отключить; существующие страницы продолжат работать.", "dom.ipc.processPrelaunch.enabled", true);
       const policy = card("Неактивные вкладки");
       toggle(
         policy,
