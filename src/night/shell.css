@@ -47,10 +47,6 @@
   background: var(--night-page);
 }
 :root[night-browser] #navigator-toolbox .titlebar-buttonbox-container { display: none !important; }
-:root[night-browser] #nav-bar > .titlebar-buttonbox-container {
-  display: flex !important;
-  -moz-window-dragging: no-drag;
-}
 #night-sidebar {
   box-sizing: border-box;
   order: -10;

@@ -6,7 +6,7 @@
   padding: 5px 6px 7px;
   -moz-window-dragging: no-drag;
 }
-#night-window-controls > .titlebar-buttonbox-container {
+#night-window-controls > .night-caption-buttons {
   display: flex !important;
   margin: 0 !important;
   padding: 3px;
@@ -15,13 +15,15 @@
   background: var(--night-background);
   box-shadow: 0 4px 16px #0004;
 }
-#night-window-controls .titlebar-button { width: 36px; height: 30px; padding: 8px 10px !important; border-radius: var(--night-pill); }
-#night-window-controls .titlebar-button:not(.titlebar-close):hover { background: var(--night-hover) !important; }
-#night-window-controls .titlebar-close:hover { background: #c42b3e !important; }
-#night-window-controls[data-autohide]:not(:hover):not(:focus-within) > .titlebar-buttonbox-container { opacity: 0; transform: translateY(-5px); pointer-events: none; }
+#night-window-controls button { appearance: none; display: grid; place-items: center; width: 36px; height: 30px; padding: 7px 10px; border: 0; color: var(--night-text); background: transparent; border-radius: var(--night-pill); cursor: default; }
+#night-window-controls button:focus-visible { outline: 2px solid var(--night-accent); outline-offset: -2px; }
+#night-window-controls svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1; }
+#night-window-controls button:not([data-action="close"]):hover { background: var(--night-hover) !important; }
+#night-window-controls button[data-action="close"]:hover { background: #c42b3e !important; }
+#night-window-controls[data-autohide]:not(:hover):not(:focus-within) > .night-caption-buttons { opacity: 0; transform: translateY(-5px); pointer-events: none; }
 #night-window-controls[data-autohide]:not(:hover):not(:focus-within) { height: 10px; padding-bottom: 0; }
 :root:is([inFullscreen], [inDOMFullscreen], [night-starting]) #night-window-controls { display: none; }
-@media (hover: none) { #night-window-controls[data-autohide] { height: auto; padding-bottom: 7px; } #night-window-controls[data-autohide] > .titlebar-buttonbox-container { opacity: 1 !important; transform: none !important; pointer-events: auto !important; } }
+@media (hover: none) { #night-window-controls[data-autohide] { height: auto; padding-bottom: 7px; } #night-window-controls[data-autohide] > .night-caption-buttons { opacity: 1 !important; transform: none !important; pointer-events: auto !important; } }
 @media (prefers-reduced-motion: no-preference) {
-  :root[night-motion] #night-window-controls > .titlebar-buttonbox-container { transition: opacity 120ms ease, transform 180ms var(--night-ease); }
+  :root[night-motion] #night-window-controls > .night-caption-buttons { transition: opacity 120ms ease, transform 180ms var(--night-ease); }
 }
