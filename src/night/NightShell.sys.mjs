@@ -346,7 +346,19 @@ export class NightShell {
     });
   }
 
-  async #closeTab(tab) {
+  #isSaved(tab) {
+    return this.workspaces.isPinned(tab) || !!this.workspaces.folderOf(tab);
+  }
+
+  async #closeTab(tab, remove = false) {
+    if (!remove && this.#isSaved(tab)) {
+      try {
+        const unloaded = await this.#owner.memory.deactivate(tab);
+        this.render();
+        if (!unloaded) this.#report("Страница осталась открытой: выгрузка отменена или активен перехват запросов");
+      } catch (error) { this.#report(error.message); }
+      return;
+    }
     const row = this.#rows.get(tab)?.row;
     if (row?.hasAttribute("data-closing")) return;
     row?.setAttribute("data-closing", "true");
@@ -454,7 +466,10 @@ export class NightShell {
             () => this.workspaces.move(tab, item.id),
           ]);
       }
-    items.push(["Закрыть", () => this.#closeTab(tab)]);
+    if (this.#isSaved(tab)) {
+      items.push(["Отправить в сон", () => this.#closeTab(tab)]);
+      items.push([this.workspaces.folderOf(tab) ? "Удалить из папки" : "Удалить закреплённую вкладку", () => this.#closeTab(tab, true)]);
+    } else items.push(["Закрыть", () => this.#closeTab(tab)]);
     this.#showMenu(anchor, items);
   }
 
@@ -675,16 +690,19 @@ export class NightShell {
         icon.replaceChildren(favicon);
         icon.dataset.image = source;
       }
-      state.textContent = tab.soundPlaying
+      state.textContent = tab.hasAttribute("pending")
+        ? "Спит"
+        : tab.soundPlaying
         ? "♪"
         : this.#owner.memory.isProtected(tab)
           ? "◇"
-          : tab.hasAttribute("pending")
-            ? "z"
-            : tab.splitview
+          : tab.splitview
               ? "◫"
               : "";
-      close.hidden = tab.pinned;
+      const saved = this.#isSaved(tab);
+      close.hidden = tab.pinned || (saved && tab.hasAttribute("pending"));
+      close.title = saved ? "Отправить в сон" : "Закрыть вкладку";
+      close.setAttribute("aria-label", close.title);
       if (tab.pinned) pins.push(row);
       else normal.push(tab);
     }

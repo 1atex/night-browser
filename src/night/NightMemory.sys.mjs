@@ -134,6 +134,13 @@ export class NightMemory {
     return unloadDecision(this.#snapshot(tab), this.settings, this.#now());
   }
 
+  async deactivate(tab) {
+    if (this.#destroyed || !this.tabs.includes(tab) || this.#isIntercepted(tab)) return false;
+    if (tab.hasAttribute("pending")) return true;
+    await this.#window.gBrowser.explicitUnloadTabs([tab]);
+    return tab.hasAttribute("pending");
+  }
+
   async unload(tab) {
     if (this.#destroyed || !this.tabs.includes(tab)) return false;
     const eligible = () => ["unload", "recent"].includes(this.describe(tab));
