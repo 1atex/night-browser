@@ -4,6 +4,7 @@ on:
   push:
     branches: [feature/night-product]
     paths:
+      - "scripts/preview/island.json"
       - "src/night/*Island*"
       - "src/night/island-pipe.js"
       - "tests/native/island.py"
@@ -45,11 +46,22 @@ jobs:
           $icon = (Resolve-Path src/night/branding/night.ico).Path
           & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll "/win32icon:$icon" "/out:$executable" $source $importSource
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Read Island revision
+        id: island-pin
+        run: |
+          $pin = Get-Content scripts/preview/island.json -Raw | ConvertFrom-Json
+          "revision=$($pin.revision)" >> $env:GITHUB_OUTPUT
       - uses: actions/checkout@v4
         with:
           repository: 1atex/night-island
-          ref: 9e76fd010dd95f28185e7f6babd91f8330884f05
+          ref: ${{ steps.island-pin.outputs.revision }}
+          fetch-depth: 0
           path: test-island
+      - name: Verify Island foundation
+        run: |
+          $pin = Get-Content scripts/preview/island.json -Raw | ConvertFrom-Json
+          git -C test-island merge-base --is-ancestor $pin.foundation HEAD
+          if ($LASTEXITCODE -ne 0) { throw "Island does not include the required foundation" }
       - uses: dtolnay/rust-toolchain@1.93.0
       - uses: Swatinem/rust-cache@v2
         with:

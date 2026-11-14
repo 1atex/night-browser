@@ -58,18 +58,21 @@ def run(binary, app_ini, island, output):
     def chrome(script):
         browser.set_context('chrome')
         return browser.execute_script(f'const w={WIN};const {{NightIsland}}=ChromeUtils.importESModule("resource:///modules/night/NightIsland.sys.mjs");'+script)
+    def click_rect(rect, current=None, delay=0.15):
+        current = current or state()
+        left, top, right, bottom = rect
+        point = Point(round((left+right)/2),round((top+bottom)/2))
+        user32.ClientToScreen(current['hwnd'],ctypes.byref(point))
+        user32.SetForegroundWindow(current['hwnd']);user32.SetCursorPos(point.x,point.y)
+        time.sleep(delay);user32.mouse_event(2,0,0,0,0);user32.mouse_event(4,0,0,0,0)
     def command(name, action):
         current = state()
         item = next(x for x in current['state']['items'] if x['name'] == name)
         button = next(b for b in current['buttons'] if b['id'] == item['id'] and b['action'] == action)
-        left, top, right, bottom = button['rect']
-        point = Point(round((left+right)/2),round((top+bottom)/2))
-        user32.ClientToScreen(current['hwnd'],ctypes.byref(point))
-        user32.SetForegroundWindow(current['hwnd']);user32.SetCursorPos(point.x,point.y)
-        time.sleep(0.15);user32.mouse_event(2,0,0,0,0);user32.mouse_event(4,0,0,0,0)
+        click_rect(button['rect'],current)
     def find(name, desired):
         return next((i for i in state()['state']['items'] if i['name']==name and i['state']==desired), None)
-    def launch(): return subprocess.Popen([island],env=env)
+    def launch(tab='Downloads'): return subprocess.Popen([island],env=env | {'NI_DEBUG_TAB':tab})
     def close_island():
         hwnd = state().get('hwnd')
         if hwnd:user32.PostMessageW(hwnd,0x10,0,0)
@@ -83,7 +86,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         script=script.replace('HWND',str(hwnd)).replace('DEST',str((output/filename).resolve()).replace("'","''"))
         subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
     try:
-        process = launch()
+        process = launch('Home')
         browser.start_session();browser.timeout.script=30
         wait_for(lambda: chrome('return NightIsland.status === "connected";'),timeout=45)
         wait_for(lambda: state()['state']['connected'])
@@ -93,7 +96,9 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         assert browser.execute_script("return document.getElementById('island-retry').hidden && document.getElementById('island-setup').hidden;")
         browser.set_context('chrome')
         browser.set_window_rect(width=1200,height=850)
+        browser.set_context('content')
         (output/'night-island-settings.png').write_bytes(base64.b64decode(browser.screenshot()))
+        browser.set_context('chrome')
         browser.execute_async_script(f'''
           const done=arguments[arguments.length-1],w={WIN};
           (async()=>{{const {{Downloads}}=ChromeUtils.importESModule('resource://gre/modules/Downloads.sys.mjs');w.integrationDownloads={{}};
@@ -106,6 +111,13 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         wait_for(lambda: find('sample.zip','active'))
         time.sleep(0.7)
         assert all(i['name']!='private.zip' for i in state()['state']['items'])
+        click_rect(state()['pin'])
+        user32.SetCursorPos(10,800)
+        wait_for(lambda: state().get('expanded') is False)
+        click_rect(state()['collapsed'],delay=0.01)
+        wait_for(lambda: state().get('expanded') and state().get('tab') == 'Downloads')
+        time.sleep(0.8)
+        click_rect(state()['pin'])
         snapshot('night-island-active.png')
         chrome('''w.integrationSend=NightIsland.send;NightIsland.send=function(text){
           const frame=JSON.parse(text);if(frame.type==='result')w.setTimeout(()=>w.integrationSend.call(this,text),1600);
@@ -152,7 +164,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         time.sleep(0.5)
         assert not state()['state']['error']
         assert chrome('return w.integrationDownloads["sample.zip"].succeeded;')
-        (output/'island-result.json').write_text(json.dumps({'real_island':True,'versioned_handshake':True,'download_progress':True,'native_pointer_pause_resume_cancel':True,'private_excluded':True,'disable_disconnects':True,'reconnect_after_restart':True,'complete_reveal':True,'pending_prevents_repeat':True,'connection_settings':True,'manual_reconnect':True}))
+        (output/'island-result.json').write_text(json.dumps({'real_island':True,'versioned_handshake':True,'download_progress':True,'native_pointer_pause_resume_cancel':True,'private_excluded':True,'disable_disconnects':True,'reconnect_after_restart':True,'complete_reveal':True,'pending_prevents_repeat':True,'connection_settings':True,'manual_reconnect':True,'indicator_opens_downloads':True}))
         print('PASS: actual Island pipe, native buttons, private exclusion, disconnect/reconnect and download lifecycle')
     finally:
         if not (output/'island-result.json').exists():

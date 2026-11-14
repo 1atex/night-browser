@@ -1,10 +1,12 @@
 # Night Browser ↔ Night Island
 
-## Implemented in 0.9 preview: downloads
+## Downloads integration
 
-Install the companion [Island browser preview](https://github.com/1atex/night-island/releases/tag/v0.3.1-browser-preview.3). Enable **Night Browser downloads** in Island's integration settings, then **Настройки → Интеграции → Показывать загрузки в Island** in the browser. Both settings default to off.
+Install the companion [Island browser preview](https://github.com/1atex/night-island/releases/tag/v0.3.2-browser-preview.1). Enable **Night Browser downloads** in Island's integration settings, then **Настройки → Интеграции → Показывать загрузки в Island** in the browser. Both settings default to off.
 
-A download appears in the existing Island pill. Its Downloads tab provides pause, resume, cancel and reveal-in-folder when supported by the download's current state. Completed files are not executed. Horizontal and vertical docking are supported. Private downloads are excluded; only a sanitized basename, opaque ID, state and byte counts are sent. URLs, full paths, cookies and request headers stay in the browser.
+The companion foundation is `7d9bc801af2e41627ad7d15a6d2400bbda150aca` with the browser integration merged on top. Both Windows workflows read the exact companion revision from `scripts/preview/island.json` and verify that it contains this ancestor. The pin is included in the browser’s BUILD.json.
+
+A download appears in the existing Island pill. Hovering or clicking its indicator opens the Downloads tab. Pending commands disable that item’s buttons until a result arrives; progress updates preserve hover feedback. Downloads can be added to Island’s configurable header. Its Downloads tab provides pause, resume, cancel and reveal-in-folder when supported by the download's current state. Completed files are not executed. Horizontal and vertical docking are supported. Private downloads are excluded; only a sanitized basename, opaque ID, state and byte counts are sent. URLs, full paths, cookies and request headers stay in the browser.
 
 The current session retains at most 32 items, dropping older finished items first. Existing active or resumable downloads join when enabled; completed history is not imported. Disabling clears the connection's in-memory list. Closing Island does not interrupt downloads. A single browser process can connect, including all its windows; simultaneous separate profiles are not yet multiplexed.
 

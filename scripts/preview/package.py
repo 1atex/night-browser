@@ -180,11 +180,12 @@ def package(runtime, output, archive, platform):
     (output / "BUILD.json").write_text(json.dumps({
         "night_revision": revision, "night_version": json.loads((ROOT / "package.json").read_text())["version"], "night_build_id": build_id,
         "upstream": PIN, "platform": platform,
+        "island_companion": json.loads((ROOT / "scripts/preview/island.json").read_text()),
         "type": "Night shell and services on a pinned Mozilla Firefox native runtime",
         "source": f"https://github.com/1atex/night-browser/tree/{revision}",
     }, indent=2))
     (output / "README.txt").write_text(
-        "Night Browser 0.9.0 Preview\n\n"
+        "Night Browser 0.9.1 Preview\n\n"
         "Распакуй всю папку в доступное для записи место и запусти Night.exe.\n"
         "В portable-версии профиль хранится в папке profile рядом с Night.exe.\n"
         "После установки через setup профиль находится в %LOCALAPPDATA%\\NightBrowser\\profile.\n"
