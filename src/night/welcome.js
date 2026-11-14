@@ -3,7 +3,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   const owner = window.browsingContext.topChromeWindow;
   const $ = id => document.getElementById(id);
   const root = document.documentElement;
-  let busy = false, staged = false;
+  let busy = false, staged = false, progressTimer;
+  window.addEventListener("unload", () => window.clearInterval(progressTimer), { once: true });
   const status = text => { $("status").textContent = text; };
   const show = step => {
     ["appearance", "migration", "ready"].forEach((id, index) => { $(id).hidden = index !== step; });
@@ -59,6 +60,11 @@ window.addEventListener("DOMContentLoaded", async () => {
     busy = true;
     for (const node of $("migration").querySelectorAll("button,input,select")) node.disabled = true;
     status("Копируем данные. Это может занять несколько минут…");
+    progressTimer = window.setInterval(() => {
+      const progress = NightImport.status;
+      if (progress.phase === "copying") status(`Скопировано файлов: ${progress.files} · ${Math.round(progress.bytes / 1048576)} МБ`);
+      else if (progress.phase === "preparing") status("Восстанавливаем пространства, папки и значки…");
+    }, 500);
     try {
       const report = await NightImport.stage($("profiles").value);
       staged = true;
@@ -69,6 +75,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       status(report.warnings?.join(" ") || "Резервная копия текущего профиля будет сохранена при перезапуске.");
     } catch (error) { status(error.message); }
     finally {
+      window.clearInterval(progressTimer);
       busy = false;
       for (const node of $("migration").querySelectorAll("button,input,select")) node.disabled = false;
       selection();

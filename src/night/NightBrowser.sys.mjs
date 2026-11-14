@@ -327,6 +327,9 @@ export const NightBrowser = {
         ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs").PrivateBrowsingUtils.isWindowPrivate(window) ||
         (this.onboardingWindow && !this.onboardingWindow.closed)) return;
     this.onboardingWindow = window;
+    window.addEventListener("unload", () => {
+      if (this.onboardingWindow === window) this.onboardingWindow = null;
+    }, { once: true });
     const { SessionStore } = ChromeUtils.importESModule("moz-src:///browser/components/sessionstore/SessionStore.sys.mjs");
     SessionStore.promiseAllWindowsRestored.then(() => {
       if (window.closed || Services.prefs.getBoolPref("night.onboarding.completed", false)) return;
