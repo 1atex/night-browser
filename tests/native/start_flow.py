@@ -33,7 +33,9 @@ def run(binary, app_ini, output):
     def search_value():
         value=chrome('return w.gURLBar.focused ? w.gURLBar.value : null;')
         if value is not None:return value
+        handle=chrome('const {NavigableManager}=ChromeUtils.importESModule("chrome://remote/content/shared/NavigableManager.sys.mjs");return NavigableManager.getIdForBrowser(b.selectedBrowser);')
         browser.set_context('content')
+        browser.switch_to_window(handle,focus=False)
         return browser.execute_script('return document.activeElement?.id === "query" ? document.activeElement.value : null;')
     try:
         browser.start_session();browser.set_window_rect(width=1280,height=900)
@@ -67,8 +69,9 @@ def run(binary, app_ini, output):
         wait_for(lambda: chrome('return w.saved.hasAttribute("pending");'))
         assert chrome('return b.tabs.includes(w.saved)&&!!s.workspaces.folderOf(w.saved);')
         chrome('s.workspaces.newTab();')
+        handle=chrome('const {NavigableManager}=ChromeUtils.importESModule("chrome://remote/content/shared/NavigableManager.sys.mjs");return NavigableManager.getIdForBrowser(b.selectedBrowser);')
         browser.set_context('content')
-        browser.switch_to_window(browser.window_handles[-1])
+        browser.switch_to_window(handle,focus=False)
         wait_for(lambda: browser.execute_script('return !!document.querySelector("#query");'))
         browser.set_context('chrome')
         engine=browser.execute_async_script('''const done=arguments[arguments.length-1];(async()=>{const {SearchService}=ChromeUtils.importESModule("moz-src:///toolkit/components/search/SearchService.sys.mjs");await SearchService.init();const engines=await SearchService.getVisibleEngines();const next=engines.find(e=>e.id!==SearchService.defaultEngine.id);if(next)await SearchService.setDefault(next,SearchService.CHANGE_REASON.USER);return SearchService.defaultEngine.name;})().then(done,e=>done({error:String(e)}));''')
