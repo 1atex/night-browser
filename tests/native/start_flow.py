@@ -26,6 +26,7 @@ def run(binary, app_ini, output):
         browser.set_context('chrome')
         return browser.execute_script(f'const w={WIN},d=w.document,b=w.gBrowser,s=w.gNightBrowser.shell;'+script,script_args=list(args))
     def type_text(text, new_tab=False):
+        browser.set_context('chrome')
         sequence=browser.actions.sequence('key','start-search')
         if new_tab:sequence.key_down('\ue009').key_down('t').key_up('t').key_up('\ue009')
         for char in text:sequence.key_down(char).key_up(char)
@@ -86,7 +87,11 @@ def run(binary, app_ini, output):
     finally:
         if not (output/'start-flow-result.json').exists():
             try:
-                (output/'start-flow-failure.json').write_text(json.dumps(chrome('return {url:b.selectedBrowser.currentURI.spec,bar:w.gURLBar.value,selected:b.selectedTab.label,tabs:[...b.tabs].map(t=>({url:t.linkedBrowser.currentURI.spec,pending:t.hasAttribute("pending")}))};')))
+                details=chrome('return {url:b.selectedBrowser.currentURI.spec,bar:w.gURLBar.value,focus:d.activeElement?.id,selected:b.selectedTab.label,tabs:[...b.tabs].map(t=>({url:t.linkedBrowser.currentURI.spec,pending:t.hasAttribute("pending")}))};')
+                details['search_value']=search_value()
+                (output/'start-flow-failure.json').write_text(json.dumps(details))
+                browser.set_context('chrome')
+                (output/'start-flow-failure.png').write_bytes(base64.b64decode(browser.screenshot()))
             except Exception:pass
         browser.cleanup();browser.instance=None;server.shutdown();server.server_close()
 

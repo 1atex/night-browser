@@ -221,9 +221,9 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         if not (output/'island-result.json').exists():
             (output/'island-failure-state.json').write_text(json.dumps(state()))
             try:
-                snapshot('night-island-failure.png')
                 details=chrome('return {status:NightIsland.status,reason:NightIsland.reason,errorCode:NightIsland.errorCode,ready:NightIsland.ready,items:[...NightIsland.entries].map(([id,d])=>({id,stopped:d.stopped,canceled:d.canceled,partial:d.hasPartialData,bytes:d.currentBytes,keep:d.tryToKeepPartialData})),seen:[...NightIsland.seen]};')
                 (output/'island-failure-browser.json').write_text(json.dumps(details))
+                snapshot('night-island-failure.png')
             except Exception:pass
         if browser.session:browser.quit()
         browser.cleanup();browser.instance=None
