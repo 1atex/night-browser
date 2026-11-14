@@ -131,3 +131,29 @@ Published evidence: [own menu](https://github.com/1atex/night-browser/releases/d
 `tests/native/sidebar.py` restores a converted Zen session with global favorites, workspace pins, nested/empty folders and cached icons. A local HTTP request log verifies that only the selected page loads: folding the tree, displaying saved icons, moving tabs/folders and repairing metadata do not load background pages. The test resizes the sidebar with pointer input, checks workspace isolation and cycle prevention, creates a pre-repair session backup and restarts the browser with all eight background tabs still pending.
 
 The real Zen migration fixture also creates nested folders inside Zen and verifies their hierarchy and scoped pins after copying. `tests/native/preallocation.py` checks that the engine maintains one spare process, removes it when the settings switch is disabled, persists that choice through restart and recreates one when enabled. The memory workload includes an unprotected pinned tab and a protected pinned tab, repeats the unload scan and verifies that the former stays discarded while the latter stays loaded.
+
+## Published 0.6 result
+
+Release [v0.6.0-preview.1](https://github.com/1atex/night-browser/releases/tag/v0.6.0-preview.1), source `238413d7cff0fc6de264d94ce37407ca8ca32c0d`, passed all 47 Node checks and all Windows runtime checks in [run 43561590180](https://github.com/1atex/night-browser/actions/runs/43561590180). The public ZIP passed SHA-256, CRC and comparison against 70 source files: 145,511,275 bytes, BuildID `20261114052636`, SHA-256 `71b8abbe89bac94bd747eadcd2bc23f8a84280c777fde8c412b11fb2d0a6ad77`.
+
+The controlled memory run measured Night's private working set at 582.11 MiB before discard and 427.22 MiB after, with five background tabs pending. This is a synthetic workload, not the user's Gmail/YouTube/extensions profile.
+
+## Night 0.7 interface checks
+
+Chrome tests additionally verify live start-page palette changes, the current-site favicon in the address bar, expansion of the sidebar input without leaving the viewport, native navigation from the expanded input and accessibility of the connection/security panel. The displayed toolbar icons are checked against Night's icon resources, including the native download button.
+
+Product tests check both empty and populated extension states. The empty panel must display the functional Night message and no upstream illustration. A real WebExtension still supplies its content script, badge, pinned action and popup. The start page is checked for absence of React/ReactDOM/Redux/ReactRedux globals; checking document script tags alone would miss Gecko's direct script-loader injection.
+
+The normal Windows launch uses accessibility APIs and native pointer input to open the empty extensions panel and verify its text. Its screenshot includes the popup. Headless chrome screenshots alone do not capture native popup windows, so the ordinary Windows captures are the visual evidence for these surfaces.
+
+Local Linux checks passed for native product, chrome, settings, motion and nested sidebar restore/drag operations. The ordinary Windows captures from `c7c5588` exposed the upstream fox illustration in the empty extensions panel; that finding was fixed before the final release. The unreleased `v0.7.0-preview.1` run was cancelled; its tag is retained in Git history.
+
+## Published 0.7 result
+
+Release [v0.7.0-preview.2](https://github.com/1atex/night-browser/releases/tag/v0.7.0-preview.2), source `5beb1cd852d5f36e11ef8c8077d58f0453868f2f`, passed all 47 Node checks and every Windows runtime check in [run 43564369269](https://github.com/1atex/night-browser/actions/runs/43564369269). The preview job took 3m47s; publication took 17s.
+
+The public ZIP passed SHA-256, ZIP CRC and comparison against 75 source files: 145,525,403 bytes, 111 entries, product version 0.7.0, BuildID `20261114060221`. The checks include bundled Material Symbols licensing, final localized site-security copy, the one-process reserve and the self-loading preference that prevents Activity Stream injection.
+
+SHA-256: `f77f3839732aa575fc57b6df763bc1b491e9699a3b4b84d7e81de09e917b1e84`.
+
+The published [first launch](https://github.com/1atex/night-browser/releases/download/v0.7.0-preview.2/night-first-launch.png), [extensions panel](https://github.com/1atex/night-browser/releases/download/v0.7.0-preview.2/night-extensions.png), [menu](https://github.com/1atex/night-browser/releases/download/v0.7.0-preview.2/night-menu.png) and [settings](https://github.com/1atex/night-browser/releases/download/v0.7.0-preview.2/night-settings.png) were inspected after download. These are ordinary Windows captures. The empty extensions panel has no upstream illustration; the initial address bar stays compact. Source checks and runtime tests validate the new behavior; the synthetic memory result remains distinct from a real-site performance claim.
