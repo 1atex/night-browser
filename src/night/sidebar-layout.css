@@ -15,7 +15,7 @@
   padding-right: 2px;
 }
 :root:not([night-show-search]):not([night-search-open]) #night-tab-search,
-:root:not([night-show-memory]) #night-memory-status,
+:root:not([night-show-memory]) #night-memory-status:not([data-message]),
 :root:not([night-show-tools]) :is(#night-split-button, #night-network-button),
 #night-import-button { display: none; }
 .night-folder { margin: 2px 0; }

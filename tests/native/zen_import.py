@@ -148,7 +148,13 @@ def run(package, zen, extension, output):
         (future/'compatibility.ini').write_text('[Compatibility]\nLastVersion=999.0_test\n')
         newer = subprocess.run([str(night/'Night.exe'),'--copy-zen',str(future),'import-stage-'+'b'*32],timeout=30)
         assert newer.returncode != 0 and not (night/('import-stage-'+'b'*32)).exists(), 'Downgrade guard failed'
-        prepared = target.execute_async_script("const done=arguments[arguments.length-1];const {NightImport}=ChromeUtils.importESModule('resource:///modules/night/NightImport.sys.mjs');NightImport.stage(arguments[0]).then(done,e=>done({error:String(e),stack:e.stack}));", script_args=[str(source)])
+        target.set_context('content')
+        wait_for(lambda: target.execute_script("return !!document.querySelector('#next')?.onclick;"))
+        target.execute_script("document.querySelector('[data-palette=graphite]').click();document.querySelector('#next').click();const option=document.createElementNS('http://www.w3.org/1999/xhtml','option');option.value=arguments[0];option.textContent='Zen fixture';const profiles=document.querySelector('#profiles');profiles.append(option);profiles.value=arguments[0];document.querySelector('#consent').click();document.querySelector('#import').click();",script_args=[str(source)])
+        wait_for(lambda: target.execute_script("return !document.querySelector('#ready').hidden || document.querySelector('#status').textContent.startsWith('Не удалось');"),timeout=120)
+        assert target.execute_script("return !document.querySelector('#ready').hidden;"),target.execute_script("return document.querySelector('#status').textContent;")
+        target.set_context('chrome')
+        prepared = target.execute_script("return ChromeUtils.importESModule('resource:///modules/night/NightImport.sys.mjs').NightImport.status;")
         (output/'zen-import-stage.json').write_text(json.dumps(prepared,ensure_ascii=False,indent=2),encoding='utf-8')
         assert 'error' not in prepared, prepared
         assert prepared['phase'] == 'ready' and prepared['tabs'] >= 2, prepared
@@ -186,6 +192,8 @@ def run(package, zen, extension, output):
         """, script_args=[url])
         (output/'zen-import-restored.json').write_text(json.dumps(state,ensure_ascii=False,indent=2),encoding='utf-8')
         assert 'error' not in state, state
+        assert imported.execute_script('return Services.prefs.getBoolPref("night.onboarding.completed") && Services.prefs.getStringPref("night.ui.palette")=="graphite";')
+        assert not any(url.endswith('/welcome.xhtml') for url in state['tabs']), state
         assert state['bookmark'] == 'Night import bookmark', state
         assert state['login'] and state['addon'] and state['signatureRequired'], state
         assert state['addonStorage'] == 'addon-value', state

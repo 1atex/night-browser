@@ -319,18 +319,24 @@ class NightWindow {
 }
 
 export const NightBrowser = {
+  onboardingWindow: null,
   init(window) {
     if (window.gNightBrowser) return;
     window.gNightBrowser = new NightWindow(window);
-    if (!Services.prefs.getBoolPref("night.onboarding.completed", false) &&
-        !ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs").PrivateBrowsingUtils.isWindowPrivate(window)) {
+    if (Services.prefs.getBoolPref("night.onboarding.completed", false) ||
+        ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs").PrivateBrowsingUtils.isWindowPrivate(window) ||
+        (this.onboardingWindow && !this.onboardingWindow.closed)) return;
+    this.onboardingWindow = window;
+    const { SessionStore } = ChromeUtils.importESModule("moz-src:///browser/components/sessionstore/SessionStore.sys.mjs");
+    SessionStore.promiseAllWindowsRestored.then(() => {
+      if (window.closed || Services.prefs.getBoolPref("night.onboarding.completed", false)) return;
       const url = "chrome://browser/content/night/welcome.xhtml";
       const existing = [...window.gBrowser.tabs].find(tab => tab.linkedBrowser.currentURI.spec === url);
       if (existing) window.gBrowser.selectedTab = existing;
-      else if (![...Services.wm.getEnumerator("navigator:browser")].some(other => other !== window && other.gNightBrowser)) {
+      else {
         const current = window.gBrowser.selectedBrowser.currentURI.spec;
         window.openTrustedLinkIn(url, ["about:blank", "about:home", "about:newtab"].includes(current) ? "current" : "tab");
       }
-    }
+    }).catch(error => console.error("First-run setup failed", error));
   },
 };

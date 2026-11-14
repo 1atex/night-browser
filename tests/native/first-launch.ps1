@@ -13,6 +13,8 @@ public static class NightWindowInfo {
   public interface Store { uint GetCount(); void GetAt(uint index,out Key key); void GetValue(ref Key key,out Value value); void SetValue(ref Key key,ref Value value); void Commit(); }
   [DllImport("shell32.dll")] static extern int SHGetPropertyStoreForWindow(IntPtr window,ref Guid iid,[MarshalAs(UnmanagedType.Interface)]out Store store);
   [DllImport("ole32.dll")] static extern int PropVariantClear(ref Value value);
+  [DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr window);
+  [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr window);
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr window,out Rect rect);
   [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr window,IntPtr after,int x,int y,int width,int height,uint flags);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr window,int command);
@@ -111,6 +113,29 @@ try {
     $graphics.CopyFromScreen($rect.left,$rect.top,0,0,$bitmap.Size)
     $bitmap.Save((Join-Path $outputPath "night-first-launch.png"),[System.Drawing.Imaging.ImageFormat]::Png)
   } finally { $graphics.Dispose();$bitmap.Dispose() }
+  function Click-Caption([string]$name) {
+    $captionRect = New-Object NightWindowInfo+Rect
+    [NightWindowInfo]::GetWindowRect($window,[ref]$captionRect) | Out-Null
+    [NightWindowInfo]::SetCursorPos($captionRect.right-35,$captionRect.top+3) | Out-Null
+    Start-Sleep -Milliseconds 350
+    $button = [System.Windows.Automation.AutomationElement]::FromHandle($window).FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | Where-Object { $_.Current.Name -eq $name -and -not $_.Current.IsOffscreen -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button } | Select-Object -First 1
+    if (-not $button) { throw "Caption button missing: $name" }
+    $buttonRect = $button.Current.BoundingRectangle
+    if ($buttonRect.Left -lt $captionRect.right-160) { throw "Caption is not at the right edge" }
+    [NightWindowInfo]::SetCursorPos([int]($buttonRect.Left+$buttonRect.Width/2),[int]($buttonRect.Top+$buttonRect.Height/2)) | Out-Null
+    [NightWindowInfo]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+    [NightWindowInfo]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+    Start-Sleep -Milliseconds 500
+  }
+  Click-Caption "Развернуть"
+  if (-not [NightWindowInfo]::IsZoomed($window)) { throw "Caption maximize did not work" }
+  Click-Caption "Восстановить"
+  if ([NightWindowInfo]::IsZoomed($window)) { throw "Caption restore did not work" }
+  Click-Caption "Свернуть"
+  if (-not [NightWindowInfo]::IsIconic($window)) { throw "Caption minimize did not work" }
+  [NightWindowInfo]::ShowWindow($window,9) | Out-Null
+  [NightWindowInfo]::SetForegroundWindow($window) | Out-Null
+  Start-Sleep -Milliseconds 500
   [System.Windows.Forms.SendKeys]::SendWait("^l")
   [System.Windows.Forms.SendKeys]::SendWait("about:preferences#appearance{ENTER}")
   Start-Sleep -Seconds 3
