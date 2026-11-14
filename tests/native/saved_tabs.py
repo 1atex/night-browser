@@ -50,6 +50,7 @@ def run(binary, app_ini, output):
             if browser.get_url() == origin+'/saved':
                 break
         browser.find_element('id','edit').click()
+        wait_for(lambda: chrome("return !!"+row()+";"))
         chrome(row()+'.querySelector(".night-tab-close").click();')
         def has_prompt():
             try:
@@ -61,6 +62,7 @@ def run(binary, app_ini, output):
         assert chrome('return !w.saved.closing&&!w.saved.hasAttribute("pending")&&b.selectedTab===w.saved;')
         browser.set_context('content')
         browser.execute_script('window.wrappedJSObject.onbeforeunload=null;document.querySelector("#draft").value="keep my draft";document.querySelector("#draft").dispatchEvent(new Event("input",{bubbles:true}));')
+        wait_for(lambda: chrome("return !!"+row()+";"))
         chrome(row()+'.querySelector(".night-tab-close").click();')
         wait_for(lambda: chrome('return w.saved.hasAttribute("pending");'))
         assert chrome('return b.tabs.includes(w.saved)&&s.workspaces.folderOf(w.saved)===w.folder&&b.selectedTab!==w.saved;')
@@ -92,6 +94,7 @@ def run(binary, app_ini, output):
         wait_for(lambda: chrome('return !b.tabs.includes(w.saved);'))
         chrome('w.ordinary=s.workspaces.newTab(arguments[0]);',origin+'/ordinary')
         wait_for(lambda: chrome('return w.ordinary.label==="Saved project";'))
+        wait_for(lambda: chrome("return !!"+row()+";"))
         chrome(row()+'.querySelector(".night-tab-close").click();')
         wait_for(lambda: chrome('return !b.tabs.includes(w.ordinary);'))
         (output/'saved-tabs-result.json').write_text(json.dumps({'unsaved_cancel_preserves_tab':True,'folder_close_unloads':True,'folder_survives_restart':True,'background_stays_asleep':True,'form_restores':True,'explicit_removal':True,'ordinary_tab_closes':True}))
