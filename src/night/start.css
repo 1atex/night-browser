@@ -45,3 +45,27 @@ input:focus-visible { outline: none; box-shadow: none; }
 main:has(#suggestions:not([hidden])) nav { visibility: hidden; }
 
 :root[data-motion="false"] #suggestions { animation: none; }
+[hidden] { display: none !important; }
+#home-widgets { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 24px; }
+.home-widget { padding: 16px; border: 1px solid var(--night-line); border-radius: var(--night-radius); min-width: 0; }
+.home-widget header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.home-widget h2 { font-size: 13px; font-weight: 600; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.widget-caption { color: var(--night-secondary); font-size: 11px; line-height: 1.6; margin: 8px 0 12px; }
+.home-widget button { width: auto; height: auto; font: inherit; color: var(--night-text); background: var(--night-field); border-radius: 8px; padding: 8px 10px; }
+.home-widget .widget-link { color: var(--night-secondary); background: none; font-size: 11px; padding: 4px 0; }
+.home-widget button:hover:not(:disabled) { background: var(--night-hover); }
+.home-widget button:disabled { opacity: .4; cursor: default; }
+.widget-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.widget-actions button { font-size: 11px; }
+#home-tab-items { display: grid; gap: 3px; }
+#home-tab-items .home-tab { background: none; text-align: start; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; padding-inline: 0; font-size: 12px; }
+.home-tab[data-sleeping] { color: var(--night-secondary); }
+#home-island[data-connected] h2::before { content: ""; display: inline-block; width: 5px; height: 5px; background: var(--night-accent); border-radius: 50%; margin-right: 8px; }
+#home-customize { margin-top: 18px; color: var(--night-muted); font-size: 11px; }
+#home-customize summary { cursor: pointer; width: fit-content; padding: 4px 0; }
+#home-customize fieldset { border: 0; padding: 12px 0 0; display: flex; flex-wrap: wrap; gap: 12px; }
+#home-customize label { display: flex; align-items: center; gap: 6px; color: var(--night-secondary); cursor: pointer; }
+#home-customize input { appearance: auto; accent-color: var(--night-accent); flex: none; }
+@media (max-width: 500px) { #home-widgets { grid-template-columns: 1fr; } }
+
+#home-island:not([data-connected]) .widget-actions { display: none; }

@@ -4,7 +4,7 @@ import { normalizeFolders, folderContains } from "resource:///modules/night/Work
 
 const KEY = "night-workspace";
 const STATE = "night-workspaces";
-const EVENTS = ["TabOpen", "TabSelect", "SSTabRestored", "SSWindowStateReady"];
+const EVENTS = ["TabOpen", "TabClose", "TabSelect", "SSTabRestored", "SSWindowStateReady"];
 
 export class NightWorkspaces {
   #window;
@@ -28,7 +28,7 @@ export class NightWorkspaces {
       if (!Array.isArray(state.items) || !state.items.length || state.items.length > 1000) return;
       if (state.items.some(item => typeof item.id !== "string" || typeof item.name !== "string" || !item.name.trim())) return;
       if (new Set(state.items.map(item => item.id)).size !== state.items.length) return;
-      this.items = state.items.map(item => ({ id: item.id, name: item.name.slice(0, 40) }));
+      this.items = state.items.map(item => ({ id: item.id, name: item.name.slice(0, 40), collapsed: item.collapsed === true }));
       this.folders = normalizeFolders(state.folders, this.items.map(item => item.id));
       this.active = this.items.some(item => item.id === state.active) ? state.active : this.items[0].id;
     } catch {}
@@ -76,6 +76,14 @@ export class NightWorkspaces {
     this.#save();
   }
 
+  get collapsed() { return this.items.find(item => item.id === this.active)?.collapsed === true; }
+
+  toggleCollapsed() {
+    const item = this.items.find(item => item.id === this.active);
+    item.collapsed = !item.collapsed;
+    this.#save();
+  }
+
   remove() {
     if (this.items.length < 2) throw new Error("Нужна хотя бы одна рабочая область.");
     const removed = this.active;
@@ -85,6 +93,7 @@ export class NightWorkspaces {
     }
     for (const folder of this.folders) if (folder.workspace === removed) folder.workspace = target;
     this.items = this.items.filter(item => item.id !== removed);
+    this.#last.delete(removed);
     this.switchTo(target);
   }
 
@@ -227,8 +236,17 @@ export class NightWorkspaces {
     const tab = this.#window.gBrowser.addTrustedTab(url);
     SessionStore.setCustomTabValue(tab, KEY, this.active);
     this.#window.gBrowser.selectedTab = tab;
-    if (url === "about:newtab") this.#window.gURLBar.select();
+    if (url === "about:newtab") {
+      this.#window.gURLBar.select();
+      this.focusHome(tab);
+    }
     return tab;
+  }
+
+  focusHome(tab) {
+    if (tab !== this.#window.gBrowser.selectedTab || !["about:newtab", "about:home"].includes(tab.linkedBrowser.currentURI.spec)) return;
+    this.#window.gURLBar.select();
+    try { tab.linkedBrowser.browsingContext.currentWindowGlobal?.getActor("NightStart")?.focusInput(); } catch {}
   }
 
   switchTo(id, requested = null) {
@@ -266,6 +284,8 @@ export class NightWorkspaces {
         this.#last.set(this.workspaceOf(tab), tab);
         this.switchTo(this.workspaceOf(tab), tab);
       }
+    } else if (event.type === "TabClose") {
+      for (const [id, tab] of this.#last) if (tab === event.target) this.#last.delete(id);
     } else if (event.type === "TabOpen") {
       this.workspaceOf(event.target);
     } else if (event.type === "SSTabRestored") {
@@ -276,5 +296,6 @@ export class NightWorkspaces {
 
   destroy() {
     for (const event of EVENTS) this.#window.removeEventListener(event, this);
+    this.#last.clear();
   }
 }

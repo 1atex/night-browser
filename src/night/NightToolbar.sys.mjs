@@ -65,6 +65,7 @@ export class NightToolbar {
   }
 
   observe() {
+    this.#root.toggleAttribute("night-address-detailed", Services.prefs.getBoolPref("night.ui.address-details", false));
     this.#root.toggleAttribute("night-toolbar-auto", this.automatic);
     this.#root.toggleAttribute("night-sidebar-navigation", Services.prefs.getStringPref("night.ui.navigation-layout", "sidebar") === "sidebar" && !this.automatic && !this.#root.hasAttribute("inFullscreen") && !this.#root.hasAttribute("inDOMFullscreen") && !this.#root.hasAttribute("customizing"));
     this.#window.document.getElementById("nav-bar").overflowable?.setNightWrapped(this.#root.hasAttribute("night-sidebar-navigation"));

@@ -7,6 +7,19 @@ import { NightShell } from "resource:///modules/night/NightShell.sys.mjs";
 import { NightIsland } from "resource:///modules/night/NightIsland.sys.mjs";
 import { NightMemory } from "resource:///modules/night/NightMemory.sys.mjs";
 
+ChromeUtils.registerWindowActor("NightSurface", {
+  parent: {esModuleURI: "resource:///modules/night/NightSurfaceParent.sys.mjs"},
+  child: {esModuleURI: "resource:///modules/night/NightSurfaceChild.sys.mjs", events: {DOMDocElementInserted: {}, DOMContentLoaded: {}}},
+  allFrames: true,
+  includeChrome: true,
+  matches: [
+    ...["addons", "logins", "downloads", "privatebrowsing", "config", "support", "processes", "performance", "memory", "profiles", "sessionrestore", "neterror", "certerror", "httpsonlyerror", "blocked", "preferences", "devtools-toolbox"].map(page => `about:${page}*`),
+    "chrome://browser/content/preferences/*", "chrome://browser/content/places/*", "chrome://browser/content/pageinfo/*",
+    "chrome://global/content/print.html", "chrome://global/content/commonDialog.xhtml", "chrome://mozapps/content/downloads/unknownContentType.xhtml",
+    "chrome://browser/content/aboutDialog.xhtml", "chrome://devtools/content/*",
+  ],
+});
+
 ChromeUtils.registerWindowActor("NightStart", {
   parent: { esModuleURI: "resource:///modules/night/NightStartParent.sys.mjs" },
   child: {
@@ -21,6 +34,7 @@ const XHTML = "http://www.w3.org/1999/xhtml";
 class NightWindow {
   #window;
   #panel = null;
+  #workbenchStyle = null;
   #section = "memory";
   #network = null;
   #destroyed = false;
@@ -111,6 +125,10 @@ class NightWindow {
       return;
     }
     const doc = this.#window.document;
+    this.#workbenchStyle = doc.createElementNS(XHTML, "link");
+    this.#workbenchStyle.rel = "stylesheet";
+    this.#workbenchStyle.href = "chrome://browser/content/night/workbench.css";
+    doc.documentElement.append(this.#workbenchStyle);
     doc.documentElement.setAttribute("night-workbench", "true");
     this.#panel = this.#element("section", "", {
       id: "night-tools",
@@ -186,7 +204,7 @@ class NightWindow {
     capture.append(actions, scope);
     const list = this.#field(
       capture,
-      "Запросы",
+      "История · до 50 запросов, 512 КиБ текста",
       this.#element("select", "", { size: "5" }),
     );
     const requestLine = this.#element("div", "", {
@@ -299,15 +317,17 @@ class NightWindow {
           (item) => [item.id, item],
         ),
       );
-      list.replaceChildren(
-        ...[...items.values()].map((item) =>
-          this.#element(
-            "option",
-            `${item.status} · ${item.method} ${item.url}`,
-            { value: item.id },
-          ),
-        ),
-      );
+      const existing = new Map([...list.children].map(option => [option.value, option]));
+      let cursor = list.firstChild;
+      for (const item of items.values()) {
+        const option = existing.get(item.id) ?? this.#element("option", "", {value: item.id});
+        const label = `${item.status} · ${item.method} ${item.url}`;
+        if (option.textContent !== label) option.textContent = label;
+        if (option !== cursor) list.insertBefore(option, cursor);
+        else cursor = cursor.nextSibling;
+        existing.delete(item.id);
+      }
+      for (const option of existing.values()) option.remove();
       if (items.has(previous)) list.value = previous;
       if (!items.has(selected?.id)) {
         list.selectedIndex = items.size ? 0 : -1;
@@ -327,6 +347,8 @@ class NightWindow {
     this.#selectNetworkRequest = () => {};
     this.#panel?.remove();
     this.#panel = null;
+    this.#workbenchStyle?.remove();
+    this.#workbenchStyle = null;
   }
 
   destroy() {

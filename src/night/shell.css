@@ -189,3 +189,9 @@
 }
 @keyframes night-workbench-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { :root[night-browser] * { animation: none !important; transition: none !important; } }
+
+.night-workspace-row::before { display: none; }
+#night-workspace-collapse { flex-shrink: 0; background: transparent; }
+#night-workspace-collapse::before { content: ""; display: block; width: 6px; height: 6px; margin: auto; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); }
+#night-workspace-collapse[aria-expanded="false"]::before { transform: rotate(-45deg); }
+#night-sidebar[data-workspace-collapsed] :is(#night-folder-tree, #night-tab-list) { display: none; }

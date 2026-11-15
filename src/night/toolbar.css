@@ -352,3 +352,11 @@
   :root[night-browser][night-motion] #urlbar[open] .urlbarView { animation: night-search-reveal 140ms ease-out; }
 }
 @keyframes night-search-reveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+#night-page-actions { list-style-image: url("chrome://browser/content/night/icons/more.svg"); border-radius: 50%; min-width: 24px; margin-inline: 2px; padding: 4px; -moz-user-focus: normal; }
+#night-page-actions:hover { background: var(--night-hover); }
+:root[night-browser]:not([night-address-detailed]) :is(#urlbar-zoom-button, #star-button-box) { display: none !important; }
+:root[night-browser]:not([night-address-detailed]) #identity-permission-box:not([hasSharingIcon]):not([open]) { display: none !important; }
+:root[night-browser]:not([night-address-detailed]) :is(#permissions-granted-icon, #blocked-permissions-container) { display: none; }
+#urlbar:is([focused], [night-internal-page]) #night-page-actions { display: none; }
+#night-page-menu { --panel-padding: 0; }
+#night-page-menu .night-menu-body { width: 260px; }

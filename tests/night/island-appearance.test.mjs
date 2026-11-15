@@ -11,6 +11,8 @@ test("shared appearance accepts only bounded numeric colors and a motion flag", 
   }
   assert.equal(appearanceStyles(appearance)["color-scheme"], "dark");
   assert.equal(appearanceStyles({...appearance,panel:[240,240,240]})["color-scheme"], "light");
+  assert.equal(appearanceStyles({...appearance,accent:[20,20,20]})["--night-on-accent"], "#ffffff");
+  assert.equal(appearanceStyles({...appearance,accent:[240,240,240]})["--night-on-accent"], "#000000");
 });
 
 test("unchanged appearance does not rewrite styles; disabling restores the browser palette", () => {

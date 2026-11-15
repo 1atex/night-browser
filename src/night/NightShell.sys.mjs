@@ -132,6 +132,9 @@ export class NightShell {
       this.workspaces.switchTo(this.#selector.value),
     );
     workspace.append(
+      this.#button("", "Свернуть пространство", () => this.workspaces.toggleCollapsed(), {
+        id: "night-workspace-collapse", "aria-expanded": "true", "aria-controls": "night-folder-tree night-tab-list",
+      }),
       this.#selector,
       this.#button(
         "+",
@@ -522,6 +525,7 @@ export class NightShell {
       tab.label,
       () => {
         browser.selectedTab = tab;
+        this.workspaces.focusHome(tab);
       },
       { class: "night-tab-main", role: "tab" },
     );
@@ -704,6 +708,12 @@ export class NightShell {
       this.#selector.dataset.items = JSON.stringify(this.workspaces.items);
     }
     this.#selector.value = this.workspaces.active;
+    const collapsed = this.workspaces.collapsed && !query;
+    this.#sidebar.toggleAttribute("data-workspace-collapsed", collapsed);
+    const collapse = this.#window.document.getElementById("night-workspace-collapse");
+    setAttribute(collapse, "aria-expanded", String(!collapsed));
+    setAttribute(collapse, "aria-label", collapsed ? "Развернуть пространство" : "Свернуть пространство");
+    setAttribute(collapse, "title", collapsed ? "Развернуть пространство" : "Свернуть пространство");
     const layout = this.workspaces.layout();
     const tabs = layout.tabs;
     const liveTabs = new Set(browser.tabs);
@@ -803,6 +813,12 @@ export class NightShell {
   }
 
   handleEvent(event) {
+    if (event.type === "TabClose") {
+      this.#rows.get(event.target)?.row.remove();
+      this.#rows.delete(event.target);
+      this.#dirtyTabs.delete(event.target);
+      if (this.#dragged === event.target) this.#endDrag();
+    }
     if (event.type === "click") {
       if (this.#menu && !this.#menu.contains(event.target)) {
         this.#menu.remove();
@@ -870,6 +886,13 @@ export class NightShell {
     if (this.#frame !== null) this.#window.cancelAnimationFrame(this.#frame);
     Services.prefs.removeObserver("night.ui.", this);
     this.workspaces.destroy();
+    this.#rows.clear();
+    this.#folders.clear();
+    this.#dirtyTabs.clear();
+    this.#folderVersion = null;
+    this.#dragged = null;
+    this.#menu?.remove();
+    this.#menu = null;
     this.#sidebar.remove();
     this.#window.document.getElementById("night-sidebar-toggle")?.remove();
     this.#window.document.getElementById("night-autohide-button")?.remove();

@@ -211,6 +211,7 @@ window.addEventListener(
       toggle(layout, "Кнопки окна при наведении", "Сворачивание, размер и закрытие — в правом верхнем углу.", "night.ui.window-controls-autohide", true);
       toggle(layout, "Поиск вкладок на панели", "Всегда доступен по Alt+P.", "night.ui.show-tab-search", false);
       toggle(layout, "Счётчик вкладок", "Количество загруженных и выгруженных страниц.", "night.ui.show-memory-status", false);
+      toggle(layout, "Все значки адресной строки", "По умолчанию закладки, масштаб и разрешения доступны в меню ⋯. Активные камера, микрофон и предупреждения остаются видны.", "night.ui.address-details", false);
       toggle(layout, "Кнопки инструментов", "Разделение экрана и запросы. Настройки остаются доступны.", "night.ui.show-tools", true);
       toggle(
         layout,

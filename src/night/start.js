@@ -9,7 +9,7 @@ function stopClock() {
 
 function updateClock() {
   stopClock();
-  if (document.hidden) return;
+  if (document.hidden || document.getElementById("home-clock").hidden) return;
   const now = new Date();
   document.getElementById("clock").textContent = clockFormat.format(now);
   const date = dateFormat.format(now);
@@ -18,6 +18,7 @@ function updateClock() {
 }
 
 document.addEventListener("visibilitychange", updateClock);
+document.addEventListener("NightHomeChanged", updateClock);
 window.addEventListener("pagehide", stopClock);
 window.addEventListener("pageshow", updateClock);
 updateClock();

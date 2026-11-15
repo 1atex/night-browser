@@ -5,7 +5,7 @@ import {readFileSync} from "node:fs";
 
 test("new-tab clock sleeps in the background and resumes at the correct minute", () => {
   let now = new Date("2026-11-14T12:34:45Z").getTime(), sequence = 0;
-  const timers = new Map(), events = new Map(), nodes = {clock: {}, date: {}};
+  const timers = new Map(), events = new Map(), nodes = {clock: {}, date: {}, "home-clock": {hidden: false}};
   const document = {hidden: false, getElementById: id => nodes[id], addEventListener: (type, fn) => events.set(type, fn)};
   class Clock extends Date { constructor() { super(now); } }
   vm.runInNewContext(readFileSync(new URL("../../src/night/start.js", import.meta.url), "utf8"), {
@@ -28,5 +28,11 @@ test("new-tab clock sleeps in the background and resumes at the correct minute",
   events.get("pagehide")();
   assert.equal(timers.size, 0);
   events.get("pageshow")();
+  assert.equal(timers.size, 1);
+  nodes["home-clock"].hidden = true;
+  events.get("NightHomeChanged")();
+  assert.equal(timers.size, 0);
+  nodes["home-clock"].hidden = false;
+  events.get("NightHomeChanged")();
   assert.equal(timers.size, 1);
 });

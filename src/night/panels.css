@@ -17,7 +17,7 @@
   --button-background-color-active: var(--night-selected);
   --button-background-color-primary: var(--night-accent);
   --button-background-color-primary-hover: #e2e6ed;
-  --button-text-color-primary: #17171a;
+  --button-text-color-primary: var(--night-on-accent);
   --background-color-information: #ffffff0d;
   --background-color-success: #ffffff0d;
   --background-color-warning: #d9b4771c;
@@ -55,3 +55,12 @@
 :root[night-browser] #unified-extensions-empty-state { padding: 10px 4px; }
 :root[night-browser] #unified-extensions-empty-state > h2 { font-size: 13px; font-weight: 600; }
 :root[night-browser] #unified-extensions-empty-state > description { color: var(--night-secondary); line-height: 1.5; }
+:root[night-browser] :is(panel, menupopup) { --panel-border-color: var(--night-line); --arrowpanel-border-color: var(--night-line); --button-background-color-primary-hover: var(--night-text); --input-background-color: var(--night-field); --input-color: var(--night-text); --input-border-color: var(--night-line); --input-border-radius: 8px; --focus-outline-color: var(--night-accent); --link-color: var(--night-accent); --text-color: var(--night-text); --text-color-deemphasized: var(--night-secondary); }
+:root[night-browser] :is(.popup-notification-description, .popup-notification-warning, .identity-popup-security-content, .permission-popup-permission-label) { line-height: 1.5; }
+:root[night-browser] :is(.popup-notification-footer, .panel-footer) { background: var(--night-field); border-color: var(--night-line); }
+:root[night-browser] :is(#editBookmarkPanel, #confirmation-hint) { --arrowpanel-background: var(--night-panel); --arrowpanel-color: var(--night-text); }
+:root[night-browser] findbar { background: var(--night-panel); color: var(--night-text); border: 1px solid var(--night-line); border-radius: 0 0 var(--night-radius) var(--night-radius); font: 12px var(--night-font); --focus-outline-color: var(--night-accent); }
+:root[night-browser] findbar :is(input, .findbar-textbox) { background: var(--night-field); border: 1px solid var(--night-line); border-radius: 8px; color: var(--night-text); }
+:root[night-browser] :is(#customization-container, #customization-palette-container, #customization-footer) { background: var(--night-page); color: var(--night-text); border-color: var(--night-line); font-family: var(--night-font); }
+:root[night-browser] :is(.customization-target, .customization-target-toolbar) { border-color: var(--night-line); }
+:root[night-browser] menupopup :is(menuitem, menu)[_moz-menuactive="true"] { background: var(--night-selected); color: var(--night-text); }

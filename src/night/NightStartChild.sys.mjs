@@ -78,7 +78,17 @@ export class NightStartChild extends JSWindowActorChild {
     });
     doc.addEventListener("pointerdown", event => { if (!event.target.closest(".home-search")) this.#close(); });
     this.contentWindow.addEventListener("blur", () => this.#close());
-    doc.addEventListener("visibilitychange", () => { if (doc.hidden) this.#close(); });
+    doc.addEventListener("visibilitychange", () => {
+      if (doc.hidden) this.#close();
+      this.sendAsyncMessage("NightStart:Visible", {visible: !doc.hidden});
+    });
+    doc.getElementById("home-customize")?.addEventListener("change", () => {
+      this.sendAsyncMessage("NightStart:Widgets", {enabled: [...doc.querySelectorAll("[data-widget]:checked")].map(node => node.dataset.widget)});
+    });
+    doc.getElementById("home-widgets")?.addEventListener("click", event => {
+      const button = event.target.closest("[data-home-action]");
+      if (button) this.sendAsyncMessage("NightStart:HomeAction", {action: button.dataset.homeAction, id: button.dataset.tab});
+    });
     doc.addEventListener("focusout", event => { if (event.target === input && !list.contains(event.relatedTarget)) this.#close(); });
   }
 
@@ -127,6 +137,7 @@ export class NightStartChild extends JSWindowActorChild {
   }
 
   receiveMessage(message) {
+    if (message.name === "NightStart:Home") { this.#renderHome(message.data); return; }
     if (message.name === "NightStart:Suggestions") { this.#render(message.data); return; }
     if (message.name === "NightStart:Focus") {
       if (!this.document.hidden) this.document.getElementById("query")?.focus({preventScroll: true});
@@ -144,5 +155,40 @@ export class NightStartChild extends JSWindowActorChild {
     this.document.documentElement.dataset.palette =
       ["night", "graphite", "midnight", "mist"].includes(palette) ? palette : "night";
     applyIslandAppearance(this.document.documentElement, message.data.appearance);
+  }
+
+  #renderHome(data) {
+    const doc = this.document;
+    for (const id of ["clock", "shortcuts", "tabs", "island"]) {
+      const show = data.enabled.includes(id);
+      doc.getElementById(`home-${id}`).hidden = !show;
+      doc.querySelector(`[data-widget="${id}"]`).checked = show;
+    }
+    doc.getElementById("home-widgets").hidden = !data.enabled.some(id => ["tabs", "island"].includes(id));
+    doc.getElementById("home-workspace-name").textContent = data.workspace;
+    doc.getElementById("home-tab-count").textContent = `${data.loaded} загружено · ${data.sleeping} спят`;
+    const list = doc.getElementById("home-tab-items");
+    const key = JSON.stringify(data.tabs);
+    if (list.dataset.items !== key) {
+      list.dataset.items = key;
+      list.replaceChildren();
+      for (const tab of data.tabs) {
+        const button = doc.createElement("button");
+        button.type = "button"; button.dataset.homeAction = "tab"; button.dataset.tab = tab.id;
+        button.className = "home-tab"; button.toggleAttribute("data-sleeping", tab.sleeping);
+        button.textContent = tab.title;
+        button.title = tab.sleeping ? `${tab.title} · загрузить вкладку` : tab.title;
+        list.append(button);
+      }
+      if (!data.tabs.length) { const empty = doc.createElement("p"); empty.className = "widget-caption"; empty.textContent = "Страницы этого пространства будут здесь."; list.append(empty); }
+    }
+    if (data.island) {
+      doc.getElementById("home-island-status").textContent = data.island.status;
+      doc.querySelector('[data-home-action="integrations"]').textContent = data.island.connected ? "Настроить" : "Подключить";
+      doc.getElementById("home-island").toggleAttribute("data-connected", data.island.connected);
+      for (const action of ["pocket", "browser", "downloads"])
+        doc.querySelector(`[data-home-action="${action}"]`).disabled = !data.island[action === "browser" ? "tabs" : action];
+    }
+    doc.dispatchEvent(new this.contentWindow.Event("NightHomeChanged"));
   }
 }

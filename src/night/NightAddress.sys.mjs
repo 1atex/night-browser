@@ -12,6 +12,8 @@ export class NightAddress {
   #animation = null;
   #closing = false;
   #timer = null;
+  #actions;
+  #popup;
 
   #motion() {
     return Services.prefs.getBoolPref("night.ui.animations", true) && !this.#window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
@@ -68,6 +70,24 @@ export class NightAddress {
     this.#label.id = "night-address-page";
     this.#label.setAttribute("aria-hidden", "true");
     input.before(this.#icon, this.#label);
+    this.#actions = doc.createXULElement("toolbarbutton");
+    this.#actions.id = "night-page-actions";
+    this.#actions.className = "urlbar-icon";
+    this.#actions.setAttribute("tooltiptext", "Действия со страницей");
+    this.#actions.setAttribute("aria-label", "Действия со страницей");
+    this.#actions.setAttribute("aria-haspopup", "dialog");
+    this.#actions.addEventListener("command", () => this.#showActions());
+    doc.getElementById("page-action-buttons").append(this.#actions);
+    this.#popup = doc.createXULElement("panel");
+    this.#popup.id = "night-page-menu";
+    this.#popup.setAttribute("type", "arrow");
+    this.#popup.setAttribute("role", "dialog");
+    this.#popup.setAttribute("aria-label", "Действия со страницей");
+    doc.getElementById("mainPopupSet").append(this.#popup);
+    this.#popup.addEventListener("popuphidden", () => {
+      this.#actions.setAttribute("aria-expanded", "false");
+      this.#popup.replaceChildren();
+    });
     for (const event of ["TabSelect", "TabAttrModified", "SSTabRestored"])
       window.gBrowser.tabContainer.addEventListener(event, this);
     this.update();
@@ -91,6 +111,7 @@ export class NightAddress {
     } else if (event.type === "focusin") {
       if (this.#bar.hasAttribute("night-address-editing")) this.#expand();
     } else if (["pointerdown", "input"].includes(event.type)) {
+      if (event.target.closest?.("#night-page-actions")) return;
       this.#expand();
     } else if (event.type === "focusout") {
       if (!this.#bar.contains(event.relatedTarget)) {
@@ -105,6 +126,31 @@ export class NightAddress {
       if (event.type === "TabSelect") this.#collapse();
       this.update();
     }
+  }
+
+  #showActions() {
+    if (this.#popup.state !== "closed") { this.#popup.hidePopup(); return; }
+    const w = this.#window, doc = w.document;
+    const body = doc.createElementNS("http://www.w3.org/1999/xhtml", "div");
+    body.className = "night-menu-body";
+    const add = (label, action) => {
+      const button = doc.createElementNS("http://www.w3.org/1999/xhtml", "button");
+      button.type = "button"; button.textContent = label;
+      button.addEventListener("click", event => { this.#popup.hidePopup(); action(event); });
+      body.append(button);
+    };
+    add("Разрешения сайта", event => {
+      w.gPermissionPanel.setAnchor(this.#actions, "bottomright topright");
+      w.gPermissionPanel.openPopup(event);
+      doc.getElementById("permission-popup")?.addEventListener("popuphidden", () => w.gPermissionPanel.setAnchor(null, "bottomleft topleft"), {once: true});
+    });
+    add(doc.getElementById("star-button").hasAttribute("starred") ? "Изменить закладку" : "Добавить в закладки", () => w.PlacesCommandHook.bookmarkPage());
+    const zoom = Math.round(w.ZoomManager.zoom * 100);
+    add(`Масштаб ${zoom}% · сбросить`, () => doc.getElementById("cmd_fullZoomReset").doCommand());
+    add("Информация о странице", () => w.BrowserCommands.pageInfo());
+    this.#popup.replaceChildren(body);
+    this.#actions.setAttribute("aria-expanded", "true");
+    this.#popup.openPopup(this.#actions, "bottomright topright");
   }
 
   update() {
@@ -136,6 +182,8 @@ export class NightAddress {
     this.#icon.removeEventListener("error", this);
     this.#icon.remove();
     this.#label.remove();
+    this.#popup.remove();
+    this.#actions.remove();
     this.#bar.removeAttribute("night-internal-page");
   }
 }

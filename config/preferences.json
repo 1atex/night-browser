@@ -91,5 +91,7 @@
   "night.ui.show-tools": true,
   "dom.ipc.processPrelaunch.fission.number": 1,
   "night.ui.window-controls-autohide": true,
-  "browser.startup.preXulSkeletonUI": false
+  "browser.startup.preXulSkeletonUI": false,
+  "night.ui.address-details": false,
+  "night.home.widgets": "[\"clock\",\"shortcuts\",\"tabs\",\"island\"]"
 }

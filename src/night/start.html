@@ -20,7 +20,7 @@
   </head>
   <body>
     <main aria-label="Новая вкладка">
-      <div class="home-time"><div class="date" id="date"></div>
+      <div class="home-time" id="home-clock"><div class="date" id="date"></div>
       <div class="clock" id="clock" aria-label="Текущее время"></div></div>
       <div class="home-search">
       <form action="https://www.google.com/search" method="get">
@@ -41,7 +41,7 @@
       </form>
       <div id="suggestions" role="listbox" aria-label="Подсказки" hidden></div>
       </div>
-      <nav aria-label="Быстрые ссылки">
+      <nav id="home-shortcuts" aria-label="Быстрые ссылки">
         <a href="https://www.youtube.com/"
           ><span class="tile-icon youtube"><img src="resource://newtab/prerendered/sites/youtube.png" alt="" /></span><span>YouTube</span></a
         >
@@ -55,6 +55,31 @@
           ><span class="tile-icon github"><img src="resource://newtab/prerendered/sites/github.ico" alt="" /></span><span>GitHub</span></a
         >
       </nav>
+      <div id="home-widgets">
+        <section class="home-widget" id="home-tabs" aria-labelledby="home-workspace-name">
+          <header><h2 id="home-workspace-name">Вкладки</h2><button type="button" class="widget-link" data-home-action="memory">Память</button></header>
+          <p class="widget-caption" id="home-tab-count"></p>
+          <div id="home-tab-items"></div>
+        </section>
+        <section class="home-widget" id="home-island" aria-labelledby="home-island-name">
+          <header><h2 id="home-island-name">Island</h2><button type="button" class="widget-link" data-home-action="integrations">Настроить</button></header>
+          <p class="widget-caption" id="home-island-status">Проверяем подключение</p>
+          <div class="widget-actions">
+            <button type="button" data-home-action="pocket" disabled="disabled">Карман</button>
+            <button type="button" data-home-action="browser" disabled="disabled">Вкладки</button>
+            <button type="button" data-home-action="downloads" disabled="disabled">Загрузки</button>
+          </div>
+        </section>
+      </div>
+      <details id="home-customize">
+        <summary>Настроить главную</summary>
+        <fieldset><legend class="sr-only">Показывать на главной</legend>
+          <label><input type="checkbox" data-widget="clock" checked="checked"/>Часы и дата</label>
+          <label><input type="checkbox" data-widget="shortcuts" checked="checked"/>Быстрые ссылки</label>
+          <label><input type="checkbox" data-widget="tabs" checked="checked"/>Текущее пространство</label>
+          <label><input type="checkbox" data-widget="island" checked="checked"/>Island</label>
+        </fieldset>
+      </details>
     </main>
   </body>
 </html>

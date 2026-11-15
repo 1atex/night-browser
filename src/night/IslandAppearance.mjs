@@ -9,12 +9,15 @@ export function appearanceStyles(value) {
   const ink = light ? "0, 0, 0" : "255, 255, 255";
   const color = channels => `rgb(${channels.join(", ")})`;
   const mix = amount => color(value.panel.map(n => Math.round(n + ((light ? 0 : 255) - n) * amount)));
+  const luminance = value.accent.map(n => n / 255).map(n => n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4)
+    .reduce((total, n, index) => total + n * [.2126, .7152, .0722][index], 0);
   return {
     "--night-background": color(value.panel),
     "--night-page": mix(.035),
     "--night-surface": mix(.08),
     "--night-panel": mix(.12),
     "--night-accent": color(value.accent),
+    "--night-on-accent": luminance > .179 ? "#000000" : "#ffffff",
     "--night-text": `rgba(${ink}, .96)`,
     "--night-secondary": `rgba(${ink}, .68)`,
     "--night-muted": `rgba(${ink}, .48)`,

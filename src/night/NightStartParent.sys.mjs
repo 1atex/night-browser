@@ -2,19 +2,33 @@ import {NightSuggestions} from "resource:///modules/night/NightSuggestions.sys.m
 import {PrivateBrowsingUtils} from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
 import {SearchService} from "moz-src:///toolkit/components/search/SearchService.sys.mjs";
 import {NightIsland} from "resource:///modules/night/NightIsland.sys.mjs";
+import {NightHome} from "resource:///modules/night/NightHome.sys.mjs";
 
 const PREFS = ["night.ui.palette", "night.island.appearance", "night.ui.animations"];
 const TOPICS = ["night-island-appearance", "browser-search-engine-modified"];
 
 export class NightStartParent extends JSWindowActorParent {
   #observing = false;
+  #ready = false;
   #suggestions = null;
+  #home = null;
   #observer = { observe: () => this.observe() };
 
   receiveMessage(message) {
     const browser = this.browsingContext.top.embedderElement;
     const window = browser?.ownerDocument.defaultView;
     const active = window?.gBrowser?.selectedBrowser === browser;
+    if (message.name === "NightStart:Visible") {
+      const visible = active && message.data?.visible === true;
+      this.#setObserving(visible);
+      this.#home?.setVisible(visible);
+      if (visible) this.observe();
+      if (!message.data?.visible) this.#suggestions?.cancel();
+      return;
+    }
+    if (["NightStart:Widgets", "NightStart:HomeAction"].includes(message.name)) {
+      this.#home?.receive(message.name, message.data); return;
+    }
     if (message.name === "NightStart:Cancel") { this.#suggestions?.cancel(); return; }
     if (message.name === "NightStart:Suggest") {
       const {text, serial} = message.data ?? {};
@@ -49,18 +63,31 @@ export class NightStartParent extends JSWindowActorParent {
       return;
     }
     if (message.name !== "NightStart:Ready") return;
-    if (!this.#observing) {
-      for (const pref of PREFS) Services.prefs.addObserver(pref, this.#observer);
-      for (const topic of TOPICS) Services.obs.addObserver(this.#observer, topic);
-      this.#observing = true;
-    }
-    this.observe();
-    const focused = window?.document.activeElement;
-    if (window?.gBrowser?.selectedBrowser === browser && !window.gURLBar.value &&
-        (!focused || focused === browser || focused === window.gURLBar.inputField || focused.id === "night-new-tab")) {
-      browser.focus();
-      this.sendAsyncMessage("NightStart:Focus");
-    }
+    this.#setObserving(active);
+    if (active) this.observe();
+    this.#home ??= new NightHome(this);
+    this.#home.setVisible(active);
+    this.#ready = true;
+    this.focusInput();
+  }
+
+  #setObserving(value) {
+    if (value === this.#observing) return;
+    this.#observing = value;
+    for (const pref of PREFS) Services.prefs[value ? "addObserver" : "removeObserver"](pref, this.#observer);
+    for (const topic of TOPICS) Services.obs[value ? "addObserver" : "removeObserver"](this.#observer, topic);
+  }
+
+  focusInput() {
+    const browser = this.browsingContext.top.embedderElement, window = browser?.ownerDocument.defaultView;
+    if (!this.#ready || window?.gBrowser?.selectedBrowser !== browser) return;
+    const focused = window.document.activeElement;
+    if (window.gURLBar.focused && window.gURLBar.value && !["about:newtab", "about:home"].includes(window.gURLBar.value)) return;
+    if (focused && focused !== browser && !window.gURLBar.contains(focused) &&
+        !focused.closest?.("#night-sidebar, #tabbrowser-tabs, #PanelUI-popup, #night-main-menu")) return;
+    window.gURLBar.view.close();
+    browser.focus();
+    this.sendAsyncMessage("NightStart:Focus");
   }
 
   async observe() {
@@ -78,11 +105,10 @@ export class NightStartParent extends JSWindowActorParent {
   }
 
   didDestroy() {
+    this.#home?.destroy();
+    this.#home = null;
     this.#suggestions?.cancel();
     this.#suggestions = null;
-    if (!this.#observing) return;
-    this.#observing = false;
-    for (const pref of PREFS) Services.prefs.removeObserver(pref, this.#observer);
-    for (const topic of TOPICS) Services.obs.removeObserver(this.#observer, topic);
+    this.#setObserving(false);
   }
 }
