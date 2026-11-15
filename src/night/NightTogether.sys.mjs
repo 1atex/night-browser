@@ -1,3 +1,4 @@
+import {setTimeout, clearTimeout} from "resource://gre/modules/Timer.sys.mjs";
 import {PrivateBrowsingUtils} from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
 const path = () => PathUtils.join(PathUtils.profileDir, "night-together.json");
 export const NightTogether = {

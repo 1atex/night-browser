@@ -949,7 +949,7 @@ window.addEventListener(
           for (const invitation of state.invitations) row(roomBody, "Приглашение от " + invitation.owner, invitation.id, button("Войти", () => action({type: "room-join", room: invitation.id})));
           if (state.room) {
             roomBody.append(element("p", `${state.room.members.length} участников · ${state.room.paused ? "Пауза" : "Воспроизведение"}`));
-            row(roomBody, "Ссылка комнаты", state.room.url, button("Открыть видео", () => browserWindow.openTrustedLinkIn(state.room.url, "tab")));
+            row(roomBody, "Ссылка комнаты", state.room.url, button("Открыть видео", () => { const url = new URL(state.room.url); if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) throw new Error("Некорректная ссылка комнаты."); browserWindow.openTrustedLinkIn(url.href, "tab"); }));
             roomBody.append(button("Покинуть комнату", () => action({type: "room-leave"})));
           } else {
             const url = element("input", "", {type: "url", placeholder: "Ссылка на видео", "aria-label": "Ссылка комнаты"});

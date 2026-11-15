@@ -49,7 +49,10 @@ def run(setup, output):
             shutil.copy2(setup.resolve(),update_setup)
             plan=Path(directory)/'update-plan.json'
             plan.write_text(json.dumps({'root':str(app),'setup':str(update_setup),'sha256':hashlib.sha256(update_setup.read_bytes()).hexdigest(),'profile':'default'}))
-            instance=start([app/'Night.exe','--run-update',plan],2828,output/'self-update-gecko.log')
+            helper=Path(directory)/'NightUpdate.exe'
+            shutil.copy2(app/'Night.exe',helper)
+            shutil.copy2(app/'Night.exe.config',str(helper)+'.config')
+            instance=start([helper,'--run-update',plan],2828,output/'self-update-gecko.log')
             wait_for(lambda:instance[0].execute_script(f'return !!{WIN}?.gNightBrowser;'))
             assert not plan.exists() and not update_setup.exists()
             assert (profile/'keep-test.txt').read_text()=='profile survives upgrade and removal'

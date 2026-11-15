@@ -51,10 +51,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
           $source = (Resolve-Path scripts/preview/Launcher.cs).Path
+          $updateSource = (Resolve-Path scripts/preview/UpdateRunner.cs).Path
           $importSource = (Resolve-Path scripts/preview/ProfileImport.cs).Path
           $executable = Join-Path (Resolve-Path dist/Night).Path "Night.exe"
           $icon = (Resolve-Path src/night/branding/night.ico).Path
-          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll "/win32icon:$icon" "/out:$executable" $source $importSource scripts/preview/UpdateRunner.cs
+          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll "/win32icon:$icon" "/out:$executable" $source $importSource $updateSource
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build per-user installer
         run: |
@@ -86,6 +87,11 @@ jobs:
         run: |
           $output = (Resolve-Path dist/Night).Path
           python -u tests/native/accounts.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test updates and friends service
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/updates_together.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test isolated Windows profiles
         run: |
@@ -194,6 +200,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Create download archive
         run: |
+          Copy-Item test-artifacts/updates-together-result.json dist/updates-together-result.json
+          Copy-Item test-artifacts/night-together.png dist/night-together.png
           Copy-Item test-artifacts/accounts-result.json dist/accounts-result.json
           Copy-Item test-artifacts/profiles-result.json dist/profiles-result.json
           Copy-Item test-artifacts/night-accounts.png dist/night-accounts.png
@@ -249,6 +257,8 @@ jobs:
           path: |
             dist/night-browser-0.13.0-preview-windows-x64.zip
             dist/night-browser-0.13.0-preview-windows-x64-setup.exe
+            dist/updates-together-result.json
+            dist/night-together.png
             dist/accounts-result.json
             dist/profiles-result.json
             dist/night-accounts.png
@@ -324,6 +334,8 @@ jobs:
           gh release create "$RELEASE_TAG" \
             release-assets/night-browser-0.13.0-preview-windows-x64.zip \
             release-assets/night-browser-0.13.0-preview-windows-x64-setup.exe \
+            release-assets/updates-together-result.json \
+            release-assets/night-together.png \
             release-assets/accounts-result.json \
             release-assets/profiles-result.json \
             release-assets/night-accounts.png \

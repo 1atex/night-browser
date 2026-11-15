@@ -1,3 +1,4 @@
+import {setTimeout, clearTimeout} from "resource://gre/modules/Timer.sys.mjs";
 import {releaseUpdate, checksumFor} from "resource:///modules/night/UpdateModel.mjs";
 import {NightProfiles} from "resource:///modules/night/NightProfiles.sys.mjs";
 import {PrivateBrowsingUtils} from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
