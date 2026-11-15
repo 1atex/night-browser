@@ -576,3 +576,7 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 3px s
 }
 
 .button-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+.profile-editor { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px 0 20px; }
+.profile-editor[hidden] { display: none; }
+.profile-badge { display: inline-grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; border-radius: 50%; border: 1px solid var(--profile-color); color: var(--profile-color); margin-inline-end: 10px; }
+#together-profile-name { min-width: 140px; }

@@ -13,7 +13,13 @@ test("profile metadata retains Unicode names and rejects empty or control charac
   assert.equal(profileName("  Работа 👋  "), "Работа 👋");
   for (const name of [null, 42, " ", "x".repeat(41), "a\nb", "a\0b"])
     assert.throws(() => profileName(name));
-  assert.deepEqual(profileMetadata({name: "Работа", id: "../other"}, "default"), {id: "default", name: "Работа"});
-  assert.deepEqual(profileMetadata({name: ""}, "default"), {id: "default", name: "Личный"});
+  assert.deepEqual(profileMetadata({name: "Работа", id: "../other"}, "default"), {id: "default", name: "Работа", color: "moon", icon: "initial"});
+  assert.deepEqual(profileMetadata({name: ""}, "default"), {id: "default", name: "Личный", color: "moon", icon: "initial"});
   assert.throws(() => profileMetadata({}, "../../other"));
+});
+
+test("profile badges preserve valid customizations and drop injected style values", () => {
+  assert.deepEqual(profileMetadata({name: "Работа", color: "jade", icon: "🎧"}, "default"), {id: "default", name: "Работа", color: "jade", icon: "🎧"});
+  const value = profileMetadata({name: "Работа", color: "red; background:url(https://bad.test)", icon: "<img>"}, "default");
+  assert.equal(value.color, "moon");assert.equal(value.icon,"initial");
 });

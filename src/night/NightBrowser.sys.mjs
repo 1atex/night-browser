@@ -29,6 +29,14 @@ ChromeUtils.registerWindowActor("NightStart", {
   matches: ["about:home", "about:newtab"],
 });
 
+ChromeUtils.registerWindowActor("NightWatch", {
+  safeForUntrustedWebProcess: true,
+  remoteTypes: ["web", "webIsolated", "webCOOP+COEP"],
+  parent: {esModuleURI: "resource:///modules/night/NightWatchParent.sys.mjs"},
+  child: {esModuleURI: "resource:///modules/night/NightWatchChild.sys.mjs"},
+  matches: ["http://*/*", "https://*/*"],
+});
+
 const XHTML = "http://www.w3.org/1999/xhtml";
 const WORKBENCH_STYLE = "chrome://browser/content/night/workbench.css";
 

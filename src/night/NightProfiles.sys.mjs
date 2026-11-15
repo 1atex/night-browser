@@ -1,4 +1,4 @@
-import {PROFILE_ID, profileName, profileMetadata} from "resource:///modules/night/ProfileModel.mjs";
+import {PROFILE_ID, profileName, profileMetadata, PROFILE_COLORS, PROFILE_ICONS} from "resource:///modules/night/ProfileModel.mjs";
 import {PrivateBrowsingUtils} from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
 
 function file(path) { const value = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile); value.initWithPath(path); return value; }
@@ -51,11 +51,15 @@ export const NightProfiles = {
     Services.obs.notifyObservers(null, "night-profiles-changed");
     return id;
   },
-  async rename(id, name) {
-    name = profileName(name);
-    if (!(await this.list()).some(item => item.id === id)) throw new Error("Профиль не найден.");
+  async rename(id, name) { await this.customize(id, {name}); },
+  async customize(id, changes) {
+    const current = (await this.list()).find(item => item.id === id);
+    if (!current) throw new Error("Профиль не найден.");
+    if (changes.name !== undefined) profileName(changes.name);
+    if (changes.color !== undefined && !Object.hasOwn(PROFILE_COLORS, changes.color)) throw new Error("Неизвестный цвет.");
+    if (changes.icon !== undefined && !PROFILE_ICONS.includes(changes.icon)) throw new Error("Неизвестный значок.");
     const root = this.rootFor(id), path = PathUtils.join(root, "night-profile.json");
-    await IOUtils.writeJSON(path, {id, name}, {tmpPath: path + "." + Services.appinfo.processID + ".tmp"});
+    await IOUtils.writeJSON(path, profileMetadata({...current, ...changes}, id), {tmpPath: path + "." + Services.appinfo.processID + ".tmp"});
     Services.obs.notifyObservers(null, "night-profiles-changed");
   },
   async open(id, window) {

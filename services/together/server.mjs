@@ -4,6 +4,8 @@ import {readFile, writeFile, rename, mkdir} from 'node:fs/promises';
 import {dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
 
+const colors = ['moon','violet','sky','jade','amber','rose'];
+const icons = ['initial','☾','✦','⚡','☁','◈','⌘','🎧'];
 const id = () => randomBytes(8).toString('hex');
 const secret = () => randomBytes(32).toString('hex');
 const validId = value => typeof value === 'string' && /^[a-f0-9]{16}$/.test(value);
@@ -18,10 +20,15 @@ export async function createService({path, now = Date.now} = {}) {
   const rates = new Map();
   let queue = Promise.resolve();
   const save = async () => { if (path) { await mkdir(dirname(path), {recursive: true}); await writeFile(path + '.tmp', JSON.stringify(state), {mode: 0o600}); await rename(path + '.tmp', path); } };
+  function profile(user) { return {id: user.id, name: user.name || 'Участник ' + user.id.slice(-4), color: colors.includes(user.color) ? user.color : 'moon', icon: icons.includes(user.icon) ? user.icon : 'initial'}; }
   function snapshot(user) {
     const room = Object.values(state.rooms).find(item => item.members.includes(user.id));
-    return {id: user.id, friends: user.friends.map(id => ({id})), incoming: user.incoming, outgoing: user.outgoing,
-      invitations: user.invites.filter(id => state.rooms[id]).map(id => ({id, owner: state.rooms[id].owner})), room: room ?? null, serverTime: now()};
+    const visible = new Set([...user.friends, ...user.incoming, ...user.outgoing, ...(room?.members ?? [])]);
+    const invitations = user.invites.filter(id => state.rooms[id]).map(id => ({id, owner: state.rooms[id].owner}));
+    for (const item of invitations) visible.add(item.owner);
+    const people = Object.fromEntries([...visible].filter(id => state.users[id]).map(id => [id, profile(state.users[id])]));
+    return {protocol: 2, self: profile(user), people, id: user.id, friends: user.friends.map(id => profile(state.users[id])), incoming: user.incoming, outgoing: user.outgoing,
+      invitations, room: room ? {...room, rate: room.rate ?? 1, buffering: room.buffering ?? false} : null, serverTime: now()};
   }
   function authenticated(request) {
     const match = /^Bearer ([a-f0-9]{16}):([a-f0-9]{64})$/.exec(request.headers.authorization ?? '');
@@ -46,6 +53,11 @@ export async function createService({path, now = Date.now} = {}) {
     if (request.url !== '/v1/action' || request.method !== 'POST') fail(404, 'Не найдено.');
     const peer = state.users[body.id];
     switch (body.type) {
+      case 'profile-update': {
+        if (typeof body.name !== 'string' || !body.name.trim() || body.name.trim().length > 40 || /[\x00-\x1f\x7f]/.test(body.name) || !colors.includes(body.color) || !icons.includes(body.icon)) fail(400, 'Имя: 1–40 символов; выбери цвет и значок из списка.');
+        Object.assign(user, {name: body.name.trim(), color: body.color, icon: body.icon}); break;
+      }
+
       case 'friend-request':
         if (!validId(body.id) || !peer || peer === user) fail(400, 'ID не найден.');
         if (user.friends.length >= 100 || peer.incoming.length >= 100 || user.outgoing.length >= 100) fail(409, 'Лимит запросов или друзей.');
@@ -78,12 +90,19 @@ export async function createService({path, now = Date.now} = {}) {
         leave(user); room.members.push(user.id); user.invites = user.invites.filter(id => id !== room.id); break;
       }
       case 'room-leave': leave(user); break;
+      case 'room-source': {
+        const room = state.rooms[body.room];
+        if (room?.owner !== user.id) fail(403, 'Видео меняет создатель комнаты.');
+        Object.assign(room, {url: safeURL(body.url), position: 0, paused: true, rate: 1, buffering: false, revision: room.revision + 1, updatedAt: now()}); break;
+      }
       case 'room-state': {
         const room = state.rooms[body.room];
         if (room?.owner !== user.id) fail(403, 'Воспроизведением управляет создатель комнаты.');
         if (body.revision !== room.revision) fail(409, 'Состояние комнаты изменилось.');
         if (!Number.isFinite(body.position) || body.position < 0 || body.position > 604800 || typeof body.paused !== 'boolean') fail(400, 'Некорректная позиция.');
-        Object.assign(room, {position: body.position, paused: body.paused, revision: room.revision + 1, updatedAt: now()}); break;
+        const rate = body.rate ?? 1;
+        if (!Number.isFinite(rate) || rate < 0.25 || rate > 4 || (body.buffering !== undefined && typeof body.buffering !== 'boolean')) fail(400, 'Некорректная скорость.');
+        Object.assign(room, {position: body.position, paused: body.paused, rate, buffering: body.buffering === true, revision: room.revision + 1, updatedAt: now()}); break;
       }
       default: fail(400, 'Неизвестное действие.');
     }
@@ -96,7 +115,7 @@ export async function createService({path, now = Date.now} = {}) {
       if (rates.size > 20000) for (const [key, value] of rates) if (time - value.time > 60000) rates.delete(key);
       const rate = rates.get(address); 
       if (!rate || time - rate.time > 60000) rates.set(address,{time,count:1,registrations:request.url === '/v1/register' ? 1 : 0});
-      else { rate.count++; if (request.url === '/v1/register') rate.registrations++; if (rate.count > 600 || rate.registrations > 5) fail(429,'Слишком много запросов.'); }
+      else { rate.count++; if (request.url === '/v1/register') rate.registrations++; if (rate.count > 6000 || rate.registrations > 5) fail(429,'Слишком много запросов.'); }
       let size=0; const chunks=[];
       for await (const chunk of request) { size+=chunk.length; if(size>8192) fail(413,'Слишком большой запрос.'); chunks.push(chunk); }
       let body={};try { if(size) body=JSON.parse(Buffer.concat(chunks)); } catch { fail(400,'Некорректный JSON.'); }

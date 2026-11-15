@@ -823,13 +823,24 @@ window.addEventListener(
         open.disabled = item.current || !NightProfiles.context.managed;
         open.dataset.profileId = item.id;
         controls.append(open);
-        if (NightProfiles.context.managed) controls.append(button("Переименовать", async () => {
-          const name = {value: item.name};
-          if (Services.prompt.prompt(browserWindow, "Название профиля", "Новое название", name, null, {})) {
-            await NightProfiles.rename(item.id, name.value); await render();
-          }
-        }, "button secondary"));
         row(profiles, item.name, item.current ? "Данные этого окна" : "Независимый набор данных", controls);
+        if (NightProfiles.context.managed) {
+          controls.append(button("Настроить", () => { editor.hidden = !editor.hidden; }));
+          const editor = element("div", "", {class: "profile-editor", hidden: "", "data-profile-editor": item.id});
+          const {PROFILE_COLORS, PROFILE_ICONS, profileBadge} = ChromeUtils.importESModule("resource:///modules/night/ProfileModel.mjs");
+          const preview = element("span", profileBadge(item), {class: "profile-badge", "aria-hidden": "true"});
+          const name = element("input", "", {value: item.name, maxlength: "40", "aria-label": "Название профиля"});
+          const color = element("select", "", {"aria-label": "Цвет значка"}), icon = element("select", "", {"aria-label": "Значок профиля"});
+          const titles = {moon: "Лунный", violet: "Сиреневый", sky: "Голубой", jade: "Мятный", amber: "Янтарный", rose: "Розовый"};
+          for (const key of Object.keys(PROFILE_COLORS)) color.append(element("option", titles[key], {value: key}));
+          for (const key of PROFILE_ICONS) icon.append(element("option", key === "initial" ? "Первая буква" : key, {value: key}));
+          color.value = item.color; icon.value = item.icon;
+          const update = () => { preview.textContent = profileBadge({name: name.value || "П", icon: icon.value}); preview.style.setProperty("--profile-color", PROFILE_COLORS[color.value]); };
+          for (const input of [name, color, icon]) input.addEventListener("input", update);
+          update();
+          const save = button("Сохранить профиль", async () => { await NightProfiles.customize(item.id, {name: name.value, color: color.value, icon: icon.value}); status("Профиль сохранён"); await render(); });
+          editor.append(preview, name, color, icon, save); profiles.append(editor);
+        }
       }
       if (NightProfiles.context.managed) {
         const form = element("form", "", {class: "profile-create", id: "night-create-profile"});
@@ -914,7 +925,7 @@ window.addEventListener(
       const {NightTogether} = ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs");
       const {PrivateBrowsingUtils} = ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs");
       if (PrivateBrowsingUtils.isWindowPrivate(browserWindow)) { card("Приватное окно", "Друзья и комнаты доступны в обычном окне."); return; }
-      const section = card("Night Together", "Друзья по ID, подтверждение запросов и приглашения. Основа комнат готова; управление плеерами сайтов появится следующим этапом.");
+      const section = card("Night Together", "Добавь друга, создай комнату со ссылкой на видео и пригласи его. Участники нажимают «Смотреть вместе»; плеером управляет ведущий.");
       const credentials = await NightTogether.credentials();
       if (!section.isConnected) return;
       if (!credentials) {
@@ -928,9 +939,26 @@ window.addEventListener(
       row(section, "Мой ID", credentials.id, button("Скопировать", () => Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper).copyString(credentials.id)));
       const friend = element("input", "", {placeholder: "ID друга", maxlength: "16", "aria-label": "ID друга"});
       section.append(friend, button("Добавить друга", async () => { await NightTogether.action({type: "friend-request", id: friend.value.trim().toLowerCase()}); await refresh(); }));
+      const personal = card("Как тебя видят друзья", "Имя, цвет и значок видны друзьям и участникам комнаты. ID остаётся прежним.");
+      const {PROFILE_COLORS, PROFILE_ICONS, profileBadge} = ChromeUtils.importESModule("resource:///modules/night/ProfileModel.mjs");
+      const name = element("input", "", {id: "together-profile-name", maxlength: "40", "aria-label": "Имя для друзей"});
+      const color = element("select", "", {id: "together-profile-color", "aria-label": "Цвет профиля"}), icon = element("select", "", {id: "together-profile-icon", "aria-label": "Значок профиля"});
+      for (const [value, title] of [["moon", "Лунный"], ["violet", "Сиреневый"], ["sky", "Голубой"], ["jade", "Мятный"], ["amber", "Янтарный"], ["rose", "Розовый"]]) color.append(element("option", title, {value}));
+      for (const value of PROFILE_ICONS) icon.append(element("option", value === "initial" ? "Первая буква" : value, {value}));
+      const preview = element("span", "", {class: "profile-badge", "aria-hidden": "true"});
+      const updatePreview = () => { preview.textContent = profileBadge({name: name.value || "П", icon: icon.value}); preview.style.setProperty("--profile-color", PROFILE_COLORS[color.value] ?? PROFILE_COLORS.moon); };
+      for (const input of [name, color, icon]) input.addEventListener("input", updatePreview);
+      personal.append(preview, name, color, icon, button("Сохранить имя и аватар", async () => { await action({type: "profile-update", name: name.value, color: color.value, icon: icon.value}); status("Профиль для друзей сохранён"); }));
+      let profileLoaded = false;
       const list = element("div"), room = card("Комната", "В комнату передаётся только явно выбранная ссылка и команды времени. Видео каждый участник открывает со своим доступом к сайту.");
       section.append(list);
       const roomBody = element("div"); room.append(roomBody);
+      const watchStatus = element("p", NightTogether.watchStatus, {id: "together-watch-status", role: "status"});
+      room.append(watchStatus);
+      const watchUpdate = () => { watchStatus.textContent = NightTogether.watchStatus; };
+      Services.obs.addObserver(watchUpdate, "night-together-watch");
+      let pollTimer = null;
+      sectionCleanup = () => { window.clearInterval(pollTimer); document.removeEventListener("visibilitychange", refresh); Services.obs.removeObserver(watchUpdate, "night-together-watch"); };
       let refreshing = false, snapshot = "";
       async function action(body) { await NightTogether.action(body); await refresh(); }
       async function refresh() {
@@ -939,21 +967,35 @@ window.addEventListener(
         try {
           const state = await NightTogether.state();
           if (!section.isConnected) return;
-          const nextSnapshot = JSON.stringify({...state, serverTime: 0});
+          if (!profileLoaded && state.self) { name.value = state.self.name; color.value = state.self.color; icon.value = state.self.icon; updatePreview(); profileLoaded = true; }
+          const roomShape = state.room ? {...state.room, position: 0, revision: 0, updatedAt: 0, paused: false, rate: 1, buffering: false} : null;
+          const nextSnapshot = JSON.stringify({...state, room: roomShape, serverTime: 0, watching: !!NightTogether.watchSession});
           if (nextSnapshot === snapshot) return;
           snapshot = nextSnapshot;
           list.replaceChildren(); roomBody.replaceChildren();
-          for (const id of state.incoming) row(list, "Запрос дружбы", id, (() => { const actions = element("div", "", {class: "profile-actions"}); actions.append(button("Принять", () => action({type: "friend-accept", id})), button("Отклонить", () => action({type: "friend-decline", id}))); return actions; })());
-          for (const id of state.outgoing) row(list, id, "Ожидаем подтверждения", button("Отменить", () => action({type: "friend-decline", id})));
+          const label = id => state.people?.[id]?.name || id;
+          const badge = item => { const value = element("span", profileBadge(item), {class: "profile-badge", "aria-hidden": "true"}); value.style.setProperty("--profile-color", PROFILE_COLORS[item.color] ?? PROFILE_COLORS.moon); return value; };
+          for (const id of state.incoming) row(list, "Запрос от " + label(id), id, (() => { const actions = element("div", "", {class: "profile-actions"}); actions.append(button("Принять", () => action({type: "friend-accept", id})), button("Отклонить", () => action({type: "friend-decline", id}))); return actions; })());
+          for (const id of state.outgoing) row(list, label(id), "Ожидаем подтверждения · " + id, button("Отменить", () => action({type: "friend-decline", id})));
           for (const item of state.friends) {
             const actions = element("div", "", {class: "profile-actions"});
             if (state.room?.owner === state.id) actions.append(button("Пригласить", () => action({type: "room-invite", room: state.room.id, id: item.id})));
             actions.append(button("Удалить", () => action({type: "friend-remove", id: item.id})));
-            row(list, item.id, "Друг", actions);
+            const node = row(list, item.name || item.id, item.id, actions);
+            if (item.name) node.prepend(badge(item));
           }
-          for (const invitation of state.invitations) row(roomBody, "Приглашение от " + invitation.owner, invitation.id, button("Войти", () => action({type: "room-join", room: invitation.id})));
+          for (const invitation of state.invitations) row(roomBody, "Приглашение от " + label(invitation.owner), invitation.id, button("Войти", () => action({type: "room-join", room: invitation.id})));
           if (state.room) {
-            roomBody.append(element("p", `${state.room.members.length} участников · ${state.room.paused ? "Пауза" : "Воспроизведение"}`));
+            const count = state.room.members.length;
+            roomBody.append(element("p", `${count} ${count === 1 ? "участник" : count < 5 ? "участника" : "участников"} · Ведущий: ${state.room.owner === state.id ? "ты" : label(state.room.owner)}`));
+            if ((state.protocol ?? 1) < 2) roomBody.append(element("p", "Для синхронизации и аватаров обнови сервер Together.", {class: "card-caption"}));
+            const watch = button("Смотреть вместе", () => NightTogether.watch(browserWindow)); watch.id = "together-watch"; watch.disabled = (state.protocol ?? 1) < 2;
+            roomBody.append(watch);
+            if (NightTogether.watchSession) roomBody.append(button("Остановить синхронизацию", () => { NightTogether.stopWatch(); refresh(); }));
+            if (state.room.owner === state.id) {
+              const source = element("input", "", {type: "url", value: state.room.url, "aria-label": "Новое видео комнаты"});
+              roomBody.append(source, button("Сменить видео", () => action({type: "room-source", room: state.room.id, url: source.value})));
+            }
             row(roomBody, "Ссылка комнаты", state.room.url, button("Открыть видео", () => { const url = new URL(state.room.url); if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) throw new Error("Некорректная ссылка комнаты."); browserWindow.openTrustedLinkIn(url.href, "tab"); }));
             roomBody.append(button("Покинуть комнату", () => action({type: "room-leave"})));
           } else {
@@ -969,9 +1011,8 @@ window.addEventListener(
       }));
       await refresh();
       if (!section.isConnected) return;
-      const timer = window.setInterval(refresh, 5000);
+      pollTimer = window.setInterval(refresh, 5000);
       document.addEventListener("visibilitychange", refresh);
-      sectionCleanup = () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", refresh); };
     }
 
     const renderers = {

@@ -10,3 +10,8 @@
 .night-profiles-body button:focus-visible { outline: 1px solid var(--night-accent); outline-offset: -2px; }
 .night-profiles-body button:disabled { opacity: .5; }
 #night-profile-settings { margin-top: 7px; border-top: 1px solid var(--night-line); }
+
+#night-sidebar #night-profile-button:not([data-private]) { color: var(--profile-color, var(--night-text)) !important; border-color: var(--profile-color, var(--night-line)); }
+.profile-badge { display: inline-grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px; border-radius: 50%; border: 1px solid var(--profile-color); color: var(--profile-color); background: var(--night-field); margin-inline-end: 10px; }
+.night-profiles-body button[data-profile-id] { display: flex; align-items: center; }
+#night-together-watch { width: 100%; padding: 9px 12px; margin-bottom: 7px; background: var(--night-field); color: var(--night-text); text-align: start; font: 12px var(--night-font); }

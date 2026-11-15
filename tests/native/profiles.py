@@ -54,6 +54,7 @@ def run(package,output):
             with zipfile.ZipFile(addon,'w') as z:z.writestr('manifest.json',json.dumps({'manifest_version':2,'name':'Profile fixture','version':'1.0','browser_specific_settings':{'gecko':{'id':'profile-fixture@example.test'}}}))
             Addons(a).install(str(addon),temp=True)
             id=async_chrome(a,'const {NightProfiles}=ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs");return NightProfiles.create("Рабочий", "midnight");')
+            async_chrome(a,'await ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs").NightProfiles.customize(arguments[0],{color:"jade",icon:"🎧"});',id)
             prefs(root/'profiles'/id/'profile',2829)
             chrome(a,'d.getElementById("night-profile-button").click();')
             wait_for(lambda:chrome(a,'return d.getElementById("night-profiles-panel").state==="open";'))
@@ -72,6 +73,8 @@ def run(package,output):
             content(b,"document.cookie='account=work; Max-Age=86400; path=/';localStorage.setItem('account','work');")
             async_chrome(b,'const {NightProfiles}=ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs");await NightProfiles.rename(arguments[0],"Рабочий проект");',id)
             async_chrome(b,'await ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs").NightProfiles.open("default",Services.wm.getMostRecentWindow("navigator:browser"));')
+            custom=async_chrome(b,'return (await ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs").NightProfiles.list()).find(p=>p.id===arguments[0]);',id)
+            assert custom['color']=='jade' and custom['icon']=='🎧' and custom['name']=='Рабочий проект',custom
             assert (root/'night-active-profile').read_text()=='default'
             assert chrome(a,'return [...Services.wm.getEnumerator("navigator:browser")].length;')==1
             assert content(a,'return document.cookie;')=='account=personal'

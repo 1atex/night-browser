@@ -2,6 +2,8 @@ name: night-together
 services:
   together:
     build: .
+    ports:
+      - "127.0.0.1:8787:8787"
     restart: unless-stopped
     volumes:
       - together_data:/data
@@ -17,6 +19,8 @@ services:
         max-size: 10m
         max-file: "3"
   caddy:
+    profiles:
+      - standalone
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:

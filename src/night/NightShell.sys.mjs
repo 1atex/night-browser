@@ -5,6 +5,7 @@ import { NightToolbar } from "resource:///modules/night/NightToolbar.sys.mjs";
 import { SessionStore } from "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs";
 import { validIcon } from "resource:///modules/night/WorkspaceModel.mjs";
 import {internalPage} from "resource:///modules/night/InternalPages.mjs";
+import {NightTogetherView} from "resource:///modules/night/NightTogetherView.sys.mjs";
 import {NightProfilesView} from "resource:///modules/night/NightProfilesView.sys.mjs";
 
 const XHTML = "http://www.w3.org/1999/xhtml";
@@ -32,6 +33,7 @@ export class NightShell {
   #window;
   #island;
   #profiles;
+  #together;
   #owner;
   #sidebar;
   #list;
@@ -198,6 +200,7 @@ export class NightShell {
       }),
     );
     const footer = this.#element("footer");
+    this.#together = new NightTogetherView(this.#window, footer);
     const actions = this.#element("div", "", { class: "night-footer-actions" });
     this.#profiles = new NightProfilesView(this.#window, actions);
     actions.append(
@@ -889,6 +892,7 @@ export class NightShell {
   }
 
   destroy() {
+    this.#together.destroy();
     this.#profiles.destroy();
     this.#island.destroy();
     this.toolbar.destroy();
