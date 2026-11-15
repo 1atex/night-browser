@@ -948,7 +948,8 @@ window.addEventListener(
       const preview = element("span", "", {class: "profile-badge", "aria-hidden": "true"});
       const updatePreview = () => { preview.textContent = profileBadge({name: name.value || "П", icon: icon.value}); preview.style.setProperty("--profile-color", PROFILE_COLORS[color.value] ?? PROFILE_COLORS.moon); };
       for (const input of [name, color, icon]) input.addEventListener("input", updatePreview);
-      personal.append(preview, name, color, icon, button("Сохранить имя и аватар", async () => { await action({type: "profile-update", name: name.value, color: color.value, icon: icon.value}); status("Профиль для друзей сохранён"); }));
+      const savePersonal = button("Сохранить имя и аватар", async () => { await action({type: "profile-update", name: name.value, color: color.value, icon: icon.value}); status("Профиль для друзей сохранён"); });
+      personal.append(preview, name, color, icon, savePersonal);
       let profileLoaded = false;
       const list = element("div"), room = card("Комната", "В комнату передаётся только явно выбранная ссылка и команды времени. Видео каждый участник открывает со своим доступом к сайту.");
       section.append(list);
@@ -967,6 +968,8 @@ window.addEventListener(
         try {
           const state = await NightTogether.state();
           if (!section.isConnected) return;
+          for (const control of [name, color, icon, savePersonal]) control.disabled = (state.protocol ?? 1) < 2;
+          if ((state.protocol ?? 1) < 2) status("Обнови сервер Together для аватаров и синхронизации видео. ID и друзья сохранятся.");
           if (!profileLoaded && state.self) { name.value = state.self.name; color.value = state.self.color; icon.value = state.self.icon; updatePreview(); profileLoaded = true; }
           const roomShape = state.room ? {...state.room, position: 0, revision: 0, updatedAt: 0, paused: false, rate: 1, buffering: false} : null;
           const nextSnapshot = JSON.stringify({...state, room: roomShape, serverTime: 0, watching: !!NightTogether.watchSession});

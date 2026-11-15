@@ -63,6 +63,10 @@ def run(package,output):
             b=connect(2829)
             assert chrome(b,'return ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs").NightProfiles.context.id;')==id
             assert chrome(b,'return Services.prefs.getStringPref("night.ui.palette");')=='midnight'
+            b.set_context('content');b.navigate('about:preferences#accounts')
+            wait_for(lambda:content(b,'return !!document.querySelector(`[data-profile-editor="${arguments[0]}"]`);',id))
+            content(b,'const editor=document.querySelector(`[data-profile-editor="${arguments[0]}"]`);[...editor.previousElementSibling.querySelectorAll("button")].find(b=>b.textContent==="Настроить").click();editor.querySelector("input").value="Рабочий";editor.querySelectorAll("select")[0].value="sky";editor.querySelectorAll("select")[1].value="☾";editor.querySelector("button").click();',id)
+            wait_for(lambda:chrome(b,'return d.getElementById("night-profile-button").textContent==="☾";'))
             b.set_context('content');b.navigate(url+'/work')
             assert content(b,'return document.cookie;')==''
             assert content(b,"return localStorage.getItem('account');") is None
@@ -74,7 +78,7 @@ def run(package,output):
             async_chrome(b,'const {NightProfiles}=ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs");await NightProfiles.rename(arguments[0],"Рабочий проект");',id)
             async_chrome(b,'await ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs").NightProfiles.open("default",Services.wm.getMostRecentWindow("navigator:browser"));')
             custom=async_chrome(b,'return (await ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs").NightProfiles.list()).find(p=>p.id===arguments[0]);',id)
-            assert custom['color']=='jade' and custom['icon']=='🎧' and custom['name']=='Рабочий проект',custom
+            assert custom['color']=='sky' and custom['icon']=='☾' and custom['name']=='Рабочий проект',custom
             assert (root/'night-active-profile').read_text()=='default'
             assert chrome(a,'return [...Services.wm.getEnumerator("navigator:browser")].length;')==1
             assert content(a,'return document.cookie;')=='account=personal'

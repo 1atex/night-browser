@@ -60,6 +60,9 @@ def run(binary,app_ini,output):
         click(host,'Смотреть вместе');click(guest,'Смотреть вместе')
         wait_for(lambda:player(host) and player(host)['ready']>=3,timeout=30)
         wait_for(lambda:player(guest) and player(guest)['ready']>=3,timeout=30)
+        tabs=chrome(host,'return w.gBrowser.tabs.length;')
+        async_chrome(host,'await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watch(w);return true;')
+        assert chrome(host,'return w.gBrowser.tabs.length;')==tabs
         content(host,'document.querySelector("video").play();')
         wait_for(lambda:not player(guest)['paused'] and player(guest)['time']>1,timeout=15)
         drift=abs(player(host)['time']-player(guest)['time']);assert drift<1.3,drift

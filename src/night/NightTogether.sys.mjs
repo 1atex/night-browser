@@ -24,7 +24,7 @@ export const NightTogether = {
     await IOUtils.writeJSON(path(), {endpoint: new URL(endpoint).origin, id: result.id, token: result.token}, {tmpPath: path() + ".tmp"});
   },
   async state() { const credentials = await this.credentials(); if (!credentials) return null; return this.request(credentials.endpoint, "/v1/state", {credentials}); },
-  async action(body) { const credentials = await this.credentials(); if (!credentials) throw new Error("Сначала подключи сервер."); return this.request(credentials.endpoint, "/v1/action", {credentials, body}); },
+  async action(body) { const credentials = await this.credentials(); if (!credentials) throw new Error("Сначала подключи сервер."); const state = await this.request(credentials.endpoint, "/v1/action", {credentials, body}); if (body.type === "room-leave") this.stopWatch(); return state; },
   async disconnect() { this.stopWatch(); await IOUtils.remove(path(), {ignoreAbsent: true}); },
   watchSession: null,
   watchStatus: "",
@@ -35,6 +35,11 @@ export const NightTogether = {
     if (!state?.room) throw new Error("Сначала создай комнату или прими приглашение.");
     if (state.protocol < 2) throw new Error("Обнови сервер Together до версии с синхронизацией видео.");
     if (!watchURL(state.room.url)) throw new Error("Некорректная ссылка комнаты.");
+    const current = this.watchSession;
+    if (current?.room === state.room.id && !current.tab.closing && current.tab.isConnected) {
+      current.window.gBrowser.selectedTab = current.tab; current.window.restore(); current.window.focus(); return current.tab;
+    }
+    try { current?.actor?.sendAsyncMessage("NightWatch:Pause"); } catch {}
     this.stopWatch();
     const tab = window.gBrowser.addTrustedTab(state.room.url, {relatedToCurrent: true});
     window.gBrowser.selectedTab = tab;
@@ -74,12 +79,14 @@ export const NightTogether = {
       if (this.watchSession !== session) return;
       if (state?.room?.id !== session.room) { this.stopWatch("Комната закрыта или ты больше не участвуешь."); return; }
       if (state.protocol < 2) throw new Error("Обнови сервер Together.");
+      this.watchError = null;
       const {room} = state;
       if (!watchURL(room.url)) throw new Error("Сервер вернул некорректную ссылку.");
       if (room.url !== session.source) {
         try { session.actor?.sendAsyncMessage("NightWatch:Stop"); } catch {}
         session.source = room.url; session.actor = null; session.sample = null; session.dirty = true;
         session.tab.linkedBrowser.loadURI(Services.io.newURI(room.url), {triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});
+        this.notify("Загружаем новое видео…"); return;
       }
       const browser = session.tab.linkedBrowser;
       if (browser.currentURI.spec === 'about:blank' || session.tab.hasAttribute('busy')) { this.notify("Загружаем видео…"); return; }
