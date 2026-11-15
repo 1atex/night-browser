@@ -20,3 +20,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: bash tests/server/docker.sh
+      - run: bash tests/server/nginx.sh
