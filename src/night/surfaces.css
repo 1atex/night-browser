@@ -26,3 +26,4 @@
 :root[night-surface] #aboutDialogContainer { background: var(--night-page); color: var(--night-text); }
 :root[night-surface] #bottomBox { background: var(--night-field); }
 :root[night-surface] #trademark { color: var(--night-secondary); }
+:root[night-surface] { --theme-toolbar-selected-color: var(--night-text); --theme-toolbar-selected-hover-color: var(--night-text); --tab-line-selected-color: var(--night-accent); --tab-line-hover-color: var(--night-muted); }

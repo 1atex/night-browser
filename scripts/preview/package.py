@@ -191,6 +191,8 @@ def package(runtime, output, archive, platform):
             browser[name] = (source / "branding/wordmark.svg").read_bytes()
         elif name.endswith("aboutlogins/components/login-intro.css"):
             browser[name] += b"\n.illustration { display: none !important; }\n"
+        elif name.endswith("aboutlogins/components/login-filter.css"):
+            browser[name] += b"\n" + (source / "login-component.css").read_bytes()
         elif name.endswith("aboutlogins/aboutLogins.html"):
             text = browser[name].decode()
             text = re.sub(r'<li data-l10n-id="login-intro-instructions-fxa(?:2|-settings)"[^>]*>\s*</li>', "", text)
@@ -198,6 +200,8 @@ def package(runtime, output, archive, platform):
     for name in list(toolkit):
         if name.endswith("extensions/components/addons-promo.css"):
             toolkit[name] += b"\n.image-container { display: none; } :host { --addons-promo-text-padding-inline: 0; }\n"
+        elif name.endswith("global/elements/moz-page-nav-button.css"):
+            toolkit[name] += b"\n" + (source / "navigation-component.css").read_bytes()
     for name in list(toolkit):
         if name.endswith("global/in-content/common.css"):
             toolkit[name] += b"\n" + (source / "theme.css").read_bytes() + b"\n" + (source / "internal.css").read_bytes()

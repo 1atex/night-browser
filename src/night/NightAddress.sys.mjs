@@ -2,6 +2,11 @@ import { SessionStore } from "moz-src:///browser/components/sessionstore/Session
 import { validIcon } from "resource:///modules/night/WorkspaceModel.mjs";
 
 const ICONS = "chrome://browser/content/night/icons/";
+const INTERNAL = {
+  addons: ["Расширения", "extensions"], logins: ["Пароли", "shield"], downloads: ["Загрузки", "download"],
+  preferences: ["Настройки", "settings"], processes: ["Процессы", "memory"], memory: ["Память", "memory"],
+  support: ["Диагностика", "settings"], config: ["Конфигурация", "code"], privatebrowsing: ["Приватное окно", "private"],
+};
 
 export class NightAddress {
   #window;
@@ -156,12 +161,12 @@ export class NightAddress {
   update() {
     const tab = this.#window.gBrowser.selectedTab;
     const url = tab.linkedBrowser.currentURI.spec;
-    const page = url === "chrome://browser/content/night/welcome.xhtml" ? "Первый запуск" :
-      url.startsWith("about:preferences") ? "Настройки" : "";
+    const internal = INTERNAL[/^about:([a-z]+)/.exec(url)?.[1]];
+    const page = url === "chrome://browser/content/night/welcome.xhtml" ? "Первый запуск" : internal?.[0] ?? "";
     if (this.#label.textContent !== page) this.#label.textContent = page;
     this.#bar.toggleAttribute("night-internal-page", !!page);
     const saved = [tab.getAttribute("image"), SessionStore.getCustomTabValue(tab, "night-favicon")].find(validIcon);
-    const source = saved ||
+    const source = internal ? ICONS + internal[1] + ".svg" : saved ||
       (url.startsWith("about:preferences") ? ICONS + "settings.svg" :
        ["about:newtab", "about:home", "about:blank"].includes(url) ? ICONS + "search.svg" :
        /^https?:/.test(url) ? "page-icon:" + url : ICONS + "globe.svg");
