@@ -23,10 +23,11 @@ export const NightUpdates = {
     if (!this.supported || PrivateBrowsingUtils.isWindowPrivate(window)) throw new Error("Обнови Night из обычного окна установленной версии.");
     if (this.busy || !this.candidate) throw new Error("Сначала проверь обновления.");
     this.busy = true;
+    let directory, launched = false;
     try {
       const candidate = this.candidate;
       const expected = checksumFor(await request(candidate.sums), candidate.name);
-      const directory = PathUtils.join(PathUtils.tempDir, "night-update-" + Services.uuid.generateUUID().toString().replace(/[{}]/g, ""));
+      directory = PathUtils.join(PathUtils.tempDir, "night-update-" + Services.uuid.generateUUID().toString().replace(/[{}]/g, ""));
       await IOUtils.makeDirectory(directory);
       const setup = PathUtils.join(directory, "setup.exe");
       const {Downloads} = ChromeUtils.importESModule("resource://gre/modules/Downloads.sys.mjs");
@@ -47,10 +48,16 @@ export const NightUpdates = {
       await IOUtils.writeJSON(plan, {root: context.application, setup, sha256: expected, profile: context.id ?? "default", version: candidate.version});
       const process = Cc["@mozilla.org/process/util;1"].createInstance(Ci.nsIProcess); process.init(file(helper));
       process.runwAsync(["--run-update", plan], 2);
+      launched = true;
       Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
-    } finally { this.busy = false; }
+    } finally { this.busy = false; if (!launched && directory) await IOUtils.remove(directory, {recursive: true, ignoreAbsent: true}).catch(() => {}); }
   },
-  async startup(window) {
+  startupTask: null,
+  startup(window) {
+    this.startupTask = (this.startupTask ?? Promise.resolve()).catch(() => {}).then(() => this.notice(window));
+    return this.startupTask;
+  },
+  async notice(window) {
     if (PrivateBrowsingUtils.isWindowPrivate(window)) return;
     const previous = Services.prefs.getStringPref("night.updates.seen-version", "");
     const receipt = PathUtils.join(PathUtils.profileDir, "night-update-completed.json");

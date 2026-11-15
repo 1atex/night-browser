@@ -1,0 +1,24 @@
+[Unit]
+Description=Night Together pilot
+After=network.target
+
+[Service]
+Type=simple
+User=night-together
+Group=night-together
+WorkingDirectory=/opt/night-browser
+Environment=HOST=127.0.0.1
+Environment=PORT=8787
+Environment=NIGHT_TOGETHER_DATA=/var/lib/night-together/state.json
+ExecStart=/usr/bin/node services/together/server.mjs
+Restart=on-failure
+StateDirectory=night-together
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/night-together
+
+[Install]
+WantedBy=multi-user.target

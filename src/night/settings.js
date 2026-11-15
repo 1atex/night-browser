@@ -929,7 +929,7 @@ window.addEventListener(
       const list = element("div"), room = card("Комната", "В комнату передаётся только явно выбранная ссылка и команды времени. Видео каждый участник открывает со своим доступом к сайту.");
       section.append(list);
       const roomBody = element("div"); room.append(roomBody);
-      let refreshing = false;
+      let refreshing = false, snapshot = "";
       async function action(body) { await NightTogether.action(body); await refresh(); }
       async function refresh() {
         if (refreshing || !section.isConnected || document.hidden) return;
@@ -937,6 +937,9 @@ window.addEventListener(
         try {
           const state = await NightTogether.state();
           if (!section.isConnected) return;
+          const nextSnapshot = JSON.stringify({...state, serverTime: 0});
+          if (nextSnapshot === snapshot) return;
+          snapshot = nextSnapshot;
           list.replaceChildren(); roomBody.replaceChildren();
           for (const id of state.incoming) row(list, "Запрос дружбы", id, (() => { const actions = element("div", "", {class: "profile-actions"}); actions.append(button("Принять", () => action({type: "friend-accept", id})), button("Отклонить", () => action({type: "friend-decline", id}))); return actions; })());
           for (const id of state.outgoing) row(list, id, "Ожидаем подтверждения", button("Отменить", () => action({type: "friend-decline", id})));
@@ -963,6 +966,10 @@ window.addEventListener(
         await NightTogether.disconnect(); await render();
       }));
       await refresh();
+      if (!section.isConnected) return;
+      const timer = window.setInterval(refresh, 5000);
+      document.addEventListener("visibilitychange", refresh);
+      sectionCleanup = () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", refresh); };
     }
 
     const renderers = {
