@@ -69,7 +69,7 @@ def run(binary, app_ini, island, output):
         for c in reversed(codes):u.keybd_event(c,0,2,0)
     def query(text):
         keys(0x11,0x12,0x42)
-        wait_for(lambda:state().get('command',{}).get('open'))
+        wait_for(lambda:state().get('command',{}).get('open'),timeout=30)
         hwnd=state()['hwnd'];u.SetForegroundWindow(hwnd)
         for c in text:u.PostMessageW(hwnd,0x102,ord(c),0)
         wait_for(lambda:not state()['state'].get('searching',True) and text in state().get('command',{}).get('query',''))
