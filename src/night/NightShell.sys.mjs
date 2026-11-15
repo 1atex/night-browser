@@ -5,6 +5,7 @@ import { NightToolbar } from "resource:///modules/night/NightToolbar.sys.mjs";
 import { SessionStore } from "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs";
 import { validIcon } from "resource:///modules/night/WorkspaceModel.mjs";
 import {internalPage} from "resource:///modules/night/InternalPages.mjs";
+import {NightProfilesView} from "resource:///modules/night/NightProfilesView.sys.mjs";
 
 const XHTML = "http://www.w3.org/1999/xhtml";
 const setText = (node, value) => { if (node.textContent !== value) node.textContent = value; };
@@ -30,6 +31,7 @@ const EVENTS = [
 export class NightShell {
   #window;
   #island;
+  #profiles;
   #owner;
   #sidebar;
   #list;
@@ -197,6 +199,7 @@ export class NightShell {
     );
     const footer = this.#element("footer");
     const actions = this.#element("div", "", { class: "night-footer-actions" });
+    this.#profiles = new NightProfilesView(this.#window, actions);
     actions.append(
       this.#button("◫", "Разделить экран · Alt+S", () => this.split(), {
         id: "night-split-button",
@@ -828,6 +831,13 @@ export class NightShell {
       return;
     }
     if (event.type === "keydown") {
+      if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey &&
+          (event.code === "KeyN" || event.key.toLowerCase() === "n")) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (!event.repeat) this.#window.document.getElementById("Tools:PrivateBrowsing").doCommand();
+        return;
+      }
       if (event.key === "Escape") {
         this.#menu?.remove();
         this.#menu = null;
@@ -879,6 +889,7 @@ export class NightShell {
   }
 
   destroy() {
+    this.#profiles.destroy();
     this.#island.destroy();
     this.toolbar.destroy();
     for (const event of EVENTS) this.#window.removeEventListener(event, this);

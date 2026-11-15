@@ -118,8 +118,9 @@ export const NightImport = {
             };
         } catch {}
       }, 500);
+      const {NightProfiles} = ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs");
       await new Promise((resolve, reject) =>
-        process.runwAsync(["--copy-zen", source, stageName], 3, {
+        process.runwAsync(["--copy-zen", source, stageName, "--profile-id", NightProfiles.context.id ?? "default"], 5, {
           observe(_subject, topic) {
             topic === "process-finished" && process.exitValue === 0
               ? resolve()
@@ -342,13 +343,14 @@ export const NightImport = {
   },
 
   restart() {
+    const {NightProfiles} = ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs");
     const process = Cc["@mozilla.org/process/util;1"].createInstance(
       Ci.nsIProcess,
     );
     process.init(file(PathUtils.join(this.applicationRoot, "Night.exe")));
     process.runwAsync(
-      ["--finish-import", String(Services.appinfo.processID)],
-      2,
+      ["--finish-import", String(Services.appinfo.processID), "--profile-id", NightProfiles.context.id ?? "default"],
+      4,
     );
     Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
   },

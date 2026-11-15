@@ -1,4 +1,4 @@
-#define ProductVersion "0.11.0"
+#define ProductVersion "0.12.0"
 [Setup]
 AppId={{7BFD9F1C-A0E3-48D2-A517-116CD33D6D80}
 AppName=Night Browser
@@ -33,7 +33,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\..\dist\Night\*"; DestDir: "{app}"; Excludes: "profile,profile-backup-*,import-stage-*,Night.lnk,night-import.json"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\dist\Night\*"; DestDir: "{app}"; Excludes: "profiles,night-active-profile,night-profile.json,profile,profile-backup-*,import-stage-*,Night.lnk,night-import.json"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "installed.marker"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]

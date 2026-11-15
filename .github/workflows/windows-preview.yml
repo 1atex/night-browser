@@ -70,7 +70,7 @@ jobs:
           $output = (Resolve-Path dist/Night).Path
           python -u tests/native/onboarding.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -u tests/native/installer.py --setup dist/night-browser-0.11.0-preview-windows-x64-setup.exe --output test-artifacts
+          python -u tests/native/installer.py --setup dist/night-browser-0.12.0-preview-windows-x64-setup.exe --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test stale startup cache recovery
         run: |
@@ -81,6 +81,15 @@ jobs:
           New-Item -ItemType Directory -Force test-artifacts | Out-Null
           $output = (Resolve-Path dist/Night).Path
           python -u tests/native/smoke.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --preview --screenshot test-artifacts/preview.png --log test-artifacts/gecko.log 2>&1 | Tee-Object -FilePath test-artifacts/native-results.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test private windows and Mozilla account connection
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/accounts.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test isolated Windows profiles
+        run: |
+          python -u tests/native/profiles.py --package dist/Night --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test start page and last-tab behavior
         run: |
@@ -185,6 +194,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Create download archive
         run: |
+          Copy-Item test-artifacts/accounts-result.json dist/accounts-result.json
+          Copy-Item test-artifacts/profiles-result.json dist/profiles-result.json
+          Copy-Item test-artifacts/night-accounts.png dist/night-accounts.png
+          Copy-Item test-artifacts/night-profile-switcher.png dist/night-profile-switcher.png
           Copy-Item test-artifacts/home-ux-result.json dist/home-ux-result.json
           Copy-Item test-artifacts/surfaces-result.json dist/surfaces-result.json
           Copy-Item test-artifacts/night-home-widgets.png dist/night-home-widgets.png
@@ -217,12 +230,12 @@ jobs:
           Copy-Item test-artifacts/night-extensions-ordinary.png dist/night-extensions.png
           Copy-Item test-artifacts/night-menu-ordinary.png dist/night-menu.png
           Copy-Item test-artifacts/night-suggestions-ordinary.png dist/night-suggestions.png
-          7z a -tzip dist/night-browser-0.11.0-preview-windows-x64.zip ./dist/Night
+          7z a -tzip dist/night-browser-0.12.0-preview-windows-x64.zip ./dist/Night
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $hash = (Get-FileHash dist/night-browser-0.11.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
-          "$hash  night-browser-0.11.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
-          $setupHash = (Get-FileHash dist/night-browser-0.11.0-preview-windows-x64-setup.exe -Algorithm SHA256).Hash.ToLower()
-          "$setupHash  night-browser-0.11.0-preview-windows-x64-setup.exe" | Add-Content dist/SHA256SUMS.txt -Encoding ascii
+          $hash = (Get-FileHash dist/night-browser-0.12.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  night-browser-0.12.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          $setupHash = (Get-FileHash dist/night-browser-0.12.0-preview-windows-x64-setup.exe -Algorithm SHA256).Hash.ToLower()
+          "$setupHash  night-browser-0.12.0-preview-windows-x64-setup.exe" | Add-Content dist/SHA256SUMS.txt -Encoding ascii
           Copy-Item test-artifacts/night-onboarding.png dist/night-onboarding.png
           Copy-Item test-artifacts/installer-result.json dist/installer-result.json
           Copy-Item test-artifacts/onboarding-result.json dist/onboarding-result.json
@@ -234,8 +247,12 @@ jobs:
         with:
           name: night-browser-windows-x64-preview
           path: |
-            dist/night-browser-0.11.0-preview-windows-x64.zip
-            dist/night-browser-0.11.0-preview-windows-x64-setup.exe
+            dist/night-browser-0.12.0-preview-windows-x64.zip
+            dist/night-browser-0.12.0-preview-windows-x64-setup.exe
+            dist/accounts-result.json
+            dist/profiles-result.json
+            dist/night-accounts.png
+            dist/night-profile-switcher.png
             dist/home-ux-result.json
             dist/surfaces-result.json
             dist/night-home-widgets.png
@@ -305,8 +322,12 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           gh release create "$RELEASE_TAG" \
-            release-assets/night-browser-0.11.0-preview-windows-x64.zip \
-            release-assets/night-browser-0.11.0-preview-windows-x64-setup.exe \
+            release-assets/night-browser-0.12.0-preview-windows-x64.zip \
+            release-assets/night-browser-0.12.0-preview-windows-x64-setup.exe \
+            release-assets/accounts-result.json \
+            release-assets/profiles-result.json \
+            release-assets/night-accounts.png \
+            release-assets/night-profile-switcher.png \
             release-assets/home-ux-result.json \
             release-assets/surfaces-result.json \
             release-assets/night-home-widgets.png \

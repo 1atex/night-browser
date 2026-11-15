@@ -95,7 +95,7 @@ try {
   $relaunch = [NightWindowInfo]::Property($window,2)
   $label = [NightWindowInfo]::Property($window,4)
   $icon = [NightWindowInfo]::Property($window,3)
-  if ($relaunch -ne "`"$launcher`"" -or $label -ne "Night Browser" -or $icon -ne "$launcher,0") { throw "Taskbar relaunch metadata does not point to Night" }
+  if ($relaunch -ne "`"$launcher`" --profile-id default" -or $label -ne "Night Browser" -or $icon -ne "$launcher,0") { throw "Taskbar relaunch metadata does not point to Night and its profile" }
   $element = [System.Windows.Automation.AutomationElement]::FromHandle($window)
   $names = @($element.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { $_.Current.Name } | Where-Object { $_ } | Select-Object -Unique)
   $desktopNames = @([System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { $_.Current.Name } | Where-Object { $_ } | Select-Object -Unique)

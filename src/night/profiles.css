@@ -1,0 +1,12 @@
+#night-profile-button { font: 600 12px var(--night-font); font-size: 12px !important; color: var(--night-text) !important; background: var(--night-field); border: 1px solid var(--night-line); border-radius: 50%; width: 28px; height: 28px; padding: 0; align-self: center; margin-right: 4px; }
+#night-profile-button::before { display: none; }
+#night-profile-button[data-private] { background: var(--night-selected) url("chrome://browser/content/night/icons/private.svg") center / 17px no-repeat; }
+.night-profiles-body { width: 280px; padding: 12px; display: flex; flex-direction: column; gap: 5px; color: var(--night-text); font: 13px var(--night-font); }
+.night-profiles-body strong { padding: 6px 8px; }
+.night-profiles-body p { padding: 5px 8px; margin: 0; color: var(--night-secondary); line-height: 1.5; }
+.night-profiles-body button { padding: 10px 12px; border: 0; border-radius: var(--night-radius); background: transparent; color: var(--night-text); font: inherit; text-align: start; cursor: pointer; }
+.night-profiles-body button:hover { background: var(--night-hover); }
+.night-profiles-body button[aria-current="true"] { background: var(--night-selected); }
+.night-profiles-body button:focus-visible { outline: 1px solid var(--night-accent); outline-offset: -2px; }
+.night-profiles-body button:disabled { opacity: .5; }
+#night-profile-settings { margin-top: 7px; border-top: 1px solid var(--night-line); }

@@ -1,4 +1,7 @@
 @import url("chrome://browser/content/night/theme.css");
+.profile-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.profile-create { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.profile-create input { flex: 1; min-width: 140px; }
 :root {
   font: 13px var(--night-font);
   color: var(--night-text);

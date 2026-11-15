@@ -1,4 +1,5 @@
 import {revision} from "resource:///modules/night/NightBuild.sys.mjs";
+import {NightProfiles} from "resource:///modules/night/NightProfiles.sys.mjs";
 
 export const NightWindows = {
   acknowledged: false,
@@ -22,6 +23,6 @@ export const NightWindows = {
       Ci.nsIProcess,
     );
     process.init(launcher);
-    process.runwAsync(["--identity", String(Services.appinfo.processID)], 2);
+    process.runwAsync(["--identity", String(Services.appinfo.processID), "--profile-id", NightProfiles.context.id ?? "default"], 4);
   },
 };

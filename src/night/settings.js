@@ -34,6 +34,7 @@ window.addEventListener(
     updateTheme();
     const sections = {
       appearance: ["Внешний вид", "Цвета, панели и анимации.", "appearance"],
+      accounts: ["Профили и Sync", "Отдельные данные на этом компьютере и синхронизация через Mozilla.", "profile"],
       tabs: [
         "Вкладки и запуск",
         "Запуск, вкладки и сочетания клавиш.",
@@ -806,7 +807,87 @@ window.addEventListener(
       window.addEventListener("unload", remove, {once: true});
     }
 
+    async function accounts() {
+      const {NightProfiles} = ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs");
+      const {NightAccounts} = ChromeUtils.importESModule("resource:///modules/night/NightAccounts.sys.mjs");
+      const {PrivateBrowsingUtils} = ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs");
+      if (PrivateBrowsingUtils.isWindowPrivate(browserWindow)) {
+        card("Приватное окно", "Профили и синхронизация настраиваются в обычном окне. Приватная история не синхронизируется.");
+        return;
+      }
+      const profiles = card("Профили на этом компьютере", "Пароли, cookies, расширения, вкладки и оформление разделены. Профиль открывается в своём окне; повторный выбор возвращает к открытому окну.");
+      profiles.id = "night-profiles-settings";
+      const items = await NightProfiles.list();
+      if (!profiles.isConnected) return;
+      for (const item of items) {
+        const controls = element("div", "", {class: "profile-actions"});
+        const open = button(item.current ? "Текущий" : "Открыть", () => NightProfiles.open(item.id, browserWindow));
+        open.disabled = item.current || !NightProfiles.context.managed;
+        open.dataset.profileId = item.id;
+        controls.append(open);
+        if (NightProfiles.context.managed) controls.append(button("Переименовать", async () => {
+          const name = {value: item.name};
+          if (Services.prompt.prompt(browserWindow, "Название профиля", "Новое название", name, null, {})) {
+            await NightProfiles.rename(item.id, name.value); await render();
+          }
+        }, "button secondary"));
+        row(profiles, item.name, item.current ? "Данные этого окна" : "Независимый набор данных", controls);
+      }
+      if (NightProfiles.context.managed) {
+        const form = element("form", "", {class: "profile-create", id: "night-create-profile"});
+        const name = element("input", "", {id: "night-profile-name", placeholder: "Например, Рабочий", "aria-label": "Название нового профиля", maxlength: "40", required: "required"});
+        const palette = element("select", "", {id: "night-profile-palette", "aria-label": "Оформление нового профиля"});
+        for (const [value, title] of [["night", "Чёрная"], ["graphite", "Графит"], ["midnight", "Полночь"], ["mist", "Туман"]]) palette.append(element("option", title, {value}));
+        const submit = element("button", "Создать профиль", {type: "submit", class: "button"});
+        form.append(name, palette, submit); profiles.append(form);
+        form.addEventListener("submit", async event => {
+          event.preventDefault(); submit.disabled = true;
+          try {
+            const id = await NightProfiles.create(name.value, palette.value);
+            status("Профиль создан. Открываем окно…");
+            await NightProfiles.open(id, browserWindow);
+            if (profiles.isConnected) await render();
+          } catch (error) { status(error.message); }
+          finally { submit.disabled = false; }
+        });
+      } else profiles.append(element("p", "Создание и переключение профилей доступны при запуске через Night.exe.", {class: "card-caption"}));
+      const sync = card("Аккаунт Mozilla", "Mozilla Sync переносит закладки, пароли, историю, расширения и выбранные настройки между устройствами. Вход в Google на сайте профиль браузера не переключает.");
+      const title = element("strong", "", {id: "night-sync-state"});
+      const description = element("p", "", {id: "night-sync-detail", class: "card-caption"});
+      const actions = element("div", "", {class: "profile-actions"});
+      const connect = button("Подключить Mozilla Sync", () => NightAccounts.connect(browserWindow)); connect.id = "night-sync-connect";
+      const now = button("Синхронизировать", () => NightAccounts.sync(browserWindow)); now.id = "night-sync-now";
+      const settings = button("Параметры Sync", () => NightAccounts.settings(browserWindow), "button secondary");
+      const disconnect = button("Выйти из аккаунта…", () => NightAccounts.disconnect(browserWindow), "button secondary");
+      actions.append(connect, now, settings, disconnect); sync.append(title, description, actions);
+      const data = card("Что синхронизировать", "Настройки включают палитру, плотность, анимации, расположение навигации и виджеты Night. Cookies и структура папок Night через Sync не передаются.");
+      for (const [engine, label] of [["bookmarks", "Закладки"], ["passwords", "Пароли"], ["history", "История"], ["tabs", "Открытые вкладки"], ["addons", "Расширения"], ["prefs", "Настройки и оформление"]])
+        toggle(data, label, "", `services.sync.engine.${engine}`, true);
+      data.append(element("p", "Sync объединяет данные профиля с аккаунтом. Для другого человека или аккаунта создай отдельный профиль.", {class: "card-caption"}));
+      const update = () => {
+        if (!sync.isConnected) return;
+        const state = NightAccounts.state(browserWindow);
+        const signed = state.status === "signed_in";
+        title.textContent = state.email || "Вход не выполнен";
+        description.textContent = state.status === "disabled" ? "Синхронизация выключена. Подключается только после твоего выбора." :
+          state.status === "login_failed" ? "Нужно войти снова." : state.status === "not_verified" ? "Подтверди адрес электронной почты." :
+          signed ? state.syncing ? "Синхронизация…" : state.hasSyncKeys ? (state.lastSync ? `Последняя синхронизация: ${new Date(state.lastSync).toLocaleString("ru-RU")}` : "Sync подключён") : "Аккаунт подключён; включи Sync для переноса данных." : "Войди на официальной странице Mozilla.";
+        connect.hidden = signed && state.hasSyncKeys;
+        connect.textContent = signed ? "Включить Sync" : state.status === "not_verified" ? "Подтвердить аккаунт" : "Подключить Mozilla Sync";
+        now.hidden = !signed || !state.hasSyncKeys; now.disabled = !!state.syncing;
+        settings.hidden = !signed; disconnect.hidden = !state.email;
+      };
+      update();
+      Services.obs.addObserver(update, "sync-ui-state:update");
+      Services.prefs.addObserver("identity.fxaccounts.enabled", update);
+      sectionCleanup = () => {
+        Services.obs.removeObserver(update, "sync-ui-state:update");
+        Services.prefs.removeObserver("identity.fxaccounts.enabled", update);
+      };
+    }
+
     const renderers = {
+      accounts,
       appearance,
       integrations,
       tabs,
@@ -816,9 +897,16 @@ window.addEventListener(
       import: importData,
       about,
     };
+    let sectionCleanup = null;
+    function cleanupSection() { sectionCleanup?.(); sectionCleanup = null; }
+    window.addEventListener("unload", cleanupSection, {once: true});
     async function render() {
+      cleanupSection();
       const raw = location.hash.slice(1);
       const aliases = {
+        sync: "accounts",
+        "sync-sync": "accounts",
+        paneSync: "accounts",
         general: "tabs",
         passwordsAutofill: "privacy",
         paneGeneral: "tabs",

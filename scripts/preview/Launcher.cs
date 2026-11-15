@@ -9,6 +9,7 @@ using System.Threading;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Web.Script.Serialization;
+using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using System.Runtime.InteropServices.ComTypes;
 
@@ -16,19 +17,25 @@ using System.Runtime.InteropServices.ComTypes;
 [assembly: AssemblyDescription("Night Browser")]
 [assembly: AssemblyCompany("Night")]
 [assembly: AssemblyProduct("Night Browser")]
-[assembly: AssemblyVersion("0.10.0.0")]
+[assembly: AssemblyVersion("0.12.0.0")]
 
 internal static class Launcher
 {
     private static readonly string Root = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
     private static readonly bool Installed = File.Exists(Path.Combine(Root, "installed.marker"));
-    private static readonly string DataRoot = Installed ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NightBrowser") : Root;
+    private static readonly string BaseDataRoot = Installed ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NightBrowser") : Root;
+    private static string DataRoot = BaseDataRoot;
+    private static string ProfileId = "default";
+    private static string ProfileLabel = "Личный";
     private static readonly string LauncherPath = Path.Combine(Root, "Night.exe");
     private static readonly Guid AppKey = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
     private delegate bool WindowCallback(IntPtr window, IntPtr data);
     [DllImport("user32.dll")] private static extern bool EnumWindows(WindowCallback callback, IntPtr data);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
+    [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr window);
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr window, int command);
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr window);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder value, int length);
     [DllImport("shell32.dll")] private static extern int SHGetPropertyStoreForWindow(IntPtr window, ref Guid iid, [MarshalAs(UnmanagedType.Interface)] out IPropertyStore store);
     [DllImport("ole32.dll")] private static extern int PropVariantClear(ref PropVariant value);
@@ -68,6 +75,10 @@ internal static class Launcher
         void SetPath(string path);
     }
     private static string Identity()
+    {
+        return BaseIdentity() + (ProfileId == "default" ? "" : "." + ProfileId);
+    }
+    private static string BaseIdentity()
     {
         if (Installed) return "Night.Browser.Installed";
         using (var hash = SHA256.Create())
@@ -114,9 +125,9 @@ internal static class Launcher
             if (SHGetPropertyStoreForWindow(window, ref iid, out store) != 0) return true;
             try
             {
-                Set(store, 2, "\"" + LauncherPath + "\"");
+                Set(store, 2, Quote(LauncherPath) + " --profile-id " + ProfileId);
                 Set(store, 3, LauncherPath + ",0");
-                Set(store, 4, "Night Browser");
+                Set(store, 4, ProfileId == "default" ? "Night Browser" : "Night Browser · " + ProfileLabel);
                 Set(store, 5, identity);
                 store.Commit();
                 found = true;
@@ -125,6 +136,108 @@ internal static class Launcher
             return true;
         }, IntPtr.Zero);
         return found;
+    }
+    private static bool Activate(string identity, string executable)
+    {
+        bool found = false;
+        EnumWindows(delegate(IntPtr window, IntPtr unused)
+        {
+            if (!IsWindowVisible(window)) return true;
+            var name = new StringBuilder(128);
+            GetClassName(window, name, name.Capacity);
+            if (name.ToString() != "MozillaWindowClass") return true;
+            uint pid;
+            GetWindowThreadProcessId(window, out pid);
+            try
+            {
+                using (var owner = Process.GetProcessById((int)pid))
+                    if (!string.Equals(owner.MainModule.FileName, executable, StringComparison.OrdinalIgnoreCase)) return true;
+                IPropertyStore store;
+                Guid iid = typeof(IPropertyStore).GUID;
+                if (SHGetPropertyStoreForWindow(window, ref iid, out store) != 0) return true;
+                try
+                {
+                    var key = new PropertyKey(5);
+                    PropVariant value;
+                    store.GetValue(ref key, out value);
+                    try { found = value.type == 31 && Marshal.PtrToStringUni(value.pointer) == identity; }
+                    finally { PropVariantClear(ref value); }
+                }
+                finally { Marshal.ReleaseComObject(store); }
+                if (found)
+                {
+                    if (IsIconic(window)) ShowWindow(window, 9);
+                    SetForegroundWindow(window);
+                    return false;
+                }
+            }
+            catch (Exception) { }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+    private static string ProfileRoot(string id)
+    {
+        if (!Regex.IsMatch(id ?? "", "^(default|[a-f0-9]{32})$")) throw new ArgumentException("Неизвестный профиль.");
+        if (id == "default") return BaseDataRoot;
+        string path = Path.Combine(BaseDataRoot, "profiles", id);
+        string profile = Path.Combine(path, "profile");
+        if (!File.Exists(Path.Combine(path, "night-profile.json")) || !Directory.Exists(profile))
+            throw new DirectoryNotFoundException("Профиль не найден.");
+        foreach (string directory in new[] { Path.GetDirectoryName(path), path, profile })
+            if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0) throw new IOException("Профиль не должен быть символической ссылкой.");
+        return path;
+    }
+    private static string[] SelectProfile(string[] args)
+    {
+        var remaining = new List<string>();
+        string selected = null;
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i] != "--profile-id") { remaining.Add(args[i]); continue; }
+            if (selected != null || ++i >= args.Length) throw new ArgumentException("Укажи профиль один раз.");
+            selected = args[i];
+        }
+        if (selected == null)
+        {
+            try
+            {
+                string path = Path.Combine(BaseDataRoot, "night-active-profile");
+                if (new FileInfo(path).Length > 64) throw new IOException();
+                selected = File.ReadAllText(path).Trim();
+                ProfileRoot(selected);
+            }
+            catch { selected = "default"; }
+        }
+        DataRoot = ProfileRoot(selected);
+        ProfileId = selected;
+        try
+        {
+            string path = Path.Combine(DataRoot, "night-profile.json");
+            if (new FileInfo(path).Length < 16384)
+            {
+                var data = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(path));
+                string label = data["name"] as string;
+                if (!string.IsNullOrWhiteSpace(label) && label.Length <= 40) ProfileLabel = label;
+            }
+        }
+        catch { }
+        return remaining.ToArray();
+    }
+    private static void RememberProfile()
+    {
+        using (var gate = new Mutex(false, "Local\\" + BaseIdentity() + ".Profiles"))
+        {
+            try { if (!gate.WaitOne(5000)) return; }
+            catch (AbandonedMutexException) { }
+            string path = Path.Combine(BaseDataRoot, "night-active-profile"), temporary = path + ".tmp";
+            try
+            {
+                File.WriteAllText(temporary, ProfileId, new UTF8Encoding(false));
+                if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path);
+            }
+            finally { gate.ReleaseMutex(); }
+        }
     }
     private static string Quote(string value)
     {
@@ -160,6 +273,8 @@ internal static class Launcher
         {
             AppContext.SetSwitch("Switch.System.IO.UseLegacyPathHandling", false);
             AppContext.SetSwitch("Switch.System.IO.BlockLongPaths", false);
+            Directory.CreateDirectory(BaseDataRoot);
+            args = SelectProfile(args);
             Directory.CreateDirectory(DataRoot);
             string identity = Identity();
             if (args.Length == 1 && args[0] == "--default-browser")
@@ -195,7 +310,7 @@ internal static class Launcher
                 skeleton.SetValue(executable + "|Enabled", 0, RegistryValueKind.DWord);
             using (var key = Registry.CurrentUser.CreateSubKey("Software\\Mozilla\\Night\\TaskBarIDs"))
                 key.SetValue(runtime, identity, RegistryValueKind.String);
-            if (!Installed) Shortcut(identity);
+            if (!Installed && ProfileId == "default") Shortcut(identity);
             var start = new ProcessStartInfo(executable)
             {
                 Arguments = "-app \"" + application + "\" -profile \"" + profile + "\"",
@@ -210,14 +325,26 @@ internal static class Launcher
                     throw new ArgumentException("Некорректный адрес страницы.");
                 start.Arguments += " -url " + Quote(target.AbsoluteUri);
             }
-            start.EnvironmentVariables["MOZ_APP_REMOTINGNAME"] = "night-browser";
-            using (var process = Process.Start(start))
+            start.EnvironmentVariables["MOZ_APP_REMOTINGNAME"] = ProfileId == "default" ? "night-browser" : "night-browser-" + ProfileId;
+            using (var gate = new Mutex(false, "Local\\" + identity + ".Launch"))
             {
-                for (int attempt = 0; attempt < 120 && !process.HasExited && Environment.GetEnvironmentVariable("MOZ_HEADLESS") != "1"; attempt++)
+                try { if (!gate.WaitOne(45000)) throw new IOException("Профиль ещё запускается."); }
+                catch (AbandonedMutexException) { }
+                try
                 {
-                    if (ApplyWindows(process.Id, identity)) break;
-                    Thread.Sleep(250);
+                    if (args.Length == 0 && Environment.GetEnvironmentVariable("MOZ_HEADLESS") != "1" && Activate(identity, executable)) { RememberProfile(); return 0; }
+                    using (var process = Process.Start(start))
+                    {
+                        for (int attempt = 0; attempt < 120 && !process.HasExited && Environment.GetEnvironmentVariable("MOZ_HEADLESS") != "1"; attempt++)
+                        {
+                            if (ApplyWindows(process.Id, identity)) break;
+                            Thread.Sleep(250);
+                        }
+                        if (process.HasExited && process.ExitCode != 0) return process.ExitCode;
+                    }
+                    RememberProfile();
                 }
+                finally { gate.ReleaseMutex(); }
             }
             return 0;
         }

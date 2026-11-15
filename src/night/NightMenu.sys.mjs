@@ -35,7 +35,7 @@ export class NightMenu {
     const windows = this.#element("div", "", { class: "night-menu-windows" });
     windows.append(
       this.#action("window", "Новое окно", "", () => this.#command("cmd_newNavigator")),
-      this.#action("private", "Приватное", "", () => this.#command("Tools:PrivateBrowsing")),
+      this.#action("private", "Приватное окно", "Ctrl+Shift+N", () => this.#command("Tools:PrivateBrowsing")),
     );
     const library = this.#element("div", "", { class: "night-menu-group" });
     library.append(

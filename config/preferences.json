@@ -93,5 +93,12 @@
   "night.ui.window-controls-autohide": true,
   "browser.startup.preXulSkeletonUI": false,
   "night.ui.address-details": false,
-  "night.home.widgets": "[\"clock\",\"shortcuts\",\"tabs\",\"island\"]"
+  "night.home.widgets": "[\"clock\",\"shortcuts\",\"tabs\",\"island\"]",
+  "general.useragent.compatMode.firefox": true,
+  "services.sync.prefs.sync.night.ui.palette": true,
+  "services.sync.prefs.sync.night.ui.density": true,
+  "services.sync.prefs.sync.night.ui.animations": true,
+  "services.sync.prefs.sync.night.ui.navigation-layout": true,
+  "services.sync.prefs.sync.night.ui.address-details": true,
+  "services.sync.prefs.sync.night.home.widgets": true
 }
