@@ -6,7 +6,7 @@
 
 ```sh
 cd /home/noon
-curl -fL https://github.com/1atex/night-browser/releases/download/v0.15.0-preview.2/night-together-server-0.15.0.zip -o night-together-server-0.15.0.zip
+curl -fL https://github.com/1atex/night-browser/releases/download/v0.15.0-preview.3/night-together-server-0.15.0.zip -o night-together-server-0.15.0.zip
 unzip -o night-together-server-0.15.0.zip -d /home/noon/night-together
 cd /home/noon/night-together/services/together
 docker compose -f compose.yaml -f compose.proxy.yaml up -d --build together

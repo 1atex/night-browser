@@ -1,4 +1,6 @@
 const $=id=>document.getElementById(id), peers=new Map(), waiting=new Map();
+import {MicrophoneSession} from './microphone.mjs';
+const capture=new MicrophoneSession();
 let serial=0,state=null,active=false,stream=null,cursor=0,timer,busy=false,available=false,rtcConfig,signature='';
 function bridge(method,body){return new Promise((resolve,reject)=>{const id=++serial,timeout=setTimeout(()=>{waiting.delete(id);reject(Error('Night не ответил. Проверь обновления браузера и сервера.'));},15000);waiting.set(id,{resolve,reject,timeout});document.dispatchEvent(new CustomEvent('NightRoom:Query',{detail:JSON.stringify({id,method,body})}));});}
 window.addEventListener('NightRoom:Reply',event=>{let v;try{v=JSON.parse(event.detail);}catch{return;}const p=waiting.get(v.id);if(!p)return;waiting.delete(v.id);clearTimeout(p.timeout);v.error?p.reject(Error(v.error)):p.resolve(v.result);});
@@ -85,15 +87,27 @@ async function refresh(){
  }catch(error){status(error.message);if(active)stop();}finally{busy=false;}
 }
 async function microphone(){
+ if(capture.pending||capture.stream)return;
+ const room=state?.room?.id;let acquired;$('voice').disabled=true;
  try{
   if(!active)throw Error('Сначала подключи чат.');
-  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
-  stream.getAudioTracks()[0].onended=()=>{stopMicrophone();status('Микрофон отключён устройством.');};
-  for(const peer of peers.values())await peer.transceiver?.sender.replaceTrack(stream.getAudioTracks()[0]);
+  acquired=await capture.start(()=>navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false}));
+  if(!acquired)return;
+  if(!active||state?.room?.id!==room){capture.stop();return;}
+  stream=acquired;stream.getAudioTracks()[0].onended=()=>{stopMicrophone();status('Микрофон отключён устройством.');};
+  for(const peer of peers.values()){
+   if(capture.stream!==acquired)break;
+   await peer.transceiver?.sender.replaceTrack(acquired.getAudioTracks()[0]);
+  }
+  if(capture.stream!==acquired){acquired.getTracks().forEach(t=>t.stop());return;}
   $('voice').hidden=true;$('mute').hidden=false;status('Микрофон включён.');
- }catch(error){stream?.getTracks().forEach(t=>t.stop());stream=null;status(error.name==='NotAllowedError'?'Доступ к микрофону не разрешён. Чат продолжает работать.':error.message);}
+ }catch(error){
+  acquired?.getTracks().forEach(t=>t.stop());
+  if(capture.stream===acquired){capture.stop();stream=null;}
+  if(active)status(error.name==='NotAllowedError'?'Доступ к микрофону не разрешён. Чат продолжает работать.':error.message);
+ }finally{$('voice').disabled=!active||capture.pending;}
 }
-function stopMicrophone(){stream?.getTracks().forEach(t=>t.stop());stream=null;for(const p of peers.values())p.transceiver?.sender.replaceTrack(null).catch(()=>{});$('voice').hidden=false;$('mute').hidden=true;}
+function stopMicrophone(){capture.stop();stream=null;for(const p of peers.values())p.transceiver?.sender.replaceTrack(null).catch(()=>{});$('voice').hidden=false;$('mute').hidden=true;$('voice').disabled=!active;}
 function stop(){if(active)bridge('session',{active:false}).catch(()=>{});active=false;stopMicrophone();for(const id of [...peers.keys()])closePeer(id);$('connect').textContent='Подключить чат';$('voice').disabled=true;signature='';renderMembers();}
 $('connect').onclick=async()=>{if(active){for(const p of peers.values())signal(p,{kind:'bye'}).catch(()=>{});stop();return;}try{rtcConfig=await bridge('rtc');await bridge('session',{active:true});active=true;$('connect').textContent='Отключить чат';$('voice').disabled=false;await refresh();}catch(error){status(error.message);}};
 $('voice').onclick=microphone;$('mute').onclick=()=>{stopMicrophone();status('Микрофон выключен.');};

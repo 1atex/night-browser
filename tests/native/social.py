@@ -5,7 +5,7 @@ from smoke import wait_for
 
 def run(binary,app_ini,output):
  output.mkdir(parents=True,exist_ok=True);drivers=[]
- fixture=[{'tag_name':'v0.15.0-preview.2','assets':[{'name':'night-browser-0.15.0-preview-windows-x64-setup.exe','download_count':42,'browser_download_url':'https://github.com/1atex/night-browser/releases/download/v0.15.0-preview.2/night-browser-0.15.0-preview-windows-x64-setup.exe'}]}]
+ fixture=[{'tag_name':'v0.15.0-preview.3','assets':[{'name':'night-browser-0.15.0-preview-windows-x64-setup.exe','download_count':42,'browser_download_url':'https://github.com/1atex/night-browser/releases/download/v0.15.0-preview.3/night-browser-0.15.0-preview-windows-x64-setup.exe'}]}]
  module=(Path(__file__).resolve().parents[2]/'services/together/server.mjs').as_uri()
  with tempfile.TemporaryDirectory(prefix='night-social-') as temp:
   script=f'import {{createService}} from {json.dumps(module)};const s=await createService({{path:{json.dumps(str(Path(temp)/"state.json"))},iceServers:[],releases:async()=>{json.dumps(fixture,ensure_ascii=False)}}});s.listen(0,"127.0.0.1",()=>console.log(s.address().port));const other=await createService();other.listen(0,"127.0.0.1",()=>console.log(other.address().port));'
@@ -65,8 +65,10 @@ def run(binary,app_ini,output):
    async_chrome(host,'await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.openRoom(w);')
    wait_for(lambda:content(host,'return !!document.getElementById("message-form");'))
    click(guest,'mute');assert content(guest,'return document.getElementById("mute").hidden;')
-   click(guest,'leave');wait_for(lambda:len(state(host)['room']['members'])==1)
+   content(guest,'document.getElementById("voice").click();document.getElementById("voice").click();document.getElementById("leave").click();')
+   wait_for(lambda:len(state(host)['room']['members'])==1)
    wait_for(lambda:content(host,'return document.querySelectorAll("audio").length===0;'))
+   assert content(guest,'return document.getElementById("mute").hidden;')
    wait_for(lambda:chrome(guest,'return !ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.roomBrowsers.has(w.gBrowser.selectedBrowser);'))
    action(guest,{'type':'room-request','invite':token});action(host,{'type':'room-admit','room':room,'id':state(guest)['id']})
    navigate(guest,'/room');wait_for(lambda:'общие' in text(guest,'room-status'));click(guest,'connect')
@@ -86,7 +88,7 @@ def run(binary,app_ini,output):
    host.set_window_rect(width=660,height=900)
    assert content(host,'return document.documentElement.scrollWidth<=document.documentElement.clientWidth+2;')
    host.set_window_rect(width=1280,height=900)
-   result={'passed':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
+   result={'passed':True,'leave_during_microphone_request_keeps_capture_off':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
    (output/'social-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
   except Exception:
    for i,b in enumerate(drivers):
