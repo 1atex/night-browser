@@ -333,3 +333,22 @@ The same seven-local-tab workload reports Night private working set at 582.34 Mi
 | --- | --- |
 | night-browser-0.12.0-preview-windows-x64.zip | `a68351fd7bff3f9b17ad919471e9e9d2ce039cb5159a1ebc9dcaa669d31c4802` |
 | night-browser-0.12.0-preview-windows-x64-setup.exe | `6e2a447a3d945dc21977a854c69ce75c2f994a2a673714294ac30c6c695e314f` |
+
+
+## Published 0.13.0 result
+
+[Browser v0.13.0-preview.5](https://github.com/1atex/night-browser/releases/tag/v0.13.0-preview.5) uses `610d38b4295457d59c31d35c12d3310a50693750`. All 69 Node checks and the complete Windows suite passed in [tag run 43748175870](https://github.com/1atex/night-browser/actions/runs/43748175870). Docker validation also passed in [Linux CI 43748180993](https://github.com/1atex/night-browser/actions/runs/43748180993). Earlier tags were not published: 1/2 were cancelled as the deployment requirement changed to Docker; 3 encountered a typing-focus test timeout and was superseded while the archive layout was corrected. The fourth tag stopped while the unmodified Firefox baseline waited for seven local pages. The baseline now disables first-run flows, waits for delayed startup and allows a longer cold load. Tags and history remain intact.
+
+The Windows installer test copies the actual updater helper to a temporary directory, verifies the official setup fixture hash, reinstalls silently and relaunches the selected profile. The profile sentinel survives; the temporary setup and plan are removed. It also retains first install, URL routing, upgrade and uninstall coverage. This tests the helper's real installation path; it does not publish a dummy future release to test the entire remote update chain.
+
+`updates_together.py` checks update controls and one-time changelog opening. Its real local HTTP server drives registration, ID copying boundaries, confirmed friendship, room creation and invitation through Night settings. Website-player synchronization is intentionally not implemented by this foundation. The public domain is pinned in the client, but the VPS was not configured or tested remotely: the owner will deploy the Docker archive.
+
+The Docker test builds Node 22 Alpine, runs as non-root with a read-only root filesystem and a named data volume, registers a fixture identity, restarts the container and checks that the identity is retained. It validates Compose and adapts/validates the Caddy configuration. The same test passed locally; an extracted server archive also built successfully. This does not prove ACME issuance or DNS correctness on the owner's VPS.
+
+All three public downloads matched SHA-256. The browser ZIP passed CRC, manifest and 112 packaged Night source-file checks. The server ZIP passed CRC and byte/source comparison for its six tracked server/deployment files, including the stable `services/together/...` paths, Compose, Dockerfile, Caddyfile and installation instructions. Browser build ID: 20261115184132.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| night-browser-0.13.0-preview-windows-x64.zip | `1ba684048d1ddcdca2e79beb81247047cb18b66c96ed8a284d2356d294b59e83` |
+| night-browser-0.13.0-preview-windows-x64-setup.exe | `0d097cb286124af3969a4f76ed26e5c1edcb84d0ec81a354e61ac5cac66ef46e` |
+| night-together-server-0.13.0.zip | `0e1d37b4510c9ffbdb14f1a78f9ac6665e0d211847a8d41e6a0d005847fb05dd` |
