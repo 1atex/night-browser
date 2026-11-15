@@ -13,9 +13,13 @@ export class NightIslandView {
   #name;
   #detail;
   #progress;
+  #footer;
+  #top;
 
-  constructor(window, owner, parent) {
+  constructor(window, owner, parent, top) {
     this.#window = window;
+    this.#footer = parent;
+    this.#top = top;
     const create = (tag, className) => {
       const node = window.document.createElementNS(XHTML, tag);
       node.className = className;
@@ -44,11 +48,18 @@ export class NightIslandView {
 
   observe() {
     applyIslandAppearance(this.#window.document.documentElement, NightIsland.sharedAppearance);
+    const parent = Services.prefs.getStringPref("night.island.position", "bottom") === "top" ? this.#top : this.#footer;
+    if (this.#button.parentNode !== parent) parent.prepend(this.#button);
     this.#button.hidden = !NightIsland.enabled || !Services.prefs.getBoolPref("night.island.indicator", true) || PrivateBrowsingUtils.isWindowPrivate(this.#window);
     if (this.#button.hidden) return;
     const items = NightIsland.ready ? [...NightIsland.entries].map(([id, download]) => downloadItem(id, download)).filter(Boolean) : [];
+    if (NightIsland.ready && Services.prefs.getStringPref("night.island.visibility", "always") === "unfinished" &&
+        !items.some(item => ["active", "paused", "failed"].includes(item.state))) {
+      this.#button.hidden = true;
+      return;
+    }
     const active = items.filter(item => item.state === "active");
-    const item = active.at(-1) ?? items.findLast(item => ["paused", "complete", "failed"].includes(item.state));
+    const item = active.at(-1) ?? items.findLast(item => ["paused", "failed"].includes(item.state)) ?? items.findLast(item => item.state === "complete");
     const state = !NightIsland.ready ? "offline" : item?.state ?? "idle";
     const name = item?.name ?? (NightIsland.ready ? "Island" : "Island · нет связи");
     const percent = item?.total ? Math.min(100, Math.floor(item.current / item.total * 100)) : null;

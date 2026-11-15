@@ -174,6 +174,7 @@ jobs:
           Copy-Item test-artifacts/startup-cache-result.json dist/startup-cache-result.json
           Copy-Item test-artifacts/start-flow-result.json dist/start-flow-result.json
           Copy-Item test-artifacts/night-start-flow.png dist/night-start-flow.png
+          Copy-Item test-artifacts/night-island-top.png dist/night-island-top.png
           Copy-Item test-artifacts/night-island-browser-pill.png dist/night-island-browser-pill.png
           Copy-Item test-artifacts/rendering.json dist/rendering.json
           Copy-Item test-artifacts/island-result.json dist/island-result.json
@@ -215,6 +216,7 @@ jobs:
             dist/startup-cache-result.json
             dist/start-flow-result.json
             dist/night-start-flow.png
+            dist/night-island-top.png
             dist/night-island-browser-pill.png
             dist/rendering.json
             dist/island-result.json
@@ -276,6 +278,7 @@ jobs:
             release-assets/startup-cache-result.json \
             release-assets/start-flow-result.json \
             release-assets/night-start-flow.png \
+            release-assets/night-island-top.png \
             release-assets/night-island-browser-pill.png \
             release-assets/rendering.json \
             release-assets/island-result.json \

@@ -12,6 +12,8 @@ A download appears in the existing Island pill. Hovering or clicking its indicat
 
 The current session retains at most 32 items, dropping older finished items first. Existing active or resumable downloads join when enabled; completed history is not imported. Disabling clears the connection's in-memory list. Closing Island does not interrupt downloads. A single browser process can connect, including all its windows; simultaneous separate profiles are not yet multiplexed.
 
+The integration settings also open Island's Downloads page directly. `night.island.position` selects `top` or `bottom` of the sidebar, taking effect immediately. `night.island.visibility` selects `always` or `unfinished`; the latter includes active, paused and failed items. Lost-connection feedback stays visible. Defaults are bottom and always. Active items take priority over paused/failed items, which take priority over completed items. These choices move or hide the same capsule without adding workers or timers.
+
 ## Transport
 
 Island hosts `\\.\pipe\NightIsland.Browser.v1.<SID>`. The pipe rejects remote clients, uses a current-user ACL, and both sides check the peer's SID and executable basename. Island may be named `night-island.exe` or use the numbered duplicate-download suffix, such as `night-island (1).exe`. Other executable names remain rejected. These checks are not protection against a malicious process already running as the same user and able to impersonate the application.

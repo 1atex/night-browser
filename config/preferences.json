@@ -3,6 +3,8 @@
   "night.island.downloads": false,
   "night.island.indicator": true,
   "night.island.appearance": true,
+  "night.island.position": "bottom",
+  "night.island.visibility": "always",
   "night.network.enabled": true,
   "night.memory.enabled": true,
   "night.memory.idle-minutes": 10,

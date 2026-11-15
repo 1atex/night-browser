@@ -221,7 +221,8 @@ export class NightShell {
     });
     this.#status.setAttribute("aria-live", "polite");
     this.#status.addEventListener("click", () => {this.#status.removeAttribute("data-message"); this.#owner.toggle("memory");});
-    this.#island = new NightIslandView(this.#window, this.#owner, footer);
+    const islandTop = this.#element("div", "", {id: "night-island-top"});
+    this.#island = new NightIslandView(this.#window, this.#owner, footer, islandTop);
     footer.append(actions, this.#status);
     if (!Services.prefs.getBoolPref("night.import.completed", false))
       footer.append(
@@ -234,7 +235,7 @@ export class NightShell {
       );
     const scroll = this.#element("div", "", {id: "night-tabs-scroll"});
     scroll.append(this.#pins, workspace, this.#tree, heading, this.#empty, this.#list);
-    this.#sidebar.append(this.#filter, scroll, footer);
+    this.#sidebar.append(islandTop, this.#filter, scroll, footer);
     const resize = this.#element("div", "", {id: "night-sidebar-resizer", role: "separator", tabindex: "0", "aria-orientation": "vertical", "aria-label": "Ширина боковой панели", "aria-valuemin": "240", "aria-valuemax": "420"});
     const setWidth = value => Services.prefs.setIntPref("night.ui.sidebar-width", Math.max(240, Math.min(420, Math.round(value))));
     resize.addEventListener("pointerdown", event => {

@@ -46,6 +46,8 @@ The companion now merges [7d9bc801af2e41627ad7d15a6d2400bbda150aca](https://gith
 | Ctrl+W removed saved folder entries | Current-tab close uses the same unload action as the sidebar, retaining native before-unload checks | Native close/unload and unsaved-form cancellation |
 | The start form always submitted to Google | It uses the browser's navigation/search path and displays the selected engine | Native address submission and engine-label check |
 | Integration existed only as a settings switch | A compact capsule shows progress and opens the real Island Downloads panel | Windows protocol test and native UI state |
+| The download capsule had a fixed location and remained visible while idle | Live top/bottom placement and an unfinished-only option; paused files and connection errors remain visible | Native placement geometry and download lifecycle checks |
+| Connected settings had no direct action | An explicit button opens Downloads in Island | Native connection test checks the resulting Island panel |
 | Narrowing the sidebar inserted an empty navigation row | The drag spacer shrinks before controls wrap | Visual inspection at the 240 px minimum width |
 | Light shared palettes made monochrome site marks hard to see | Site marks and chrome symbols follow foreground contrast | Light and dark fixture inspection |
 | Independent palettes made the applications feel unrelated | Optional RGB palette and motion sharing; independent hide/sync controls, with a return to the local palette | Protocol validation, style idempotence and Windows appearance toggles |

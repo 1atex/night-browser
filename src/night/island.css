@@ -16,7 +16,9 @@
   font: 12px var(--night-font);
   text-align: start;
   cursor: pointer;
+  flex-shrink: 0;
 }
+#night-island-top { flex-shrink: 0; min-width: 0; }
 #night-sidebar .night-island-capsule[hidden] { display: none; }
 #night-sidebar .night-island-capsule:hover { background: var(--night-hover); }
 #night-sidebar .night-island-capsule:active { transform: scale(.985); }

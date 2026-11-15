@@ -730,12 +730,18 @@ window.addEventListener(
       const hint = element("p", "", {id: "island-hint"});
       const retry = button("Подключить снова", () => NightIsland.retryNow());
       retry.id = "island-retry";
+      const openIsland = button("Открыть загрузки", () => NightIsland.openDownloads());
+      openIsland.id = "island-open";
       summary.append(state, hint);
-      connection.append(mark, summary, retry);
+      connection.append(mark, summary, retry, openIsland);
       section.append(connection);
       toggle(section, "Показывать загрузки в Island", "Прогресс, пауза, продолжение и открытие папки с готовым файлом.", "night.island.downloads", false);
       section.querySelector('[data-pref="night.island.downloads"]').disabled = !supported;
       toggle(section, "Индикатор в боковой панели", "Файл и прогресс. Нажатие раскрывает загрузки в Island.", "night.island.indicator", true);
+      choice(section, "Расположение индикатора", "Перемещается сразу, без перезапуска браузера.", "night.island.position",
+        [["bottom", "Внизу боковой панели"], ["top", "Вверху боковой панели"]], "bottom");
+      choice(section, "Когда показывать", "Незавершённые загрузки включают паузу и ошибки. При потере связи остаётся сообщение о подключении.", "night.island.visibility",
+        [["always", "Всегда"], ["unfinished", "Только незавершённые загрузки"]], "always");
       toggle(section, "Оформление из Island", "Фон, акцент и анимации. При выключении вернётся выбранная палитра браузера.", "night.island.appearance", true);
       for (const input of section.querySelectorAll("[data-pref]")) input.disabled = !supported;
       const steps = element("ol", "", {class: "island-setup", id: "island-setup"});
@@ -772,6 +778,7 @@ window.addEventListener(
         hint.textContent = description + (NightIsland.errorCode ? ` Код Windows: ${NightIsland.errorCode}.` : "");
         connection.dataset.state = key;
         retry.hidden = !["waiting", "unavailable"].includes(key);
+        openIsland.hidden = key !== "connected" || !NightIsland.capabilities.has("show-downloads");
         const visual = NightIsland.capabilities.has("show-downloads") && NightIsland.capabilities.has("appearance");
         if (key === "connected" && !visual) hint.textContent = "Загрузки подключены. Для раскрытия Island из браузера и общего оформления обнови Island по ссылке ниже.";
         steps.hidden = !supported || key === "connected" && visual;
