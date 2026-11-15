@@ -2,6 +2,14 @@
 
 `npm test` checks unloading policy, request validation, bounded history, channel suspension/redirect behavior and module integration. These tests do not substitute for a browser runtime.
 
+## Home and native surface checks
+
+`tests/native/home_ux.py` clicks the real sidebar new-tab control, types without another click, changes widget visibility and checks persistence in another new tab. It collapses a workspace containing a folder, checks its saved session data and verifies that the active tab is unchanged. The compact address check opens the actual native permission popup and checks that detailed mode restores its indicator. The active-sharing visibility assertion uses an attribute fixture; it does not exercise capture hardware.
+
+`tests/native/surfaces.py` opens eleven browser-owned pages, switches their palettes live, checks preserved configuration warnings and confirms that an ordinary web page receives no Night styles. It also opens the real Library, Page Info, About and DevTools console, checks the find bar, and confirms that closing the request workbench releases its stylesheet. The local audit separately opened and cancelled an actual print preview; Windows print layout and OS file pickers are outside this automated surface suite.
+
+`tests/native/island_hub.py` additionally opens the real Island Pocket from the new Home widget. Hidden Home clocks and widget preferences have unit checks. Request-history byte retention and comparison of empty, trailing-newline and long responses are covered by the 65 Node checks; the separate native allocation measurement is documented in [PERFORMANCE.md](PERFORMANCE.md).
+
 ## Search and Island hub checks
 
 `tests/native/search.py` exercises the packaged start page against actual Places history, cached favicons and a local OpenSearch suggestion server. It checks keyboard selection, navigation, Escape/outside dismissal, delayed-response rejection and the network-suggestion preference. Native address checks cover repeated Ctrl+L/Escape and focus restoration after animated expansion. These fixtures do not depend on a public search engine's current responses.
@@ -285,3 +293,19 @@ Evidence: [home suggestions](https://github.com/1atex/night-browser/releases/dow
 | night-browser-0.10.0-preview-windows-x64.zip | `20b5e56b4e5b980c5a43e1230f0de0f03af24fd6d67fa7a8ea5d2102d5b8f182` |
 | night-browser-0.10.0-preview-windows-x64-setup.exe | `21d228f18a4873b07aa3ab65c17cec4c76d92a8fad723abf533dde1a93e77adf` |
 | night-island.exe | `e7661fa09282d9fb78262e13286a12a9bca2c490f4e2db148464e41434d46972` |
+
+
+## Published 0.11.0 result
+
+[Browser v0.11.0-preview.2](https://github.com/1atex/night-browser/releases/tag/v0.11.0-preview.2) uses `1db0c0a834dfeed9175edc746d99448ac8bfb90d` and passed all 65 Node checks and the complete native Windows suite in [tag run 43737556680](https://github.com/1atex/night-browser/actions/runs/43737556680). Both build and publication jobs succeeded. The first 0.11 tag was cancelled before publication after visual review found remaining upstream artwork; its tag remains unchanged. The redundant branch build was cancelled in favor of the final tag's full suite. Compatible Island remains 0.4.0.
+
+The public installer and ZIP were downloaded and matched their release SHA-256 file. The 145,456,212-byte ZIP passed CRC, source manifest, native tab-patch and all 101 Night source-file checks. Text line endings were normalized; PNG/ICO resources were compared byte-for-byte. The generated build-revision module and final advanced-settings/error-page patches were checked separately. BuildID is `20261115164730`.
+
+Published [Home UX results](https://github.com/1atex/night-browser/releases/download/v0.11.0-preview.2/home-ux-result.json), [native surface results](https://github.com/1atex/night-browser/releases/download/v0.11.0-preview.2/surfaces-result.json) and [Island hub results](https://github.com/1atex/night-browser/releases/download/v0.11.0-preview.2/hub-result.json) pass. The hub report identifies the tagged source and confirms that the Home widget opens the actual Island Pocket. The suite also retains installer, startup-cache recovery, first launch, search, real-Zen import, session restoration, unloading, rendering and network-tool coverage. The final Windows advanced-settings and error-page captures were visually inspected from the test artifact. Native Linux Home, surface and 100-tab rendering checks also passed on the final source.
+
+The [published Windows memory workload](https://github.com/1atex/night-browser/releases/download/v0.11.0-preview.2/memory.json) reports Night private working set at 610.94 MiB before inactivity and 394.58 MiB after five safe discards, with the selected and explicitly protected tabs still loaded. This is the seven-local-page fixture described above, not a measurement of the user's Gmail/YouTube profile or a Gecko speedup. Separate request-history allocation measurements and their limits are in [PERFORMANCE.md](PERFORMANCE.md).
+
+| Artifact | SHA-256 |
+| --- | --- |
+| night-browser-0.11.0-preview-windows-x64.zip | `054e9360d9df39a6c742a26a706847e4d848e3496cfe92936f95dcebf80b4798` |
+| night-browser-0.11.0-preview-windows-x64-setup.exe | `54fc4c65abd6157eda14fda55c76cb5803ecd8836f49d0907257b68464b13c1b` |
