@@ -134,6 +134,7 @@ def run(package, zen, extension, output):
         assert source.joinpath('zen-sessions.jsonlz4').exists(), 'Zen did not save its own session format'
         source.joinpath('chrome').mkdir(exist_ok=True)
         source.joinpath('chrome/userChrome.css').write_text('fixture: never load this in Night;')
+        source.joinpath('signedInUser.json').write_text('{"fixture":"do not copy account credentials"}')
         original = hashes(source)
         target_instance = start([night/'Night.exe'], 2828, output/'zen-import-target.log')
         instances.append(target_instance)
@@ -205,12 +206,13 @@ def run(package, zen, extension, output):
         imported.navigate(url+'/restored')
         assert imported.execute_script("return document.cookie.includes('night_fixture=cookie-value') && localStorage.getItem('night-fixture')==='stored-value';")
         assert (night/prepared['backup']/'keep-before-import.txt').read_text() == 'preserve Night backup'
+        assert not (night/'profile'/'signedInUser.json').exists()
         assert not (night/'profile'/'chrome').exists()
         assert not (night/'profile'/'user.js').exists()
         assert hashes(archived) == original
         stop(imported_instance)
         instances.remove(imported_instance)
-        (output/'zen-import-result.json').write_text(json.dumps({'source':'Zen 1.24.2b','gecko':result['version'],'copied_files':prepared['files'],'tabs':prepared['tabs'],'workspaces':prepared['workspaces'],'source_unchanged':True,'backup_preserved':True,'password_decrypted':True,'cookies_and_storage':True,'signed_extension_active':True,'locked_source_rejected':True,'newer_engine_rejected':True,'works_without_source_path':True},indent=2))
+        (output/'zen-import-result.json').write_text(json.dumps({'source':'Zen 1.24.2b','gecko':result['version'],'copied_files':prepared['files'],'tabs':prepared['tabs'],'workspaces':prepared['workspaces'],'source_unchanged':True,'backup_preserved':True,'account_credentials_excluded':True,'password_decrypted':True,'cookies_and_storage':True,'signed_extension_active':True,'locked_source_rejected':True,'newer_engine_rejected':True,'works_without_source_path':True},indent=2))
         print('PASS: actual Zen profile; encrypted login, bookmark, cookies/localStorage, signed extension, workspaces and tabs; source unchanged, live-profile lock and Night backup',flush=True)
     finally:
         for instance in reversed(instances):

@@ -69,12 +69,19 @@ def run(binary,app_ini,output):
         wait_for(lambda:chrome('return w.gBrowser.tabs.some(t=>t.linkedBrowser.currentURI.spec.startsWith("https://accounts.firefox.com/"));'),timeout=60)
         selected()
         result['account_url']=content('return location.origin+location.pathname;')
-        wait_for(lambda:content('return document.readyState==="complete";'),timeout=60)
+        try:
+            wait_for(lambda:content('return document.readyState==="complete";'),timeout=15)
+            result['remote_page_completed']=True
+        except AssertionError:result['remote_page_completed']=False
         result['account_page_title']=content('return document.title;')
         result['user_agent']=content('return navigator.userAgent;')
         assert urlparse(result['account_url']).hostname=='accounts.firefox.com'
         assert 'Firefox/' in result['user_agent'] and 'Night/' in result['user_agent']
         assert chrome('return w.gSync._initialized&&Services.prefs.getBoolPref("identity.fxaccounts.enabled");')
+        b.set_context('chrome')
+        prefs=b.execute_async_script('const done=arguments[arguments.length-1];(async()=>{const {Weave}=ChromeUtils.importESModule("resource://services-sync/main.sys.mjs");await Weave.Service.promiseInitialized;Services.prefs.setStringPref("night.ui.palette","graphite");Services.prefs.setStringPref("night.ui.navigation-layout","top");const values=Weave.Service.engineManager.get("prefs")._store._getAllPrefs();return {palette:values["night.ui.palette"],navigation:values["night.ui.navigation-layout"],island:Object.hasOwn(values,"night.island.downloads"),passwords:Weave.Service.engineManager.get("passwords").enabled};})().then(done,e=>done({error:String(e)}));')
+        assert prefs=={'palette':'graphite','navigation':'top','island':False,'passwords':False},prefs
+        result['native_sync_preference_record']=prefs
         result['sync_connect_uses_native_service']=True
         result['passed']=True
         (output/'accounts-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')

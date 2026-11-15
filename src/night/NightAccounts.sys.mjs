@@ -18,6 +18,11 @@ export const NightAccounts = {
   },
   async connect(window) {
     this.prepare(window);
+    const state = this.state(window);
+    if (state.status === "signed_in" && state.hasSyncKeys) {
+      window.openTrustedLinkIn("chrome://browser/content/preferences/advanced.xhtml?action=choose-what-to-sync#sync", "tab");
+      return;
+    }
     await window.gSync.openFxAEmailFirstPage("preferences");
   },
   sync(window) { this.prepare(window); window.gSync.doSync(); },

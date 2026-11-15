@@ -817,6 +817,7 @@ window.addEventListener(
       }
       const profiles = card("Профили на этом компьютере", "Пароли, cookies, расширения, вкладки и оформление разделены. Профиль открывается в своём окне; повторный выбор возвращает к открытому окну.");
       profiles.id = "night-profiles-settings";
+      profiles.append(element("p", "Каждый открытый профиль использует память отдельно. Закрой его окна, когда он не нужен.", {class: "card-caption"}));
       const items = await NightProfiles.list();
       if (!profiles.isConnected) return;
       for (const item of items) {
@@ -868,13 +869,14 @@ window.addEventListener(
         if (!sync.isConnected) return;
         const state = NightAccounts.state(browserWindow);
         const signed = state.status === "signed_in";
+        const configured = signed && state.syncEnabled && state.hasSyncKeys;
         title.textContent = state.email || "Вход не выполнен";
         description.textContent = state.status === "disabled" ? "Синхронизация выключена. Подключается только после твоего выбора." :
           state.status === "login_failed" ? "Нужно войти снова." : state.status === "not_verified" ? "Подтверди адрес электронной почты." :
-          signed ? state.syncing ? "Синхронизация…" : state.hasSyncKeys ? (state.lastSync ? `Последняя синхронизация: ${new Date(state.lastSync).toLocaleString("ru-RU")}` : "Sync подключён") : "Аккаунт подключён; включи Sync для переноса данных." : "Войди на официальной странице Mozilla.";
-        connect.hidden = signed && state.hasSyncKeys;
+          signed ? state.syncing ? "Синхронизация…" : configured ? (state.lastSync ? `Последняя синхронизация: ${new Date(state.lastSync).toLocaleString("ru-RU")}` : "Sync подключён") : "Аккаунт подключён; включи Sync для переноса данных." : "Войди на официальной странице Mozilla.";
+        connect.hidden = configured;
         connect.textContent = signed ? "Включить Sync" : state.status === "not_verified" ? "Подтвердить аккаунт" : "Подключить Mozilla Sync";
-        now.hidden = !signed || !state.hasSyncKeys; now.disabled = !!state.syncing;
+        now.hidden = !configured; now.disabled = !!state.syncing;
         settings.hidden = !signed; disconnect.hidden = !state.email;
       };
       update();

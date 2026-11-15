@@ -67,7 +67,7 @@ def run(package,output):
             assert content(b,"return localStorage.getItem('account');") is None
             isolated=async_chrome(b,'''const {PlacesUtils}=ChromeUtils.importESModule('resource://gre/modules/PlacesUtils.sys.mjs');
               const {AddonManager}=ChromeUtils.importESModule('resource://gre/modules/AddonManager.sys.mjs');
-              return {logins:Services.logins.countLogins('https://profiles.example.test','',''),bookmark:await PlacesUtils.bookmarks.fetch({url:arguments[0]+'/personal-bookmark'}),addon:!!await AddonManager.getAddonByID('profile-fixture@example.test'),sync:Services.prefs.getBoolPref('identity.fxaccounts.enabled')};''',url)
+              return {logins:(await Services.logins.getAllLogins()).length,bookmark:await PlacesUtils.bookmarks.fetch({url:arguments[0]+'/personal-bookmark'}),addon:!!await AddonManager.getAddonByID('profile-fixture@example.test'),sync:Services.prefs.getBoolPref('identity.fxaccounts.enabled')};''',url)
             assert isolated=={'logins':0,'bookmark':None,'addon':False,'sync':False},isolated
             content(b,"document.cookie='account=work; Max-Age=86400; path=/';localStorage.setItem('account','work');")
             async_chrome(b,'const {NightProfiles}=ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs");await NightProfiles.rename(arguments[0],"Рабочий проект");',id)

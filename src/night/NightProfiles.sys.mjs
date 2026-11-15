@@ -61,7 +61,8 @@ export const NightProfiles = {
   async open(id, window) {
     if (PrivateBrowsingUtils.isWindowPrivate(window)) throw new Error("Переключай профили из обычного окна.");
     if (!(await this.list()).some(item => item.id === id)) throw new Error("Профиль не найден.");
-    if (id === this.context.id) { window.focus(); return; }
+    if (!this.context.managed && id === "external") { window.focus(); return; }
+    if (Services.appinfo.OS !== "WINNT" && id === this.context.id) { window.focus(); return; }
     if (Services.appinfo.OS !== "WINNT") throw new Error("Переключение профилей доступно в Windows.");
     const launcher = file(PathUtils.join(this.context.application, "Night.exe"));
     const process = Cc["@mozilla.org/process/util;1"].createInstance(Ci.nsIProcess);
