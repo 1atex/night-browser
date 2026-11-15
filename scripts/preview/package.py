@@ -165,6 +165,14 @@ def package(runtime, output, archive, platform):
         text, count = re.subn(r"(?m)^discopane-intro3 =[^\n]*(?:\n[ \t]+[^\n]*)*", "discopane-intro3 = " + intro, toolkit[name].decode())
         if count != 1:
             raise ValueError("Unexpected extensions introduction")
+        heading = "Расширения и темы" if locale == "ru" else "Extensions and themes"
+        text, count = re.subn(r"(?m)^discover-heading = .*$", "discover-heading = " + heading, text)
+        if count != 1:
+            raise ValueError("Unexpected extensions heading")
+        catalogue = "Каталог Mozilla" if locale == "ru" else "Mozilla catalogue"
+        text, count = re.subn(r"(?m)^(find-more-addons-promo =\n[ \t]+\.heading = ).*$", lambda match: match[1] + catalogue, text)
+        if count != 1:
+            raise ValueError("Unexpected extensions catalogue heading")
         toolkit[name] = text.encode()
     for name, data in list(browser.items()):
         if name.endswith("/branding/brand.ftl") or name.endswith("/branding/brand.properties"):

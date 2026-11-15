@@ -19,7 +19,7 @@ The browser still uses Gecko's native security, password, print and developer to
 | Library, page info, About dialog | Native chrome windows use separate palette | Scoped Night document actor and branded About assets | `surfaces.py` opens actual windows |
 | DevTools | Separate toolbar and sidebar colours | Night variables in toolbox and browser-owned tool documents; syntax/error colours remain semantic | `surfaces.py` opens the actual console |
 | Request workbench | Hardcoded colours and small text; CSS loaded in every window | Night tokens, readable labels, stylesheet present only while workbench is open | `surfaces.py`, native network smoke |
-| Print/common dialogs | Browser-owned document styling | Same scoped palette; printed page preview remains content | Packaged allowlist; print layout is not asserted by the automated surface test |
+| Print/common dialogs | Browser-owned document styling | Same scoped palette; printed page preview remains content | Actual print preview opened and cancelled in the Linux audit; palette asserted on `chrome://global/content/print.html`. Printed page remains unmodified. |
 
 The document actor has an explicit browser-owned URI allowlist. It does not inject CSS into sites or extension popup documents. OS file pickers keep the Windows theme. `surfaces.py` checks that an ordinary web document receives no Night variables. Browser-owned panels retain the native Gecko implementation; this audit is not a replacement of the rendering engine.
 

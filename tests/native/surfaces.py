@@ -73,7 +73,7 @@ def run(binary,app_ini,output):
         chrome('w.surfaceToolbox.destroy();delete w.surfaceToolbox;')
         result['devtools']=True
         result['website_untouched']=True;result['workbench_sheet_released']=True;result['passed']=True
-        (output/'surfaces-result.json').write_text(json.dumps(result,indent=2,ensure_ascii=False));print('PASS: native surfaces follow Night palette, website styles untouched, workbench sheet released')
+        (output/'surfaces-result.json').write_text(json.dumps(result,indent=2,ensure_ascii=False),encoding='utf-8');print('PASS: native surfaces follow Night palette, website styles untouched, workbench sheet released')
     finally:
         if not (output/'surfaces-result.json').exists():
             try:shot('surfaces-failure.png')

@@ -67,7 +67,7 @@ def run(binary,app_ini,output):
         if not (output/'home-ux-result.json').exists():
             try:
                 shot('home-ux-failure.png')
-                (output/'home-ux-failure.json').write_text(json.dumps({'chrome':chrome('return {url:w.gBrowser.selectedBrowser.currentURI.spec,focus:d.activeElement?.id,bar:w.gURLBar.value};'),'content':content('return {url:location.href,focus:document.activeElement?.id,text:document.body?.innerText};')},ensure_ascii=False))
+                (output/'home-ux-failure.json').write_text(json.dumps({'chrome':chrome('return {url:w.gBrowser.selectedBrowser.currentURI.spec,focus:d.activeElement?.id,bar:w.gURLBar.value};'),'content':content('return {url:location.href,focus:document.activeElement?.id,text:document.body?.innerText};')},ensure_ascii=False),encoding='utf-8')
             except Exception:pass
         b.cleanup();b.instance=None;server.shutdown();server.server_close()
 
