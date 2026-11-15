@@ -34,6 +34,8 @@ window.addEventListener(
     updateTheme();
     const sections = {
       appearance: ["Внешний вид", "Цвета, панели и анимации.", "appearance"],
+      updates: ["Обновления", "Новые версии и история изменений.", "download"],
+      together: ["Друзья и комнаты", "Основа совместного просмотра в Night.", "profile"],
       accounts: ["Профили и Sync", "Отдельные данные на этом компьютере и синхронизация через Mozilla.", "profile"],
       tabs: [
         "Вкладки и запуск",
@@ -684,7 +686,7 @@ window.addEventListener(
           height: "72",
         }),
         element("h2", "Night Browser"),
-        element("p", "0.7.0 · Preview"),
+        element("p", ChromeUtils.importESModule("resource:///modules/night/NightVersion.sys.mjs").version + " · Preview"),
       );
       info.append(identity);
       row(
@@ -701,13 +703,8 @@ window.addEventListener(
       row(
         info,
         "Обновления",
-        "Тестовая версия обновляется вручную.",
-        button("Проверить релизы ↗", () =>
-          browserWindow.openTrustedLinkIn(
-            "https://github.com/1atex/night-browser/releases",
-            "tab",
-          ),
-        ),
+        "Проверка и установка из браузера.",
+        button("Открыть обновления", () => { location.hash = "updates"; }),
       );
       const credits = card("Открытые технологии");
       row(credits, "Material Symbols", "Значки Google, Apache License 2.0.",
@@ -888,7 +885,89 @@ window.addEventListener(
       };
     }
 
+    function updates() {
+      const {NightUpdates} = ChromeUtils.importESModule("resource:///modules/night/NightUpdates.sys.mjs");
+      const {version} = ChromeUtils.importESModule("resource:///modules/night/NightVersion.sys.mjs");
+      const section = card(`Night ${version}`, "Проверка выполняется по нажатию. Файлы загружаются с официальных релизов Night и проверяются по SHA-256.");
+      const label = element("p", "", {id: "night-update-status", role: "status"});
+      const install = button("Установить и перезапустить", async () => {
+        if (!Services.prompt.confirm(browserWindow, "Обновление Night", "Будут закрыты окна всех профилей Night. Заверши работу с несохранёнными формами. Продолжить?")) return;
+        install.disabled = true; label.textContent = "Загружаем и проверяем обновление…";
+        try { await NightUpdates.install(browserWindow); } finally { install.disabled = false; }
+      });
+      install.id = "night-update-install"; install.hidden = true;
+      const check = button("Проверить обновления", async () => {
+        check.disabled = true; label.textContent = "Проверяем…";
+        try {
+          const candidate = await NightUpdates.check();
+          label.textContent = candidate ? `Доступна версия ${candidate.version}` : "Установлена последняя доступная версия.";
+          install.hidden = !candidate || !NightUpdates.supported;
+        } catch (error) { label.textContent = error.message; }
+        finally { check.disabled = false; }
+      });
+      check.id = "night-update-check";
+      section.append(label, check, install, button("Что нового", () => browserWindow.openTrustedLinkIn("chrome://browser/content/night/changes.html", "tab")));
+      if (!NightUpdates.supported) section.append(element("p", "Установка обновлений из браузера доступна в установленной версии Windows. Для portable пока нужно заменить файлы приложения вручную.", {class: "card-caption"}));
+    }
+
+    async function together() {
+      const {NightTogether} = ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs");
+      const {PrivateBrowsingUtils} = ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs");
+      if (PrivateBrowsingUtils.isWindowPrivate(browserWindow)) { card("Приватное окно", "Друзья и комнаты доступны в обычном окне."); return; }
+      const section = card("Night Together", "Друзья по ID, подтверждение запросов и приглашения. Основа комнат готова; управление плеерами сайтов появится следующим этапом.");
+      const credentials = await NightTogether.credentials();
+      if (!section.isConnected) return;
+      if (!credentials) {
+        const endpoint = element("input", "", {type: "url", placeholder: "https://together.example.com", "aria-label": "Адрес сервера"});
+        section.append(element("p", "Общий сервер ещё не подключён. Его адрес настраивается один раз; друзьям нужен только Night.", {class: "card-caption"}), endpoint,
+          button("Получить мой ID", async () => { await NightTogether.connect(endpoint.value, browserWindow); await render(); }));
+        return;
+      }
+      row(section, "Мой ID", credentials.id, button("Скопировать", () => Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper).copyString(credentials.id)));
+      const friend = element("input", "", {placeholder: "ID друга", maxlength: "16", "aria-label": "ID друга"});
+      section.append(friend, button("Добавить друга", async () => { await NightTogether.action({type: "friend-request", id: friend.value.trim().toLowerCase()}); await refresh(); }));
+      const list = element("div"), room = card("Комната", "В комнату передаётся только явно выбранная ссылка и команды времени. Видео каждый участник открывает со своим доступом к сайту.");
+      section.append(list);
+      const roomBody = element("div"); room.append(roomBody);
+      let refreshing = false;
+      async function action(body) { await NightTogether.action(body); await refresh(); }
+      async function refresh() {
+        if (refreshing || !section.isConnected || document.hidden) return;
+        refreshing = true;
+        try {
+          const state = await NightTogether.state();
+          if (!section.isConnected) return;
+          list.replaceChildren(); roomBody.replaceChildren();
+          for (const id of state.incoming) row(list, "Запрос дружбы", id, (() => { const actions = element("div", "", {class: "profile-actions"}); actions.append(button("Принять", () => action({type: "friend-accept", id})), button("Отклонить", () => action({type: "friend-decline", id}))); return actions; })());
+          for (const id of state.outgoing) row(list, id, "Ожидаем подтверждения", button("Отменить", () => action({type: "friend-decline", id})));
+          for (const item of state.friends) {
+            const actions = element("div", "", {class: "profile-actions"});
+            if (state.room?.owner === state.id) actions.append(button("Пригласить", () => action({type: "room-invite", room: state.room.id, id: item.id})));
+            actions.append(button("Удалить", () => action({type: "friend-remove", id: item.id})));
+            row(list, item.id, "Друг", actions);
+          }
+          for (const invitation of state.invitations) row(roomBody, "Приглашение от " + invitation.owner, invitation.id, button("Войти", () => action({type: "room-join", room: invitation.id})));
+          if (state.room) {
+            roomBody.append(element("p", `${state.room.members.length} участников · ${state.room.paused ? "Пауза" : "Воспроизведение"}`));
+            row(roomBody, "Ссылка комнаты", state.room.url, button("Открыть видео", () => browserWindow.openTrustedLinkIn(state.room.url, "tab")));
+            roomBody.append(button("Покинуть комнату", () => action({type: "room-leave"})));
+          } else {
+            const url = element("input", "", {type: "url", placeholder: "Ссылка на видео", "aria-label": "Ссылка комнаты"});
+            roomBody.append(url, button("Создать комнату", () => action({type: "room-create", url: url.value})));
+          }
+        } catch (error) { status(error.message); }
+        finally { refreshing = false; }
+      }
+      section.append(button("Обновить список", refresh), button("Отключить этот ID…", async () => {
+        if (!Services.prompt.confirm(browserWindow, "Отключить ID", "Локальный ключ будет удалён. Этот ID нельзя будет восстановить без резервной копии профиля. Продолжить?")) return;
+        await NightTogether.disconnect(); await render();
+      }));
+      await refresh();
+    }
+
     const renderers = {
+      updates,
+      together,
       accounts,
       appearance,
       integrations,

@@ -1,3 +1,4 @@
+import hashlib
 import argparse
 import json
 import os
@@ -44,6 +45,16 @@ def run(setup, output):
             instance = None
             subprocess.run(command, check=True, timeout=180)
             assert (profile/'keep-test.txt').read_text() == 'profile survives upgrade and removal'
+            update_setup=Path(directory)/'update-setup.exe'
+            shutil.copy2(setup.resolve(),update_setup)
+            plan=Path(directory)/'update-plan.json'
+            plan.write_text(json.dumps({'root':str(app),'setup':str(update_setup),'sha256':hashlib.sha256(update_setup.read_bytes()).hexdigest(),'profile':'default'}))
+            instance=start([app/'Night.exe','--run-update',plan],2828,output/'self-update-gecko.log')
+            wait_for(lambda:instance[0].execute_script(f'return !!{WIN}?.gNightBrowser;'))
+            assert not plan.exists() and not update_setup.exists()
+            assert (profile/'keep-test.txt').read_text()=='profile survives upgrade and removal'
+            stop(instance);instance=None
+
             page = Path(directory)/'страница.html'
             page.write_text('<!doctype html><title>Installed URL handler</title><p>Local file</p>')
             instance = start([app/'Night.exe', '--url', page.as_uri()], 2828, output/'installed-url-gecko.log')
@@ -61,7 +72,7 @@ def run(setup, output):
             except FileNotFoundError:
                 pass
             installed = False
-            (output/'installer-result.json').write_text(json.dumps({'per_user_install':True,'url_registration':True,'profile_outside_app':True,'upgrade_preserves_profile':True,'unicode_url_launch':True,'uninstall_preserves_profile':True}))
+            (output/'installer-result.json').write_text(json.dumps({'self_update_preserves_profile':True,'per_user_install':True,'url_registration':True,'profile_outside_app':True,'upgrade_preserves_profile':True,'unicode_url_launch':True,'uninstall_preserves_profile':True}))
             print('PASS: installer, registration, independent profile, upgrade, URL launch and uninstall',flush=True)
         finally:
             if instance:

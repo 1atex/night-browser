@@ -12,7 +12,7 @@ internal static class ProfileImport
         "parent.lock", "lock", ".parentlock", "cache2", "startupCache", "shader-cache", "thumbnails",
         "crashes", "minidumps", "datareporting", "safebrowsing", "chrome", "zen-themes", "user.js",
         "compatibility.ini", "addonStartup.json.lz4", "xulstore.json", "sessionCheckpoints.json",
-        "signedInUser.json", "weave"
+        "signedInUser.json", "weave", "night-together.json"
     };
     private static void Write(string path, object value)
     {

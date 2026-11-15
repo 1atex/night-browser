@@ -53,6 +53,7 @@ class NightWindow {
     );
     this.shell = new NightShell(window, this);
     NightWindows.init();
+    ChromeUtils.importESModule("resource:///modules/night/NightUpdates.sys.mjs").NightUpdates.startup(window).catch(error => console.error("Night update status", error));
     NightIsland.init();
     window.gBrowser.tabContainer.addEventListener("TabSelect", this);
     window.addEventListener("unload", () => this.destroy(), { once: true });

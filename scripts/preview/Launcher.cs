@@ -17,7 +17,7 @@ using System.Runtime.InteropServices.ComTypes;
 [assembly: AssemblyDescription("Night Browser")]
 [assembly: AssemblyCompany("Night")]
 [assembly: AssemblyProduct("Night Browser")]
-[assembly: AssemblyVersion("0.12.0.0")]
+[assembly: AssemblyVersion("0.13.0.0")]
 
 internal static class Launcher
 {
@@ -271,6 +271,7 @@ internal static class Launcher
     {
         try
         {
+            if (args.Length == 2 && args[0] == "--run-update") return UpdateRunner.Run(args[1]);
             AppContext.SetSwitch("Switch.System.IO.UseLegacyPathHandling", false);
             AppContext.SetSwitch("Switch.System.IO.BlockLongPaths", false);
             Directory.CreateDirectory(BaseDataRoot);
