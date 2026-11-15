@@ -3,6 +3,7 @@ import base64
 import ctypes
 import json
 import os
+import shutil
 import sqlite3
 import subprocess
 import tempfile
@@ -36,7 +37,7 @@ def run(binary, app_ini, island, output):
     config = root/'NightIsland'; config.mkdir()
     (config/'settings.json').write_text(json.dumps({'browser_downloads': True, 'weather': False, 'update_check': False, 'activity_track': False, 'capture_self_hidden': False, 'capture_hidden': False, 'character': 'none', 'game_mode': False, 'island_animations': False}))
     report = output.resolve()/'hub-state.json'
-    env = os.environ | {'APPDATA':str(root),'NI_INSTANCE':root.name,'NI_DEBUG_TAB':'Browser','NI_BROWSER_TEST_OUTPUT':str(report)}
+    env = os.environ | {'APPDATA':str(root),'NI_INSTANCE':root.name,'NI_DEBUG_TAB':'Browser','NI_BROWSER_TEST_OUTPUT':str(report),'NI_LOG':'debug'}
     u = ctypes.windll.user32
     u.ClientToScreen.argtypes=[ctypes.c_void_p,ctypes.POINTER(Point)]
     u.SetForegroundWindow.argtypes=[ctypes.c_void_p]
@@ -139,8 +140,10 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         u.GetClassNameW.argtypes=[ctypes.c_void_p,ctypes.c_wchar_p,ctypes.c_int]
         source_window=u.WindowFromPoint(Point(round(start['x']),round(start['y'])))
         source_class=ctypes.create_unicode_buffer(256);u.GetClassNameW(source_window,source_class,256)
-        (output/'hub-drag.json').write_text(json.dumps({'start':start,'target':{'x':p.x,'y':p.y},'source_class':source_class.value}))
+        target_window=u.WindowFromPoint(p)
+        (output/'hub-drag.json').write_text(json.dumps({'start':start,'target':{'x':p.x,'y':p.y},'source_class':source_class.value,'target_window':target_window,'island_window':current['hwnd']}))
         assert source_class.value.startswith('Mozilla'),source_class.value
+        assert target_window==current['hwnd'],target_window
         u.SetForegroundWindow(source_window);time.sleep(.3)
         u.SetCursorPos(round(start['x']),round(start['y']));time.sleep(.2);u.mouse_event(2,0,0,0,0)
         for i in range(1,31):
@@ -149,8 +152,10 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         time.sleep(.6)
         (output/'hub-drag-events.json').write_text(json.dumps(b.execute_script('return window.wrappedJSObject.hubDrag;')))
         shot('night-island-drop.png')
-        wait_for(lambda:any(x['url']==origin+'/saved' for x in state().get('pocket',[])),timeout=20)
-        print('PASS: native OLE link drag from browser to persistent Pocket',flush=True)
+        dragged=False
+        try: dragged=bool(wait_for(lambda:any(x['url']==origin+'/saved' for x in state().get('pocket',[])),timeout=10))
+        except AssertionError: pass
+        print(('PASS' if dragged else 'FAIL')+': native OLE link drag from browser to persistent Pocket',flush=True)
         chrome('w.gBrowser.selectedTab.setAttribute("soundplaying","true");NightIsland.hub.schedule();')
         active=wait_for(lambda:next((x for x in state()['state'].get('activity',[]) if 'audio' in x['activity']),None))
         panel('browser');action('activity',active['id'],1)
@@ -175,6 +180,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
                 assert Site.posts[-1]=={'body':'unchanged','header':'original'}
             else:assert len(Site.posts)==before
         print('PASS: native forward preserves original upload; edit focuses editor; reject sends nothing',flush=True)
+        assert dragged,'Native link drag did not persist in Pocket'
         chrome('w.gNightBrowser.close();')
         (output/'hub-result.json').write_text(json.dumps({'passed':True,'posts':Site.posts,'pocket':saved,'lazy_search':True,'private_excluded':True,'source':chrome('return ChromeUtils.importESModule("resource:///modules/night/NightBuild.sys.mjs").revision;')},ensure_ascii=False,indent=2))
     finally:
@@ -183,6 +189,8 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
             except Exception:process.terminate();process.wait(timeout=10)
         try:b.cleanup();b.instance=None
         except Exception:pass
+        for log in (config/'logs').glob('*.log'):
+            shutil.copy2(log,output/('hub-'+log.name))
         server.shutdown()
 
 if __name__=='__main__':
