@@ -38,6 +38,18 @@ export class NightNetwork {
     this.#notify = notify;
   }
 
+  get scopeTab() { return this.#scopeTab; }
+
+  release(id) {
+    const held = this.#pending.get(id);
+    if (!held) return;
+    this.#pending.delete(id);
+    this.#window.clearTimeout(held.timer);
+    held.record.status = "forwarded";
+    held.channel.resume();
+    this.#notify();
+  }
+
   get pending() {
     return [...this.#pending.values()].map((value) => value.record);
   }

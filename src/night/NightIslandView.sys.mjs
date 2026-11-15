@@ -38,7 +38,10 @@ export class NightIslandView {
     this.#button.append(icon, this.#name, this.#detail, this.#progress);
     this.#button.addEventListener("click", () => {
       if (!NightIsland.ready) owner.openSettings("integrations");
-      else if (!NightIsland.openDownloads()) window.DownloadsPanel.showPanel();
+      else if (Services.prefs.getBoolPref("night.island.downloads", false)) {
+        if (!NightIsland.openDownloads()) window.DownloadsPanel.showPanel();
+      } else if (!NightIsland.openPanel(Services.prefs.getBoolPref("night.island.pocket", false) &&
+          !["tabs", "activity", "requests"].some(name => Services.prefs.getBoolPref(`night.island.${name}`, false)) ? "pocket" : "browser")) owner.openSettings("integrations");
     });
     parent.append(this.#button);
     for (const topic of TOPICS) Services.obs.addObserver(this, topic);
@@ -67,7 +70,8 @@ export class NightIslandView {
       active.length > 1 ? `${active.length} ${{one:"файл",few:"файла",many:"файлов",other:"файла"}[plural.select(active.length)]}` : percent !== null ? `${percent}%` : state === "active" ? "Загрузка" : "";
     for (const [node, text] of [[this.#name, name], [this.#detail, detail]]) if (node.textContent !== text) node.textContent = text;
     if (this.#button.dataset.state !== state) this.#button.dataset.state = state;
-    const action = NightIsland.ready ? (NightIsland.capabilities.has("show-downloads") ? "Открыть загрузки в Island" : "Открыть загрузки браузера") : "Открыть настройки соединения";
+    const downloads = Services.prefs.getBoolPref("night.island.downloads", false);
+    const action = NightIsland.ready && !downloads ? "Открыть Island" : NightIsland.ready ? (NightIsland.capabilities.has("show-downloads") ? "Открыть загрузки в Island" : "Открыть загрузки браузера") : "Открыть настройки соединения";
     const title = `${name}${detail ? " · " + detail : ""}\n${action}`;
     if (this.#button.title !== title) {
       this.#button.title = title;

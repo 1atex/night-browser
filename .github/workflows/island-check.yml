@@ -74,6 +74,8 @@ jobs:
           $output = (Resolve-Path dist/Night).Path
           python -u tests/native/island.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --island test-island/target/debug/night-island.exe --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -u tests/native/island_hub.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --island test-island/target/debug/night-island.exe --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v4

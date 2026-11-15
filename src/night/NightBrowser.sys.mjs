@@ -24,6 +24,7 @@ class NightWindow {
   #section = "memory";
   #network = null;
   #destroyed = false;
+  #selectNetworkRequest = () => {};
   #refreshNetwork = () => {};
   #refreshTab = () => {};
   memory;
@@ -40,6 +41,20 @@ class NightWindow {
     NightIsland.init();
     window.gBrowser.tabContainer.addEventListener("TabSelect", this);
     window.addEventListener("unload", () => this.destroy(), { once: true });
+  }
+
+  get islandRequests() { return this.#network?.pending ?? []; }
+
+  islandRequestAction(id, action) {
+    if (!this.#network?.pending.some(item => item.id === id)) return false;
+    if (action === "forward") this.#network.release(id);
+    else if (action === "abort") this.#network.abort(id);
+    else if (action === "edit") {
+      this.#window.gBrowser.selectedTab = this.#network.scopeTab;
+      this.#selectNetworkRequest(id);
+      this.#window.restore(); this.#window.focus();
+    } else return false;
+    return true;
   }
 
   handleEvent() {
@@ -139,7 +154,7 @@ class NightWindow {
     );
     if (!this.#panel) return;
     this.#network = new NightNetwork(this.#window, () =>
-      this.#refreshNetwork(),
+      { this.#refreshNetwork(); NightIsland.hub.schedule(); },
     );
     const capture = this.#element("div", "", { class: "night-capture" });
     const editor = this.#element("div", "", { class: "night-editor" });
@@ -274,6 +289,7 @@ class NightWindow {
         );
       updateButtons();
     };
+    this.#selectNetworkRequest = id => { list.value = id; selectRequest(); url.focus(); };
     list.addEventListener("change", selectRequest);
     this.#refreshNetwork = () => {
       const previous = list.value;
@@ -307,6 +323,7 @@ class NightWindow {
     this.#refreshTab = () => {};
     this.#network?.destroy();
     this.#network = null;
+    this.#selectNetworkRequest = () => {};
     this.#panel?.remove();
     this.#panel = null;
   }
@@ -325,6 +342,7 @@ export const NightBrowser = {
   init(window) {
     if (window.gNightBrowser) return;
     window.gNightBrowser = new NightWindow(window);
+    NightIsland.hub.attach(window);
     if (Services.prefs.getBoolPref("night.onboarding.completed", false) ||
         ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs").PrivateBrowsingUtils.isWindowPrivate(window) ||
         (this.onboardingWindow && !this.onboardingWindow.closed)) return;

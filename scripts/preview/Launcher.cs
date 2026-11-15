@@ -16,7 +16,7 @@ using System.Runtime.InteropServices.ComTypes;
 [assembly: AssemblyDescription("Night Browser")]
 [assembly: AssemblyCompany("Night")]
 [assembly: AssemblyProduct("Night Browser")]
-[assembly: AssemblyVersion("0.9.3.0")]
+[assembly: AssemblyVersion("0.10.0.0")]
 
 internal static class Launcher
 {

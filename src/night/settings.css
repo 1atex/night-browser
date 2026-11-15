@@ -571,3 +571,5 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 3px s
   .island-connection { flex-wrap: wrap; }
   .island-connection .button { margin-inline-start: 46px; }
 }
+
+.button-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }

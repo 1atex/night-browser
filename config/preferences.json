@@ -1,6 +1,10 @@
 {
   "night.preview": true,
   "night.island.downloads": false,
+  "night.island.tabs": false,
+  "night.island.pocket": false,
+  "night.island.activity": false,
+  "night.island.requests": false,
   "night.island.indicator": true,
   "night.island.appearance": true,
   "night.island.position": "bottom",

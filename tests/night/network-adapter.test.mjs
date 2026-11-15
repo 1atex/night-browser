@@ -250,3 +250,23 @@ test("an expired decision cancels the request instead of sending it", () => {
   assert.equal(service.pending.length, 0);
   service.destroy();
 });
+
+
+test("Island forwarding resumes the original channel without rewriting its upload", () => {
+  const {service, tab, timers} = setup();
+  service.start(tab, true);
+  const request = channel(90);
+  request.body = "original";
+  service.observe(request, "http-on-before-connect");
+  const id = service.pending[0].id;
+  const headers = [...request.headers];
+  service.release(id);
+  assert.equal(request.suspended, false);
+  assert.equal(request.body, "original");
+  assert.deepEqual([...request.headers], headers);
+  assert.equal(service.pending.length, 0);
+  assert.equal(timers.size, 0);
+  service.release(id);
+  assert.equal(request.cancelled, undefined);
+  service.destroy();
+});

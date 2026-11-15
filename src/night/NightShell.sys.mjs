@@ -91,6 +91,8 @@ export class NightShell {
     return button;
   }
 
+  notify(message) { this.#report(message); }
+
   #report(message) {
     this.#status.textContent = message;
     this.#status.setAttribute("data-message", "true");

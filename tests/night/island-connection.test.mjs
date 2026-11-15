@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {validAppearance} from "../../src/night/IslandAppearance.mjs";
+import {HUB_CAPABILITIES, validHubCommand, pocketItem} from "../../src/night/IslandHub.mjs";
 import vm from "node:vm";
 import {readFileSync} from "node:fs";
 
@@ -15,6 +16,7 @@ function setup() {
     Services: {obs: {notifyObservers: (...args) => notifications.push(args)}},
     setTimeout: (fn, delay) => { timers.set(++sequence, {fn, delay}); return sequence; },
     clearTimeout: id => timers.delete(id),
+    HUB_CAPABILITIES, validHubCommand, pocketItem, NightIslandHub: {reset() {}, connected() {}},
     validAppearance, validCommand: () => false, TextEncoder, MAX_FRAME: 32768,
   });
   vm.runInContext(source, context);

@@ -2,6 +2,9 @@ import { Downloads } from "resource://gre/modules/Downloads.sys.mjs";
 import { setTimeout, clearTimeout } from "resource://gre/modules/Timer.sys.mjs";
 import { MAX_DOWNLOADS, MAX_FRAME, downloadItem, allowedActions, validCommand } from "resource:///modules/night/IslandDownloads.mjs";
 
+import {HUB_CAPABILITIES, pocketItem, validHubCommand} from "resource:///modules/night/IslandHub.mjs";
+import {NightIslandHub} from "resource:///modules/night/NightIslandHub.sys.mjs";
+
 import {validAppearance} from "resource:///modules/night/IslandAppearance.mjs";
 
 export const NightIsland = {
@@ -27,11 +30,15 @@ export const NightIsland = {
   lastOpen: 0,
   lastSnapshot: "",
   connectionTimer: null,
+  featureKey: "",
+  pocketPending: new Map(),
+  hub: NightIslandHub,
 
   init() {
     if (this.initialized) return;
     this.initialized = true;
-    Services.prefs.addObserver("night.island.downloads", this);
+    NightIslandHub.init(this);
+    Services.prefs.addObserver("night.island.", this);
     Services.obs.addObserver(this, "quit-application-granted");
     this.observe();
   },
@@ -41,8 +48,10 @@ export const NightIsland = {
       this.stop();
       return;
     }
-    const enabled = Services.appinfo.OS === "WINNT" && Services.prefs.getBoolPref("night.island.downloads", false);
-    if (enabled === this.enabled) return;
+    const featureKey = ["downloads", ...HUB_CAPABILITIES].map(name => Services.prefs.getBoolPref(`night.island.${name}`, false)).join(",");
+    const enabled = Services.appinfo.OS === "WINNT" && featureKey.includes("true");
+    if (enabled === this.enabled && featureKey === this.featureKey) return;
+    this.featureKey = featureKey;
     this.stop();
     if (enabled) this.start().catch(error => { console.error(error); this.setStatus("unavailable"); });
   },
@@ -59,6 +68,7 @@ export const NightIsland = {
     this.enabled = true;
     this.setStatus("connecting");
     const generation = this.generation;
+    if (!Services.prefs.getBoolPref("night.island.downloads", false)) { this.connect(); return; }
     const list = await Downloads.getList(Downloads.PUBLIC);
     if (!this.enabled || generation !== this.generation) return;
     this.list = list;
@@ -130,7 +140,7 @@ export const NightIsland = {
       }
       if (this.worker !== worker) return;
       if (message.type === "connected") {
-        this.send(JSON.stringify({v: 1, type: "hello", capabilities: ["downloads", "show-downloads", "appearance"]}));
+        this.send(JSON.stringify({v: 1, type: "hello", capabilities: ["downloads", "show-downloads", "appearance", ...HUB_CAPABILITIES]}));
       } else if (message.type === "frame") {
         try { this.receive(JSON.parse(message.text)); } catch { this.disconnected("protocol"); }
       }
@@ -153,6 +163,24 @@ export const NightIsland = {
   send(text, activate = false) {
     if (new TextEncoder().encode(text).length >= MAX_FRAME) return;
     this.post({type: "send", text: text + "\n", activate});
+  },
+
+  openPanel(panel) {
+    if (!["browser", "pocket"].includes(panel) || !this.ready || !this.capabilities.has(panel === "browser" ? "tabs" : "pocket")) return false;
+    this.send(JSON.stringify({v: 1, type: "show", panel}), true);
+    return true;
+  },
+
+  savePocket(input) {
+    const item = pocketItem(input);
+    if (!item || !this.ready || !this.hub.enabled("pocket") || !this.capabilities.has("pocket")) return Promise.reject(new Error("Включи Карман в настройках интеграции и подключи Island."));
+    if (this.pocketPending.size >= 8) return Promise.reject(new Error("Дождись сохранения предыдущих материалов."));
+    const request = Services.uuid.generateUUID().toString().slice(1, -1);
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.pocketPending.delete(request); reject(new Error("Island не подтвердил сохранение. Проверь Карман.")); }, 8000);
+      this.pocketPending.set(request, {resolve, reject, timer});
+      this.send(JSON.stringify({v: 1, type: "pocket", request, item: {...item, id: request}}), true);
+    });
   },
 
   openDownloads() {
@@ -181,6 +209,7 @@ export const NightIsland = {
       this.seen.clear();
       this.setStatus("connected");
       this.snapshot();
+      if (HUB_CAPABILITIES.some(name => this.capabilities.has(name))) this.hub.connected();
       return;
     }
     if (this.capabilities.has("appearance") && validAppearance(message)) {
@@ -188,6 +217,21 @@ export const NightIsland = {
         this.appearance = message;
         Services.obs.notifyObservers(null, "night-island-appearance");
       }
+      return;
+    }
+    if (message.v === 1 && message.type === "pocket-result" && typeof message.ok === "boolean") {
+      const pending = this.pocketPending.get(message.request);
+      if (pending) {
+        this.pocketPending.delete(message.request); clearTimeout(pending.timer);
+        if (message.ok) pending.resolve(); else pending.reject(new Error("Не удалось сохранить материал в Island."));
+      }
+      return;
+    }
+    if (validHubCommand(message)) {
+      if (this.seen.has(message.request)) return;
+      this.seen.add(message.request);
+      if (this.seen.size > 128) this.seen.delete(this.seen.values().next().value);
+      this.hub.command(message);
       return;
     }
     if (!validCommand(message) || this.seen.has(message.request)) return;
@@ -220,6 +264,9 @@ export const NightIsland = {
   },
 
   closeTransport() {
+    this.hub.reset();
+    for (const pending of this.pocketPending.values()) { clearTimeout(pending.timer); pending.reject(new Error("Связь с Island прервалась. Проверь, сохранён ли материал.")); }
+    this.pocketPending.clear();
     clearTimeout(this.connectionTimer);
     this.connectionTimer = null;
     this.ready = false;

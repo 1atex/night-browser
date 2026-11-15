@@ -722,7 +722,7 @@ window.addEventListener(
     function integrations() {
       const {NightIsland} = ChromeUtils.importESModule("resource:///modules/night/NightIsland.sys.mjs");
       const supported = Services.appinfo.OS === "WINNT";
-      const section = card("Night Island", "Управляй загрузками, не возвращаясь к окну браузера.");
+      const section = card("Night Island", "Вкладки, материалы и действия браузера доступны из острова.");
       const connection = element("div", "", {class: "island-connection"});
       const mark = element("img", "", {src: "chrome://browser/content/night/icons/island.svg", alt: ""});
       const summary = element("div", "", {class: "island-connection-copy"});
@@ -737,7 +737,15 @@ window.addEventListener(
       section.append(connection);
       toggle(section, "Показывать загрузки в Island", "Прогресс, пауза, продолжение и открытие папки с готовым файлом.", "night.island.downloads", false);
       section.querySelector('[data-pref="night.island.downloads"]').disabled = !supported;
-      toggle(section, "Индикатор в боковой панели", "Файл и прогресс. Нажатие раскрывает загрузки в Island.", "night.island.indicator", true);
+      toggle(section, "Поиск вкладок через Island", "Ctrl+Alt+B в Island или @ в его командной строке. Видны названия, сайты и пути папок; спящие страницы загружаются только после выбора.", "night.island.tabs", false);
+      toggle(section, "Карман", "Ссылки, выделенный текст и ссылки на изображения сохраняются по команде из контекстного меню страницы.", "night.island.pocket", false);
+      toggle(section, "Активность сайтов", "Звучащие вкладки, микрофон, камера и демонстрация экрана. Переход к источнику и отключение звука вкладки.", "night.island.activity", false);
+      toggle(section, "Перехваченные запросы", "Метод и сайт ожидающего запроса. Пропустить, отбросить или перейти к редактированию.", "night.island.requests", false);
+      const hubActions = element("div", "", {class: "button-row"});
+      hubActions.append(button("Открыть вкладки и активность", () => { if (!NightIsland.openPanel("browser")) status("Подключи совместимую версию Island."); }),
+        button("Открыть Карман", () => { if (!NightIsland.openPanel("pocket")) status("Подключи совместимую версию Island."); }));
+      section.append(hubActions);
+      toggle(section, "Индикатор в боковой панели", "Быстрый переход в Island; при включённых загрузках — файл и прогресс.", "night.island.indicator", true);
       choice(section, "Расположение индикатора", "Перемещается сразу, без перезапуска браузера.", "night.island.position",
         [["bottom", "Внизу боковой панели"], ["top", "Вверху боковой панели"]], "bottom");
       choice(section, "Когда показывать", "Незавершённые загрузки включают паузу и ошибки. При потере связи остаётся сообщение о подключении.", "night.island.visibility",
@@ -749,22 +757,22 @@ window.addEventListener(
       install.append(element("span", "Запусти Island с поддержкой интеграции. "));
       const releases = element("a", "Скачать совместимую версию", {href: "https://github.com/1atex/night-island/releases", target: "_blank", rel: "noopener"});
       install.append(releases);
-      steps.append(install, element("li", "В Island открой Настройки → Интеграции и включи «Загрузки Night Browser»."));
+      steps.append(install, element("li", "В Island открой Настройки → Интеграции и включи «Связь с Night Browser»."));
       section.append(steps);
-      const note = element("p", "Передаются только имя файла и состояние загрузки. Ссылки, путь к файлу и загрузки из приватных окон остаются в браузере.", {class: "island-privacy"});
+      const note = element("p", "Поиск передаёт результаты по запросу; активность — названия сайтов и состояния. Карман сохраняет только выбранные тобой материалы. Приватные вкладки и загрузки, тела и заголовки запросов не передаются.", {class: "island-privacy"});
       section.append(note);
       const update = () => {
         const key = supported ? NightIsland.status : "unsupported";
         const labels = {
-          disabled: ["Связь выключена", "Включи передачу загрузок, когда Island будет готов."],
+          disabled: ["Связь выключена", "Включи нужные возможности ниже."],
           connecting: ["Подключаемся к Island…", "Загрузки в браузере продолжаются как обычно."],
-          connected: ["Island подключён", "Нажми на индикатор загрузки в островке, чтобы открыть её управление."],
+          connected: ["Island подключён", "Возможности включаются отдельно. Изменения применяются сразу."],
           waiting: ["Ожидаем Island", "Соединение восстановится автоматически, когда Island будет доступен."],
           unavailable: ["Не удалось подключиться", "Проверь, что интеграция включена в обоих приложениях."],
           unsupported: ["Доступно в Windows", "Связь с Island работает в версии браузера для Windows."],
         };
         const problems = {
-          "not-running": ["Island не найден", "Запусти Island и включи в нём «Загрузки Night Browser». Подключение произойдёт автоматически."],
+          "not-running": ["Island не найден", "Запусти Island и включи в нём «Связь с Night Browser». Подключение произойдёт автоматически."],
           "peer-name": ["Не удалось распознать Island", "Запусти night-island.exe. Копии с номером, например night-island (1).exe, тоже поддерживаются."],
           "peer-identity": ["Не удалось проверить Island", "Оба приложения должны работать в одной учётной записи Windows."],
           "peer-access": ["Нет доступа к Island", "Закрой оба приложения и запусти их обычным способом, без прав администратора."],
@@ -781,7 +789,10 @@ window.addEventListener(
         openIsland.hidden = key !== "connected" || !NightIsland.capabilities.has("show-downloads");
         const visual = NightIsland.capabilities.has("show-downloads") && NightIsland.capabilities.has("appearance");
         if (key === "connected" && !visual) hint.textContent = "Загрузки подключены. Для раскрытия Island из браузера и общего оформления обнови Island по ссылке ниже.";
-        steps.hidden = !supported || key === "connected" && visual;
+        const missing = ["tabs", "pocket", "activity", "requests"].some(name => Services.prefs.getBoolPref(`night.island.${name}`, false) && !NightIsland.capabilities.has(name));
+        if (key === "connected" && missing) hint.textContent = "Подключена старая версия Island. Для новых возможностей обнови Island по ссылке ниже.";
+        for (const control of hubActions.querySelectorAll("button")) control.disabled = key !== "connected" || missing;
+        steps.hidden = !supported || key === "connected" && visual && !missing;
       };
       update();
       Services.obs.addObserver(update, "night-island-status");
