@@ -30,11 +30,12 @@ ChromeUtils.registerWindowActor("NightStart", {
 });
 
 const XHTML = "http://www.w3.org/1999/xhtml";
+const WORKBENCH_STYLE = "chrome://browser/content/night/workbench.css";
 
 class NightWindow {
   #window;
   #panel = null;
-  #workbenchStyle = null;
+  #workbenchStyle = false;
   #section = "memory";
   #network = null;
   #destroyed = false;
@@ -125,10 +126,8 @@ class NightWindow {
       return;
     }
     const doc = this.#window.document;
-    this.#workbenchStyle = doc.createElementNS(XHTML, "link");
-    this.#workbenchStyle.rel = "stylesheet";
-    this.#workbenchStyle.href = "chrome://browser/content/night/workbench.css";
-    doc.documentElement.append(this.#workbenchStyle);
+    this.#window.windowUtils.loadSheetUsingURIString(WORKBENCH_STYLE, this.#window.windowUtils.AUTHOR_SHEET);
+    this.#workbenchStyle = true;
     doc.documentElement.setAttribute("night-workbench", "true");
     this.#panel = this.#element("section", "", {
       id: "night-tools",
@@ -347,8 +346,8 @@ class NightWindow {
     this.#selectNetworkRequest = () => {};
     this.#panel?.remove();
     this.#panel = null;
-    this.#workbenchStyle?.remove();
-    this.#workbenchStyle = null;
+    if (this.#workbenchStyle) this.#window.windowUtils.removeSheetUsingURIString(WORKBENCH_STYLE, this.#window.windowUtils.AUTHOR_SHEET);
+    this.#workbenchStyle = false;
   }
 
   destroy() {

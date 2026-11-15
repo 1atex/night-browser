@@ -47,7 +47,7 @@ def run(binary,app_ini,output):
         assert chrome('return getComputedStyle(d.getElementById("night-tools")).backgroundColor==="rgb(32, 32, 35)";')
         shot('night-workbench.png')
         chrome('w.gNightBrowser.close();')
-        assert chrome('return ![...d.querySelectorAll("link")].some(link=>link.href.endsWith("/workbench.css"));')
+        assert chrome('const probe=d.createElementNS("http://www.w3.org/1999/xhtml","section");probe.id="night-tools";probe.hidden=true;d.documentElement.append(probe);const released=getComputedStyle(probe).backgroundColor==="rgba(0, 0, 0, 0)";probe.remove();return released;')
         for name,command,uri in [
             ('library','w.PlacesCommandHook.showPlacesOrganizer("AllBookmarks");','chrome://browser/content/places/places.xhtml'),
             ('page-info','w.BrowserCommands.pageInfo();','chrome://browser/content/pageinfo/pageInfo.xhtml'),
