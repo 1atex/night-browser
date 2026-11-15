@@ -35,7 +35,7 @@ window.addEventListener(
     const sections = {
       appearance: ["Внешний вид", "Цвета, панели и анимации.", "appearance"],
       updates: ["Обновления", "Новые версии и история изменений.", "download"],
-      together: ["Друзья и комнаты", "Основа совместного просмотра в Night.", "profile"],
+      together: ["Друзья и комнаты", "Совместный просмотр, чат и голос.", "profile"],
       accounts: ["Профили и Sync", "Отдельные данные на этом компьютере и синхронизация через Mozilla.", "profile"],
       tabs: [
         "Вкладки и запуск",
@@ -971,7 +971,7 @@ window.addEventListener(
           for (const control of [name, color, icon, savePersonal]) control.disabled = (state.protocol ?? 1) < 2;
           if ((state.protocol ?? 1) < 2) status("Обнови сервер Together для аватаров и синхронизации видео. ID и друзья сохранятся.");
           if (!profileLoaded && state.self) { name.value = state.self.name; color.value = state.self.color; icon.value = state.self.icon; updatePreview(); profileLoaded = true; }
-          const roomShape = state.room ? {...state.room, position: 0, revision: 0, updatedAt: 0, paused: false, rate: 1, buffering: false} : null;
+          const roomShape = state.room ? {...state.room, position: 0, revision: 0, updatedAt: 0, paused: false, rate: 1, buffering: false, controlledBy: ""} : null;
           const nextSnapshot = JSON.stringify({...state, room: roomShape, serverTime: 0, watching: !!NightTogether.watchSession});
           if (nextSnapshot === snapshot) return;
           snapshot = nextSnapshot;
@@ -992,10 +992,11 @@ window.addEventListener(
             const count = state.room.members.length;
             roomBody.append(element("p", `${count} ${count === 1 ? "участник" : count < 5 ? "участника" : "участников"} · Ведущий: ${state.room.owner === state.id ? "ты" : label(state.room.owner)}`));
             if ((state.protocol ?? 1) < 2) roomBody.append(element("p", "Для синхронизации и аватаров обнови сервер Together.", {class: "card-caption"}));
-            const endpoint=(await NightTogether.credentials()).endpoint;
-            roomBody.append(button("Чат и голос",()=>NightTogether.openRoom(browserWindow)));
+            const chat=button("Чат и голос",()=>NightTogether.openRoom(browserWindow));chat.disabled=(state.protocol??1)<3;roomBody.append(chat);
+            if((state.protocol??1)<3)roomBody.append(element("p","Для общей паузы, ссылок, чата и голоса обнови сервер Together до 0.15.",{class:"card-caption"}));
             if(state.protocol>=3 && state.room.owner===state.id){
               roomBody.append(button("Скопировать приглашение",async()=>{const next=await NightTogether.action({type:"room-link",room:state.room.id});Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper).copyString(next.room.link);status("Приглашение скопировано. Ссылка действует 24 часа; вход подтверждаешь ты.");await refresh();}));
+              roomBody.append(button("Обновить ссылку",async()=>{await NightTogether.action({type:"room-link",room:state.room.id,rotate:true});status("Старая ссылка отозвана. Скопируй новое приглашение.");await refresh();}));
               for(const person of state.room.requests??[]){const controls=element("div","",{class:"profile-actions"});controls.append(button("Принять",()=>action({type:"room-admit",room:state.room.id,id:person.id})),button("Отклонить",()=>action({type:"room-deny",room:state.room.id,id:person.id})));row(roomBody,person.name,"Просится по ссылке",controls);}
             }
             const watch = button("Смотреть вместе", () => NightTogether.watch(browserWindow)); watch.id = "together-watch"; watch.disabled = (state.protocol ?? 1) < 2;

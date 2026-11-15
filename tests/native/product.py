@@ -8,6 +8,7 @@ import zipfile
 from pathlib import Path
 
 from marionette_driver.marionette import Marionette
+from marionette_driver.errors import UnknownException
 from marionette_driver.addons import Addons
 from smoke import EchoHandler, ThreadingHTTPServer, wait_for
 
@@ -109,7 +110,14 @@ def run(binary, app_ini, output):
         browser.execute_async_script(f"const done = arguments[arguments.length-1]; const w = {WIN}; w.requestAnimationFrame(() => w.requestAnimationFrame(done));")
         widths = browser.execute_script(f"return [{WIN}.productOriginal, {WIN}.productSecond].map(t => t.linkedBrowser.getBoundingClientRect().width);")
         assert all(250 < width < 850 for width in widths), widths
-        (output / "night-split.png").write_bytes(base64.b64decode(browser.screenshot()))
+        def split_capture():
+            try:
+                return browser.screenshot()
+            except UnknownException as error:
+                if "Unable to capture screenshot" not in str(error):
+                    raise
+                return None
+        (output / "night-split.png").write_bytes(base64.b64decode(wait_for(split_capture, timeout=5)))
         protected = browser.execute_async_script(f"""
           const done = arguments[arguments.length-1]; const w = {WIN};
           const {{ NightMemory }} = ChromeUtils.importESModule('resource:///modules/night/NightMemory.sys.mjs');

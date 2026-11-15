@@ -45,6 +45,12 @@ def run(binary,app_ini,output):
    click(host,'connect');click(guest,'connect')
    wait_for(lambda:'1 соединений' in text(host,'chat-state') and '1 соединений' in text(guest,'chat-state'),timeout=45)
    assert chrome(host,'return w.gNightBrowser.memory.shouldKeepLoaded(w.gBrowser.selectedTab);')
+   chrome(host,'w.gBrowser.selectedTab=w.gBrowser.addTrustedTab(arguments[0]+"/room");',endpoint)
+   wait_for(lambda:'общие' in text(host,'room-status'));click(host,'connect')
+   wait_for(lambda:'другой вкладке' in text(host,'room-status'))
+   chrome(host,'w.gBrowser.removeTab(w.gBrowser.selectedTab,{animate:false});')
+   async_chrome(host,'await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.openRoom(w);')
+   wait_for(lambda:'1 соединений' in text(host,'chat-state'))
    content(guest,'document.getElementById("message").value="Привет из второго браузера";document.getElementById("message-form").requestSubmit();')
    wait_for(lambda:'Привет из второго браузера' in text(host,'messages'))
    content(host,'document.getElementById("message").value="Пауза общая";document.getElementById("message-form").requestSubmit();')
@@ -61,6 +67,13 @@ def run(binary,app_ini,output):
    click(guest,'leave');wait_for(lambda:len(state(host)['room']['members'])==1)
    wait_for(lambda:content(host,'return document.querySelectorAll("audio").length===0;'))
    wait_for(lambda:chrome(guest,'return !ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.roomBrowsers.has(w.gBrowser.selectedBrowser);'))
+   action(guest,{'type':'room-request','invite':token});action(host,{'type':'room-admit','room':room,'id':state(guest)['id']})
+   navigate(guest,'/room');wait_for(lambda:'общие' in text(guest,'room-status'));click(guest,'connect')
+   wait_for(lambda:'1 соединений' in text(guest,'chat-state'),timeout=45);click(guest,'voice')
+   wait_for(lambda:content(guest,'return !document.getElementById("mute").hidden;'))
+   content(host,'document.querySelector("#members button").click();')
+   wait_for(lambda:state(guest)['room'] is None)
+   wait_for(lambda:content(guest,'return document.getElementById("mute").hidden;'))
    chrome(guest,'w.gBrowser.loadURI(Services.io.newURI(arguments[0]),{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});',other_endpoint+'/room')
    wait_for(lambda:'не управляет' in text(guest,'room-status'))
    chrome(guest,'d.getElementById("Tools:PrivateBrowsing").doCommand();')
@@ -68,7 +81,7 @@ def run(binary,app_ini,output):
    navigate(guest,'/room');wait_for(lambda:'обычном окне' in text(guest,'room-status'))
    navigate(host,'/');wait_for(lambda:content(host,'return !!document.querySelector(".browser-preview");'))
    capture(host,'night-website.png')
-   result={'passed':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
+   result={'passed':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
    (output/'social-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
   except Exception:
    for i,b in enumerate(drivers):

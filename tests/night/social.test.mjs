@@ -29,11 +29,13 @@ test('invite approval, shared controls, bounded authenticated signaling and pers
   assert.equal((await req('/v1/signals?after='+batch.cursor,a)).body.items.length,0);
   assert.equal((await req('/v1/signals?after=0',c)).status,403);
   assert.equal((await act(a,{type:'room-signal',room:room.id,id:b.id,signal:{...signal,description:{type:'offer',sdp:'a'.repeat(66000)}}})).status,400);
+  assert.equal((await act(b,{type:'room-kick',room:room.id,id:a.id})).status,403);
   time+=86400001;assert.equal((await act(c,{type:'room-request',invite})).status,404);
   assert.equal((await req('/v1/signals?after=0',a)).body.items.length,0);
   await new Promise(r=>server.close(r));server=await createService({path:join(dir,'state.json'),now:()=>time});await new Promise(r=>server.listen(0,'127.0.0.1',r));base=`http://127.0.0.1:${server.address().port}`;
   assert.equal((await req('/v1/state',b)).body.room.id,room.id);
   const next=(await act(a,{type:'room-link',room:room.id,rotate:true})).body.room.link;assert.notEqual(next,link);
+  assert.equal((await act(a,{type:'room-kick',room:room.id,id:b.id})).status,200);assert.equal((await req('/v1/state',b)).body.room,null);
  }finally{if(server?.listening)await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});}
 });
 test('public landing, invitation privacy, real GitHub counters and cache',async()=>{
@@ -45,5 +47,15 @@ test('public landing, invitation privacy, real GitHub counters and cache',async(
  const info=await fetch(base+'/api/releases').then(r=>r.json());assert.equal(info.downloads,42);
  assert.equal((await fetch(base+'/download',{redirect:'manual'})).headers.get('location'),info.installer);assert.equal(calls,1);
  assert.equal((await fetch(base+'/../server.mjs')).status,401);
+ }finally{await new Promise(r=>server.close(r));}
+});
+test('temporary TURN credentials are available only after room admission',async()=>{
+ const server=await createService({now:()=>1000000,turnSecret:'fixture-secret',turnURL:'turn:relay.example:3478?transport=udp',iceServers:[]});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
+ try{
+  const user=await fetch(base+'/v1/register',{method:'POST',body:'{}'}).then(r=>r.json()),headers={Authorization:`Bearer ${user.id}:${user.token}`};
+  assert.equal((await fetch(base+'/v1/rtc',{headers})).status,403);
+  await fetch(base+'/v1/action',{method:'POST',headers,body:JSON.stringify({type:'room-create',url:'https://example.test/video'})});
+  const rtc=await fetch(base+'/v1/rtc',{headers}).then(r=>r.json());assert.equal(rtc.iceServers[0].username,`4600:${user.id}`);assert.equal(rtc.iceServers[0].credential.length,28);assert.equal(JSON.stringify(rtc).includes('fixture-secret'),false);
+  assert.equal((await fetch(base+'/v1/rtc')).status,401);
  }finally{await new Promise(r=>server.close(r));}
 });

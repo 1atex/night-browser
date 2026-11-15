@@ -120,6 +120,10 @@ export async function createService({path, now = Date.now, releases, iceServers,
         if (body.type==='room-admit') {if(room.members.length>=8)fail(409,'В комнате уже восемь участников.');leave(peer);room.members.push(peer.id);}
         room.requests=room.requests.filter(id=>id!==peer.id);break;
       }
+      case 'room-kick': {
+        const room=state.rooms[body.room];if(room?.owner!==user.id || body.id===user.id || !room.members.includes(body.id))fail(403,'Удалять участников может владелец.');
+        room.members=room.members.filter(id=>id!==body.id);signals.delete(body.id);break;
+      }
       case 'room-cancel-request': {
         const room=state.rooms[body.room];if(room)room.requests=room.requests?.filter(id=>id!==user.id)??[];break;
       }

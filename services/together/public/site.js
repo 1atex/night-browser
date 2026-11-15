@@ -8,7 +8,7 @@ let poll,requestedRoom;
 async function setupJoin(){
  if(!document.getElementById('join-form')||!available)return;
  document.getElementById('external').hidden=true;document.getElementById('join-form').hidden=false;
- try{const {state}=await bridge('status');if(state?.self)document.getElementById('join-name').value=state.self.name;}catch(error){setStatus(error.message);}
+ try{const {state}=await bridge('status');if(state?.self)document.getElementById('join-name').value=state.self.name;if(state&&(state.protocol??1)<3){setStatus('Обнови сервер Together до 0.15 для приглашений по ссылке.');document.querySelector('#join-form button').disabled=true;}}catch(error){setStatus(error.message);}
 }
 function setStatus(text){document.getElementById('join-status').textContent=text;}
 async function check(){

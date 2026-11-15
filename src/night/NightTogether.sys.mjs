@@ -27,6 +27,7 @@ export const NightTogether = {
   async action(body) { const credentials = await this.credentials(); if (!credentials) throw new Error("Сначала подключи сервер."); const state = await this.request(credentials.endpoint, "/v1/action", {credentials, body}); if (body.type === "room-leave") this.stopWatch(); return state; },
   async disconnect() { this.stopWatch(); await IOUtils.remove(path(), {ignoreAbsent: true}); },
   roomBrowsers: new WeakMap(),
+  roomActor: null,
   async openRoom(window) {
     const credentials=await this.credentials();if(!credentials)throw new Error("Сначала подключись в настройках друзей.");
     const url=credentials.endpoint+"/room";

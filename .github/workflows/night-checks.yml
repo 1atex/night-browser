@@ -21,3 +21,4 @@ jobs:
       - uses: actions/checkout@v4
       - run: bash tests/server/docker.sh
       - run: bash tests/server/nginx.sh
+      - run: python3 tests/server/turn.py
