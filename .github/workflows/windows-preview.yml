@@ -198,6 +198,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -u tests/native/island_hub.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --island test-island/target/debug/night-island.exe --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Package Together server
+        run: |
+          7z a -tzip dist/night-together-server-0.13.0.zip ./services/together ./docs/night/TOGETHER.md
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Create download archive
         run: |
           Copy-Item test-artifacts/updates-together-result.json dist/updates-together-result.json
@@ -244,6 +248,8 @@ jobs:
           "$hash  night-browser-0.13.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
           $setupHash = (Get-FileHash dist/night-browser-0.13.0-preview-windows-x64-setup.exe -Algorithm SHA256).Hash.ToLower()
           "$setupHash  night-browser-0.13.0-preview-windows-x64-setup.exe" | Add-Content dist/SHA256SUMS.txt -Encoding ascii
+          $serverHash = (Get-FileHash dist/night-together-server-0.13.0.zip -Algorithm SHA256).Hash.ToLower()
+          "$serverHash  night-together-server-0.13.0.zip" | Add-Content dist/SHA256SUMS.txt -Encoding ascii
           Copy-Item test-artifacts/night-onboarding.png dist/night-onboarding.png
           Copy-Item test-artifacts/installer-result.json dist/installer-result.json
           Copy-Item test-artifacts/onboarding-result.json dist/onboarding-result.json
@@ -257,6 +263,7 @@ jobs:
           path: |
             dist/night-browser-0.13.0-preview-windows-x64.zip
             dist/night-browser-0.13.0-preview-windows-x64-setup.exe
+            dist/night-together-server-0.13.0.zip
             dist/updates-together-result.json
             dist/night-together.png
             dist/accounts-result.json
@@ -334,6 +341,7 @@ jobs:
           gh release create "$RELEASE_TAG" \
             release-assets/night-browser-0.13.0-preview-windows-x64.zip \
             release-assets/night-browser-0.13.0-preview-windows-x64-setup.exe \
+            release-assets/night-together-server-0.13.0.zip \
             release-assets/updates-together-result.json \
             release-assets/night-together.png \
             release-assets/accounts-result.json \

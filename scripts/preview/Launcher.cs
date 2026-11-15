@@ -318,7 +318,12 @@ internal static class Launcher
                 WorkingDirectory = runtime,
                 UseShellExecute = false
             };
-            if (!CacheIsCurrent(profile, executable)) start.Arguments += " -purgecaches";
+            if (!CacheIsCurrent(profile, executable))
+            {
+                start.Arguments += " -purgecaches";
+                if (File.Exists(Path.Combine(profile, "night-runtime.json")))
+                    File.WriteAllText(Path.Combine(profile, "night-update-completed.json"), "{\"completed\":true}", new UTF8Encoding(false));
+            }
             if (args.Length == 2 && args[0] == "--url")
             {
                 Uri target;

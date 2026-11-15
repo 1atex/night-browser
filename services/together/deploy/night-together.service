@@ -10,7 +10,7 @@ WorkingDirectory=/opt/night-browser
 Environment=HOST=127.0.0.1
 Environment=PORT=8787
 Environment=NIGHT_TOGETHER_DATA=/var/lib/night-together/state.json
-ExecStart=/usr/bin/node services/together/server.mjs
+ExecStart=/opt/night-browser/node/bin/node services/together/server.mjs
 Restart=on-failure
 StateDirectory=night-together
 UMask=0077

@@ -12,7 +12,7 @@ def run(binary,app_ini,output):
         req=urllib.request.Request(endpoint+route,data=json.dumps(body).encode() if body is not None else None,headers={'Content-Type':'application/json',**({'Authorization':f'Bearer {user["id"]}:{user["token"]}'} if user else {})})
         return json.load(urllib.request.urlopen(req,timeout=10))
     friend=request('/v1/register',body={})
-    b=Marionette(bin=binary,headless=True,prefs={'night.onboarding.completed':True},app_args=['-app',app_ini],gecko_log=str(output/'updates-together-gecko.log'))
+    b=Marionette(bin=binary,headless=True,prefs={'night.onboarding.completed':True,'night.together.server':''},app_args=['-app',app_ini],gecko_log=str(output/'updates-together-gecko.log'))
     def chrome(script,*args):
         b.set_context('chrome');return b.execute_script("const w=Services.wm.getMostRecentWindow('navigator:browser'),d=w.document;"+script,script_args=list(args))
     def content(script,*args):

@@ -918,9 +918,11 @@ window.addEventListener(
       const credentials = await NightTogether.credentials();
       if (!section.isConnected) return;
       if (!credentials) {
+        const configured = Services.prefs.getStringPref("night.together.server", "");
         const endpoint = element("input", "", {type: "url", placeholder: "https://together.example.com", "aria-label": "Адрес сервера"});
-        section.append(element("p", "Общий сервер ещё не подключён. Его адрес настраивается один раз; друзьям нужен только Night.", {class: "card-caption"}), endpoint,
-          button("Получить мой ID", async () => { await NightTogether.connect(endpoint.value, browserWindow); await render(); }));
+        section.append(element("p", configured ? "Получи ID и отправь его другу. Запрос дружбы нужно подтвердить." : "Укажи адрес общего сервера один раз.", {class: "card-caption"}));
+        if (!configured) section.append(endpoint);
+        section.append(button("Получить мой ID", async () => { await NightTogether.connect(configured || endpoint.value, browserWindow); await render(); }));
         return;
       }
       row(section, "Мой ID", credentials.id, button("Скопировать", () => Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper).copyString(credentials.id)));
