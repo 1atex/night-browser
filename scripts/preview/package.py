@@ -157,6 +157,15 @@ def package(runtime, output, archive, platform):
         if count != 1:
             raise ValueError("Unexpected extensions catalogue label")
         browser[name] = text.encode()
+    for locale, intro in [
+        ("ru", 'Расширения добавляют возможности браузера. В каталоге Mozilla можно <a data-l10n-name="learn-more-trigger">узнать о проверке и рекомендациях</a> перед установкой.'),
+        ("en-US", 'Extensions add capabilities to your browser. Read about <a data-l10n-name="learn-more-trigger">Mozilla’s review and recommendation process</a> before installing.'),
+    ]:
+        name = f"localization/{locale}/toolkit/about/aboutAddons.ftl"
+        text, count = re.subn(r"(?m)^discopane-intro3 =[^\n]*(?:\n[ \t]+[^\n]*)*", "discopane-intro3 = " + intro, toolkit[name].decode())
+        if count != 1:
+            raise ValueError("Unexpected extensions introduction")
+        toolkit[name] = text.encode()
     for name, data in list(browser.items()):
         if name.endswith("/branding/brand.ftl") or name.endswith("/branding/brand.properties"):
             text = data.decode("utf-8")
@@ -175,9 +184,23 @@ def package(runtime, output, archive, platform):
     for name in list(browser):
         if "/branding/" in name and name.endswith(("about-logo.svg", "icon32.svg", "icon64.svg", "icon128.svg", "identity-icons-brand.svg")):
             browser[name] = (source / "branding/about-logo.svg").read_bytes()
+    for name in list(browser):
+        if "/branding/" in name and name.endswith(("about-logo.png", "about-logo@2x.png", "about-logo-private.png", "about-logo-private@2x.png")):
+            browser[name] = (source / "branding/icon256.png").read_bytes()
+        elif "/branding/" in name and name.endswith("wordmark.svg"):
+            browser[name] = (source / "branding/wordmark.svg").read_bytes()
+        elif name.endswith("aboutlogins/components/login-intro.css"):
+            browser[name] += b"\n.illustration { display: none !important; }\n"
+        elif name.endswith("aboutlogins/aboutLogins.html"):
+            text = browser[name].decode()
+            text = re.sub(r'<li data-l10n-id="login-intro-instructions-fxa(?:2|-settings)"[^>]*>\s*</li>', "", text)
+            browser[name] = text.encode()
+    for name in list(toolkit):
+        if name.endswith("extensions/components/addons-promo.css"):
+            toolkit[name] += b"\n.image-container { display: none; } :host { --addons-promo-text-padding-inline: 0; }\n"
     for name in list(toolkit):
         if name.endswith("global/in-content/common.css"):
-            toolkit[name] += b"\n" + (source / "internal.css").read_bytes()
+            toolkit[name] += b"\n" + (source / "theme.css").read_bytes() + b"\n" + (source / "internal.css").read_bytes()
     defaults = json.loads((ROOT / "config/preferences.json").read_text())
     browser["defaults/preferences/00-night.js"] = "\n".join(
         f"pref({json.dumps(name)}, {json.dumps(value)});" for name, value in defaults.items()
@@ -214,7 +237,7 @@ def package(runtime, output, archive, platform):
         "source": f"https://github.com/1atex/night-browser/tree/{revision}",
     }, indent=2))
     (output / "README.txt").write_text(
-        "Night Browser 0.10.0 Preview\n\n"
+        "Night Browser 0.11.0 Preview\n\n"
         "Распакуй всю папку в доступное для записи место и запусти Night.exe.\n"
         "В portable-версии профиль хранится в папке profile рядом с Night.exe.\n"
         "После установки через setup профиль находится в %LOCALAPPDATA%\\NightBrowser\\profile.\n"

@@ -206,7 +206,14 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         print('PASS: native forward preserves original upload; edit focuses editor; reject sends nothing',flush=True)
         assert dragged,'Native link drag did not persist in Pocket'
         chrome('w.gNightBrowser.close();')
-        (output/'hub-result.json').write_text(json.dumps({'passed':True,'posts':Site.posts,'pocket':saved,'lazy_search':True,'private_excluded':True,'source':chrome('return ChromeUtils.importESModule("resource:///modules/night/NightBuild.sys.mjs").revision;')},ensure_ascii=False,indent=2))
+        chrome('w.gNightBrowser.shell.workspaces.newTab();')
+        handle=chrome('const {NavigableManager}=ChromeUtils.importESModule("chrome://remote/content/shared/NavigableManager.sys.mjs");return NavigableManager.getIdForBrowser(w.gBrowser.selectedBrowser);')
+        b.set_context('content');b.switch_to_window(handle,focus=False)
+        wait_for(lambda:b.execute_script('return document.getElementById("home-island")?.hasAttribute("data-connected")&&!document.querySelector("[data-home-action=pocket]").disabled;'))
+        b.find_element('css selector','[data-home-action=pocket]').click()
+        wait_for(lambda:state().get('tab')=='Pocket' and state().get('expanded'))
+        print('PASS: home widget opens the real connected Island Pocket',flush=True)
+        (output/'hub-result.json').write_text(json.dumps({'passed':True,'posts':Site.posts,'pocket':saved,'lazy_search':True,'private_excluded':True,'home_widget_opens_pocket':True,'source':chrome('return ChromeUtils.importESModule("resource:///modules/night/NightBuild.sys.mjs").revision;')},ensure_ascii=False,indent=2))
     finally:
         if process and process.poll() is None:
             try:stop()
