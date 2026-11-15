@@ -72,7 +72,7 @@ sudo chmod 600 night-together-backup.tgz
 Если при вставке nginx пишет `invalid number of arguments in proxy_pass`, проверь `sed -n '1,20l' /etc/nginx/sites-enabled/browser.conf`. Обратный слеш перед `;` экранирует конец директивы, и следующая строка становится её продолжением. Администратор от root может исправить этот конкретный случай:
 
 ```sh
-sed -i 's/\;/;/g' /etc/nginx/sites-enabled/browser.conf
+sed -i 's/\\;/;/g' /etc/nginx/sites-enabled/browser.conf
 nginx -t && systemctl reload nginx
 ```
 
