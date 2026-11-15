@@ -50,11 +50,12 @@ def samples(pid):
 
 
 def measure(binary, app_ini, url, output, label):
-    browser = Marionette(prefs={"night.onboarding.completed": True}, bin=binary, headless=False, app_args=["-app", app_ini] if app_ini else [], gecko_log=str(output / f"memory-{label}-gecko.log"), startup_timeout=60)
+    browser = Marionette(prefs={"night.onboarding.completed": True, "browser.aboutwelcome.enabled": False, "browser.preonboarding.enabled": False, "browser.bypassAutoTriggerActions": True, "termsofuse.bypassNotification": True, "browser.shell.checkDefaultBrowser": False, "browser.startup.homepage_override.mstone": "ignore"}, bin=binary, headless=False, app_args=["-app", app_ini] if app_ini else [], gecko_log=str(output / f"memory-{label}-gecko.log"), startup_timeout=60)
     try:
         browser.start_session()
         browser.timeout.script = 30
         browser.set_context("chrome")
+        wait_for(lambda: browser.execute_script("return !!Services.wm.getMostRecentWindow('navigator:browser')?.gBrowserInit?.delayedStartupFinished;"), timeout=45)
         if app_ini:
             wait_for(lambda: browser.execute_script("return !!Services.wm.getMostRecentWindow('navigator:browser')?.gNightBrowser;"))
         browser.execute_script("""
@@ -64,7 +65,7 @@ def measure(binary, app_ini, url, output, label):
         """, script_args=[url])
         wait_for(lambda: browser.execute_script("""
           return [...Services.wm.getMostRecentWindow('navigator:browser').gBrowser.tabs].filter(t => t.label.startsWith('Ready ')).length === 7;
-        """))
+        """), timeout=45)
         pid = browser.execute_script("return Services.appinfo.processID;")
         browser.minimize_window()
         time.sleep(3)
