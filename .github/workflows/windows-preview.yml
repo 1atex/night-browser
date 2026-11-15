@@ -178,6 +178,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Create download archive
         run: |
+          Copy-Item test-artifacts/search-result.json dist/search-result.json
+          Copy-Item test-artifacts/hub-result.json dist/hub-result.json
+          Copy-Item test-artifacts/night-home-suggestions.png dist/night-home-suggestions.png
+          Copy-Item test-artifacts/night-island-tab-search.png dist/night-island-tab-search.png
+          Copy-Item test-artifacts/night-island-pocket.png dist/night-island-pocket.png
+          Copy-Item test-artifacts/night-island-request.png dist/night-island-request.png
           Copy-Item test-artifacts/startup-cache-result.json dist/startup-cache-result.json
           Copy-Item test-artifacts/start-flow-result.json dist/start-flow-result.json
           Copy-Item test-artifacts/night-start-flow.png dist/night-start-flow.png
@@ -220,6 +226,12 @@ jobs:
           path: |
             dist/night-browser-0.10.0-preview-windows-x64.zip
             dist/night-browser-0.10.0-preview-windows-x64-setup.exe
+            dist/search-result.json
+            dist/hub-result.json
+            dist/night-home-suggestions.png
+            dist/night-island-tab-search.png
+            dist/night-island-pocket.png
+            dist/night-island-request.png
             dist/startup-cache-result.json
             dist/start-flow-result.json
             dist/night-start-flow.png
@@ -282,6 +294,12 @@ jobs:
           gh release create "$RELEASE_TAG" \
             release-assets/night-browser-0.10.0-preview-windows-x64.zip \
             release-assets/night-browser-0.10.0-preview-windows-x64-setup.exe \
+            release-assets/search-result.json \
+            release-assets/hub-result.json \
+            release-assets/night-home-suggestions.png \
+            release-assets/night-island-tab-search.png \
+            release-assets/night-island-pocket.png \
+            release-assets/night-island-request.png \
             release-assets/startup-cache-result.json \
             release-assets/start-flow-result.json \
             release-assets/night-start-flow.png \

@@ -58,6 +58,7 @@ def run(binary, app_ini, island, output):
         u.ClientToScreen(s['hwnd'],ctypes.byref(p));u.SetForegroundWindow(s['hwnd']);u.SetCursorPos(p.x,p.y)
         time.sleep(.15);u.mouse_event(2,0,0,0,0);u.mouse_event(4,0,0,0,0)
     def action(kind, ident, number):
+        wait_for(lambda:ident not in state()['state'].get('pending',[]))
         button=wait_for(lambda:next((x for x in state().get('hub_buttons',[]) if x['kind']==kind and x['id']==ident and x['action']==number),None))
         click(button['rect'])
     def panel(name):
@@ -132,8 +133,14 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         print('PASS: context selection, persistent Pocket, remove/undo and conversion to note; private window excluded',flush=True)
         panel('pocket')
         b.set_context('content')
-        start=b.execute_script("const r=document.querySelector('a').getBoundingClientRect();return {x:mozInnerScreenX+r.x+r.width/2,y:mozInnerScreenY+r.y+r.height/2};")
+        start=b.execute_script("const link=document.querySelector('a');Object.assign(link.style,{position:'fixed',bottom:'20px',left:'40px'});const r=link.getBoundingClientRect();return {x:mozInnerScreenX+r.x+r.width/2,y:mozInnerScreenY+r.y+r.height/2};")
         current=state();p=Point(100,150);u.ClientToScreen(current['hwnd'],ctypes.byref(p))
+        u.WindowFromPoint.argtypes=[Point];u.WindowFromPoint.restype=ctypes.c_void_p
+        u.GetClassNameW.argtypes=[ctypes.c_void_p,ctypes.c_wchar_p,ctypes.c_int]
+        source_window=u.WindowFromPoint(Point(round(start['x']),round(start['y'])))
+        source_class=ctypes.create_unicode_buffer(256);u.GetClassNameW(source_window,source_class,256)
+        (output/'hub-drag.json').write_text(json.dumps({'start':start,'target':{'x':p.x,'y':p.y},'source_class':source_class.value}))
+        assert source_class.value.startswith('Mozilla'),source_class.value
         u.SetCursorPos(round(start['x']),round(start['y']));time.sleep(.2);u.mouse_event(2,0,0,0,0)
         for i in range(1,31):
             u.SetCursorPos(round(start['x']+(p.x-start['x'])*i/30),round(start['y']+(p.y-start['y'])*i/30));time.sleep(.03)
