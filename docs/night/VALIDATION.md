@@ -315,3 +315,21 @@ The [published Windows memory workload](https://github.com/1atex/night-browser/r
 | --- | --- |
 | night-browser-0.11.0-preview-windows-x64.zip | `054e9360d9df39a6c742a26a706847e4d848e3496cfe92936f95dcebf80b4798` |
 | night-browser-0.11.0-preview-windows-x64-setup.exe | `54fc4c65abd6157eda14fda55c76cb5803ecd8836f49d0907257b68464b13c1b` |
+
+
+## Published 0.12.0 result
+
+[Browser v0.12.0-preview.1](https://github.com/1atex/night-browser/releases/tag/v0.12.0-preview.1) uses `f4f2d2db917d506b453f8a0b6c2cb43ad0732e2c`. All 67 Node checks and the complete native Windows suite passed in [tag run 43743403083](https://github.com/1atex/night-browser/actions/runs/43743403083); build and publication succeeded. The duplicate branch build was cancelled after the tag run started. Island remains 0.4.0, with the same pinned foundation and passing download/hub integration tests.
+
+The public installer and ZIP were downloaded again and matched SHA-256. The ZIP passed CRC, manifest, native patch and all 107 packaged Night source-file checks. BuildID is `20261115175055`. The published account settings capture was inspected. A separate native Linux run using the tagged package checked the managed-profile form and real profile metadata; Linux private/account/chrome checks also passed.
+
+[Profile results](https://github.com/1atex/night-browser/releases/download/v0.12.0-preview.1/profiles-result.json) confirm separate passwords/bookmarks/cookies/storage/extensions, independent palettes, existing-window reuse, external URL routing, last-profile restart and invalid-ID rejection. The installer recognizes the installed LocalAppData profile, and the real Zen fixture excludes the account file while preserving source hashes, passwords and extension storage.
+
+[Account results](https://github.com/1atex/night-browser/releases/download/v0.12.0-preview.1/accounts-result.json) confirm the native private shortcut and cookie/history boundaries, explicit connection, official OAuth URL, native Sync preference record and native settings/action routing. The public account page returned **Client Challenge** on the Windows automation runner; Linux encountered the environment's certificate/proxy problem. No challenge bypass or authenticated login was attempted. End-to-end synchronization between real devices remains unverified. The striped address field in automated images is Marionette's indicator.
+
+The same seven-local-tab workload reports Night private working set at 582.34 MiB before inactivity and 394.55 MiB after five safe discards. This is regression evidence for unloading, not a YouTube measurement or an improvement over 0.11: that release's post-discard result was essentially the same. The active-video investigation and its limits are documented in [PERFORMANCE.md](PERFORMANCE.md).
+
+| Artifact | SHA-256 |
+| --- | --- |
+| night-browser-0.12.0-preview-windows-x64.zip | `a68351fd7bff3f9b17ad919471e9e9d2ce039cb5159a1ebc9dcaa669d31c4802` |
+| night-browser-0.12.0-preview-windows-x64-setup.exe | `6e2a447a3d945dc21977a854c69ce75c2f994a2a673714294ac30c6c695e314f` |

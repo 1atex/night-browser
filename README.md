@@ -36,13 +36,13 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 
 ## Запуск и разработка
 
-[Установщик Night 0.11.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.11.0-preview.2/night-browser-0.11.0-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.11.0-preview.2/night-browser-0.11.0-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.11.0-preview.2)
+[Установщик Night 0.12.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.12.0-preview.1/night-browser-0.12.0-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.12.0-preview.1/night-browser-0.12.0-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.12.0-preview.1)
 
 Для интеграции нужен [Island 0.4.0 на основе 7d9bc80](https://github.com/1atex/night-island/releases/tag/v0.4.0-browser-preview.1). Точная совместимая ревизия записана в `scripts/preview/island.json` и BUILD.json; сборка проверяет наличие этой основы в истории.
 
 Установщик работает без прав администратора. Приложение находится в `%LOCALAPPDATA%\Programs\Night Browser`, профиль — в `%LOCALAPPDATA%\NightBrowser\profile`. Первый запуск новой сборки автоматически обновляет кэш интерфейса, сохраняя профиль. Повторная установка обновляет приложение; удаление программы сохраняет профиль. Выбор браузера по умолчанию остаётся за пользователем в настройках Windows.
 
-Для portable распакуй всю папку и запусти `Night.exe`; профиль создаётся рядом в `profile`. Обе версии выпускаются через [GitHub Actions](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml). Установленная версия и portable используют разные профили. Для переноса данных уже настроенного Night закрой обе копии, сохрани резервные копии и замени содержимое нового профиля содержимым прежней папки `profile`. Профиль Zen удобнее переносить через мастер первого запуска.
+Для portable распакуй всю папку и запусти `Night.exe`; профиль создаётся рядом в `profile`. Обе версии выпускаются через [GitHub Actions](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml). Установленная версия и portable используют разные профили. Для переноса данных уже настроенного Night закрой обе копии, сохрани резервные копии и замени содержимое нового профиля содержимым прежней папки `profile`. Папка `profile` содержит только основной профиль; дополнительные профили и правила резервного копирования описаны в [Профили и Sync](docs/night/PROFILES.md). Профиль Zen удобнее переносить через мастер первого запуска.
 
 [Импорт из Zen](docs/night/ZEN_IMPORT.md) · [О дизайне и лицензиях](docs/night/DESIGN_PROVENANCE.md)
 
