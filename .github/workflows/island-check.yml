@@ -8,6 +8,7 @@ on:
       - "src/night/*Island*"
       - "src/night/island-pipe.js"
       - "tests/native/island.py"
+      - "tests/native/island_hub.py"
       - ".github/workflows/island-check.yml"
 permissions:
   contents: read
