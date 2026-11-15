@@ -46,6 +46,7 @@ def run(binary, app_ini, island, output):
     threading.Thread(target=server.serve_forever,daemon=True).start()
     origin=f'http://127.0.0.1:{server.server_port}'
     prefs={'night.onboarding.completed':True,'night.network.enabled':True, **{f'night.island.{key}':True for key in ['tabs','pocket','activity','requests']}}
+    os.environ['MOZ_LOG']='WidgetDragService:5'
     b=Marionette(bin=binary,headless=False,prefs=prefs,app_args=['-app',app_ini],gecko_log=str(output/'hub-gecko.log'))
     process=None
     def state():
@@ -133,6 +134,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         wait_for(lambda:len(state().get('pocket',[]))==1)
         print('PASS: context selection, persistent Pocket, remove/undo and conversion to note; private window excluded',flush=True)
         panel('pocket')
+        (output/'hub-drag-service.json').write_text(json.dumps(chrome('const d=Cc["@mozilla.org/widget/dragservice;1"].getService(Ci.nsIDragService);return {mock:d.isMockService,neverSynthetic:d.neverAllowSessionIsSynthesizedForTests};')))
         b.set_context('content')
         start=b.execute_script("getSelection().removeAllRanges();window.wrappedJSObject.hubDrag=[];for(const type of ['mousedown','dragstart','dragend','click'])document.addEventListener(type,e=>window.wrappedJSObject.hubDrag.push({type,target:e.target.tagName,types:e.dataTransfer?[...e.dataTransfer.types]:[],effect:e.dataTransfer?.dropEffect}),true);const link=document.querySelector('a');Object.assign(link.style,{position:'fixed',bottom:'20px',left:'40px'});const r=link.getBoundingClientRect();return {x:mozInnerScreenX+r.x+r.width/2,y:mozInnerScreenY+r.y+r.height/2};")
         current=state();p=Point(100,150);u.ClientToScreen(current['hwnd'],ctypes.byref(p))
