@@ -65,6 +65,9 @@ def run(binary, app_ini, island, output):
     def chrome(script):
         browser.set_context('chrome')
         return browser.execute_script(f'const w={WIN};const {{NightIsland}}=ChromeUtils.importESModule("resource:///modules/night/NightIsland.sys.mjs");'+script)
+    def choose(pref, value):
+        browser.set_context('content')
+        browser.execute_script('const input=document.querySelector(`[data-pref="${arguments[0]}"]`);input.value=arguments[1];input.dispatchEvent(new Event("change",{bubbles:true}));', script_args=[pref, value])
     def click_rect(rect, current=None, delay=0.15):
         current = current or state()
         left, top, right, bottom = rect
@@ -122,7 +125,8 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         chrome('Services.prefs.setBoolPref("night.island.indicator",false);')
         assert chrome('return w.document.getElementById("night-island-pill").hidden;')
         chrome('Services.prefs.setBoolPref("night.island.indicator",true);')
-        chrome('Services.prefs.setStringPref("night.island.position","top");Services.prefs.setStringPref("night.island.visibility","unfinished");')
+        choose('night.island.position', 'top')
+        choose('night.island.visibility', 'unfinished')
         assert chrome('return w.document.getElementById("night-island-pill").parentNode.id === "night-island-top" && w.document.getElementById("night-island-pill").hidden;')
         browser.set_context('content')
         wait_for(lambda: browser.execute_script("return document.getElementById('island-status')?.textContent === 'Island подключён';"))
@@ -149,7 +153,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         assert chrome('const p=w.document.getElementById("night-island-pill").getBoundingClientRect(),tabs=w.document.getElementById("night-tabs-scroll").getBoundingClientRect();return p.height>=36 && p.bottom<=tabs.top;')
         browser.set_context('chrome')
         (output/'night-island-top.png').write_bytes(base64.b64decode(browser.screenshot()))
-        chrome('Services.prefs.setStringPref("night.island.position","bottom");')
+        choose('night.island.position', 'bottom')
         assert chrome('return w.document.getElementById("night-island-pill").parentNode.localName === "footer";')
         time.sleep(0.7)
         assert all(i['name']!='private.zip' for i in state()['state']['items'])
@@ -224,7 +228,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         chrome('w.integrationDownloads["sample.zip"].start().catch(()=>{});')
         wait_for(lambda: find('sample.zip','complete'),timeout=30)
         wait_for(lambda: chrome('return w.document.getElementById("night-island-pill").hidden;'))
-        chrome('Services.prefs.setStringPref("night.island.visibility","always");')
+        choose('night.island.visibility', 'always')
         assert chrome('return !w.document.getElementById("night-island-pill").hidden;')
         assert 'reveal' in find('sample.zip','complete')['actions']
         command('sample.zip','reveal')
