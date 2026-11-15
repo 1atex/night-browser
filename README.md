@@ -23,16 +23,17 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 - Установщик для текущего пользователя и мастер первого запуска с оформлением и импортом Zen.
 - Управление окном справа сверху при наведении; постоянная видимость включается в настройках.
 - Крестик у сохранённой вкладки отправляет её в сон, сохраняя папку и состояние. Удаление доступно отдельно в контекстном меню.
+- Индикатор Island сверху или снизу боковой панели, показ только незавершённых загрузок, переход в настоящий Island и общее оформление. Все параметры меняются отдельно.
 - Загрузки в Night Island: прогресс, пауза, продолжение, отмена и показ файла. Включается отдельно в обоих приложениях; состояние подключения и повторное подключение доступны в настройках.
 - Обновление изменившихся строк боковой панели без перезаписи остального дерева вкладок.
 
 ## Запуск и разработка
 
-[Установщик Night 0.9.1 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.9.1-preview.2/night-browser-0.9.1-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.9.1-preview.2/night-browser-0.9.1-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.9.1-preview.2)
+[Установщик Night 0.9.3 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.9.3-preview.2/night-browser-0.9.3-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.9.3-preview.2/night-browser-0.9.3-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.9.3-preview.2)
 
-Для интеграции нужен [Island 0.3.2 на основе 7d9bc80](https://github.com/1atex/night-island/releases/tag/v0.3.2-browser-preview.1). Точная совместимая ревизия записана в `scripts/preview/island.json` и BUILD.json; сборка проверяет наличие этой основы в истории.
+Для интеграции нужен [Island 0.3.3 на основе 7d9bc80](https://github.com/1atex/night-island/releases/tag/v0.3.3-browser-preview.1). Точная совместимая ревизия записана в `scripts/preview/island.json` и BUILD.json; сборка проверяет наличие этой основы в истории.
 
-Установщик работает без прав администратора. Приложение находится в `%LOCALAPPDATA%\Programs\Night Browser`, профиль — в `%LOCALAPPDATA%\NightBrowser\profile`. Повторная установка обновляет приложение; удаление программы сохраняет профиль. Выбор браузера по умолчанию остаётся за пользователем в настройках Windows.
+Установщик работает без прав администратора. Приложение находится в `%LOCALAPPDATA%\Programs\Night Browser`, профиль — в `%LOCALAPPDATA%\NightBrowser\profile`. Первый запуск новой сборки автоматически обновляет кэш интерфейса, сохраняя профиль. Повторная установка обновляет приложение; удаление программы сохраняет профиль. Выбор браузера по умолчанию остаётся за пользователем в настройках Windows.
 
 Для portable распакуй всю папку и запусти `Night.exe`; профиль создаётся рядом в `profile`. Обе версии выпускаются через [GitHub Actions](https://github.com/1atex/night-browser/actions/workflows/windows-preview.yml). Установленная версия и portable используют разные профили. Для переноса данных уже настроенного Night закрой обе копии, сохрани резервные копии и замени содержимое нового профиля содержимым прежней папки `profile`. Профиль Zen удобнее переносить через мастер первого запуска.
 

@@ -237,3 +237,24 @@ The published [start-flow result](https://github.com/1atex/night-browser/release
 | night-browser-0.9.2-preview-windows-x64.zip | `a3384a8be874160d0686d0b658188ecf8afcbd6ae0dba863a476dcc849ded4ed` |
 | night-browser-0.9.2-preview-windows-x64-setup.exe | `af25ff6e6db7f9234aeb44e013ec84e87061011873a26d00a6449e374195704c` |
 | night-island.exe | `5a2198b3419828b12b155bbcecf52701aebaf2933a9cea2501f28a4370c28b06` |
+
+## Startup-cache recovery (0.9.3)
+
+A reported reboot restored an early Night sidebar and the upstream start page despite BuildID `20261114214642`. The installed browser JAR SHA-256 was `1397f5116de7c37303b298fba13625fe8fdff3f1eca7b5fcacfb83f703e31f5f`, matching the published 0.9.2 file. Clearing the startup cache restored the current interface. A local runtime fixture reproduced stale module execution after the JAR was replaced without changing the application BuildID.
+
+The Windows launcher compares the package revision and executable path with a profile marker acknowledged by the loaded Night modules. Missing, corrupt or outdated acknowledgement adds `-purgecaches`; the launcher does not mark an unverified launch as current. Once the correct modules have loaded, normal launches keep the startup cache. Profile data is not deleted.
+
+The new native test first proves that direct runtime startup still executes the deliberately seeded stale module. It then launches through `Night.exe`, checks recovery and acknowledgement, preserves a real Places bookmark and a preference, restarts without cache purging or rewriting the marker, and simulates a subsequent revision change. All six assertions passed in the complete Windows [run 43656692245](https://github.com/1atex/night-browser/actions/runs/43656692245) at `71c0bb3c607848f5bfdc7b89ce6ecf551f5e2b35`.
+
+The final focused [Island run 43657715477](https://github.com/1atex/night-browser/actions/runs/43657715477) passed at `e37fbb09d23d1b35019fe6e126d16f5572105bb2`. It changes placement and visibility through the settings controls' change handlers, checks top placement geometry, verifies idle/completed hiding and paused/offline visibility, and opens the native Downloads panel from settings. Earlier test captures changed preferences directly and left the settings controls displaying their initial values; the corrected test exercises those controls and captures their selected values. The connected settings and top-capsule screenshots were inspected.
+
+## Published 0.9.3 result
+
+[Browser v0.9.3-preview.2](https://github.com/1atex/night-browser/releases/tag/v0.9.3-preview.2) was built from `e37fbb09d23d1b35019fe6e126d16f5572105bb2` in [tag run 43657748901](https://github.com/1atex/night-browser/actions/runs/43657748901). All 58 Node checks, every native Windows check and both build/publication jobs passed. The first 0.9.3 tag was cancelled before publication to improve the settings test; its tag remains in history. Redundant branch builds were cancelled after replacement tag runs started. Island 0.3.3 remains unchanged and compatible.
+
+The public installer and ZIP were downloaded and matched their release SHA-256 file. ZIP CRC, BUILD.json, native tab patches and 88 packaged Night source files passed verification; the generated NightBuild module contains the tagged revision. BuildID is `20261115002046`. Published startup-cache, start-flow and Island result files contain passing assertions. The ordinary first-launch and top-position indicator captures were inspected. The striped address field in automated captures is Marionette's indicator.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| night-browser-0.9.3-preview-windows-x64.zip | `f0f241c545cd56c12de9b0b96c9a0c5ec14df3ec068eada492465072c232b552` |
+| night-browser-0.9.3-preview-windows-x64-setup.exe | `c861fb586339a743595eb72549444ddd5f6d3e05c1c4712aee7ef90c5583a75a` |
