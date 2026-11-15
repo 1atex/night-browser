@@ -82,6 +82,9 @@ def run(binary,app_ini,output):
         prefs=b.execute_async_script('const done=arguments[arguments.length-1];(async()=>{const {Weave}=ChromeUtils.importESModule("resource://services-sync/main.sys.mjs");await Weave.Service.promiseInitialized;Services.prefs.setStringPref("night.ui.palette","graphite");Services.prefs.setStringPref("night.ui.navigation-layout","top");const values=Weave.Service.engineManager.get("prefs")._store._getAllPrefs();return {palette:values["night.ui.palette"],navigation:values["night.ui.navigation-layout"],island:Object.hasOwn(values,"night.island.downloads"),passwords:Weave.Service.engineManager.get("passwords").enabled};})().then(done,e=>done({error:String(e)}));')
         assert prefs=={'palette':'graphite','navigation':'top','island':False,'passwords':False},prefs
         result['native_sync_preference_record']=prefs
+        b.set_context('content');b.navigate('about:preferences?action=choose-what-to-sync#sync')
+        wait_for(lambda:content('return location.href==="chrome://browser/content/preferences/advanced.xhtml?action=choose-what-to-sync#sync"&&!!window.SyncHelpers;'))
+        result['native_sync_settings_route']=True
         result['sync_connect_uses_native_service']=True
         result['passed']=True
         (output/'accounts-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')

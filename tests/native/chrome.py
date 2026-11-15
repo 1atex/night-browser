@@ -169,7 +169,7 @@ def run(binary, app_ini, output):
         assert chrome("return d.getElementById('night-main-menu').getBoundingClientRect().top>=0;")
         assert chrome("return d.activeElement.getAttribute('aria-label');") == 'Новое окно'
         keys(Keys.ARROW_DOWN)
-        assert chrome("return d.activeElement.getAttribute('aria-label');") == 'Приватное'
+        assert chrome("return d.activeElement.getAttribute('aria-label');") == 'Приватное окно'
         chrome("d.querySelector('#night-main-menu button[aria-label=\"Увеличить масштаб\"]').click();")
         wait_for(lambda: chrome("return w.ZoomManager.zoom>1&&d.getElementById('night-menu-zoom-reset').textContent!=='100%';"))
         chrome("d.getElementById('night-menu-zoom-reset').click();")

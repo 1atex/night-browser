@@ -2,13 +2,19 @@
 
 `npm test` checks unloading policy, request validation, bounded history, channel suspension/redirect behavior and module integration. These tests do not substitute for a browser runtime.
 
+## Profile and account checks
+
+`tests/native/accounts.py` presses real Ctrl+Shift+N, verifies private cookie isolation, waits for the last-private-context shutdown, reopens a private window and checks that private cookies/history are absent. It checks that private windows cannot enable Sync and that normal settings do not enable it merely by opening. An explicit click initializes native FxA/WebChannel and opens the official account URL. It inspects a real native Sync preferences record for Night palette/navigation values and excluded Island settings. Remote-page completion is recorded separately because external TLS/network availability is not a local feature assertion. No real Mozilla account is supplied; authenticated two-device synchronization is not tested.
+
+`tests/native/profiles.py` runs two visible Windows browser processes through the actual launcher. Fixture passwords, bookmarks, cookies, localStorage, a temporary extension and palette settings must remain separate. It switches back to an existing window, routes an external URL to the selected profile, rejects invalid IDs and restarts the last-selected profile with its saved storage. Installer tests also verify that the installed profile is recognized in LocalAppData. The actual Zen import fixture checks that the source account file is unchanged and is not copied to Night.
+
 ## Home and native surface checks
 
 `tests/native/home_ux.py` clicks the real sidebar new-tab control, types without another click, changes widget visibility and checks persistence in another new tab. It collapses a workspace containing a folder, checks its saved session data and verifies that the active tab is unchanged. The compact address check opens the actual native permission popup and checks that detailed mode restores its indicator. The active-sharing visibility assertion uses an attribute fixture; it does not exercise capture hardware.
 
 `tests/native/surfaces.py` opens eleven browser-owned pages, switches their palettes live, checks preserved configuration warnings and confirms that an ordinary web page receives no Night styles. It also opens the real Library, Page Info, About and DevTools console, checks the find bar, and confirms that closing the request workbench releases its stylesheet. The local audit separately opened and cancelled an actual print preview; Windows print layout and OS file pickers are outside this automated surface suite.
 
-`tests/native/island_hub.py` additionally opens the real Island Pocket from the new Home widget. Hidden Home clocks and widget preferences have unit checks. Request-history byte retention and comparison of empty, trailing-newline and long responses are covered by the 65 Node checks; the separate native allocation measurement is documented in [PERFORMANCE.md](PERFORMANCE.md).
+`tests/native/island_hub.py` additionally opens the real Island Pocket from the new Home widget. Hidden Home clocks and widget preferences have unit checks. Request-history byte retention and comparison of empty, trailing-newline and long responses are covered by the 67 Node checks; the separate native allocation measurement is documented in [PERFORMANCE.md](PERFORMANCE.md).
 
 ## Search and Island hub checks
 

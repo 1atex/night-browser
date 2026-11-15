@@ -350,7 +350,7 @@ window.addEventListener(
       });
       const exclusions = card(
         "Оставлять загруженными",
-        "Эти сайты и их поддомены будут работать в фоне.",
+        "Эти сайты и их поддомены работают в фоне, включая поставленное на паузу видео. Убери YouTube из списка, чтобы неиграющие вкладки могли выгружаться по таймеру. Воспроизведение и PiP защищены и без исключения.",
       );
       const chips = element("div", "", { class: "site-list" });
       const render = () => {
@@ -905,6 +905,14 @@ window.addEventListener(
     async function render() {
       cleanupSection();
       const raw = location.hash.slice(1);
+      const action = new URLSearchParams(location.search).get("action");
+      if (["sync", "sync-sync"].includes(raw) && ["pair", "choose-what-to-sync"].includes(action)) {
+        const {NightAccounts} = ChromeUtils.importESModule("resource:///modules/night/NightAccounts.sys.mjs");
+        if (!["disabled", "private"].includes(NightAccounts.state(browserWindow).status)) {
+          location.replace(`chrome://browser/content/preferences/advanced.xhtml?action=${action}#sync`);
+          return;
+        }
+      }
       const aliases = {
         sync: "accounts",
         "sync-sync": "accounts",

@@ -51,3 +51,22 @@ History now has both a 50-entry limit and a 512 KiB conservative retained-text b
 Response comparison scans the common prefix without creating per-line arrays. Replays decode incoming UTF-8 incrementally instead of retaining chunks and allocating another full response byte buffer. The request selector reuses existing DOM options, and its stylesheet is attached only while the tool is open. Closed tab rows and the workspace's last-tab references are released immediately rather than waiting for a rendering frame. Home widgets unsubscribe when hidden; the clock stops when hidden or disabled; completed suggestion contexts are released.
 
 Gecko's JIT, site isolation, sandbox and GPU rendering have not been weakened. Changing CSS colours or minifying source is not presented as a web-engine memory optimisation. The existing real Windows minimized-memory and rendering workloads remain in CI to catch regressions outside this synthetic measurement.
+
+## YouTube memory investigation — 2026-11-15
+
+The user screenshots show **1471.8 MB for the entire Zen group**, with **288.0 MB** in the process labelled with the video's title, and **990.0 MB for the Night group**, with **277.9 MB** in the YouTube-labelled process. Those are different workloads/profile states, not a controlled benchmark. Anonymous child processes cannot be classified from these screenshots. The labelled process is also not the full cost of playback: decoding, audio and graphics can live in other processes.
+
+YouTube retains application objects, DOM, thumbnail images, comments and recommendations, compressed media segments and decoded frames. One 1920×1080 8-bit YUV420 frame is about 3 MiB; a 3840×2160 frame is about 12 MiB before implementation-dependent alignment/copies. Several reference/queued frames can coexist. These arithmetic examples do not identify how much of this user's measured memory belongs to frames.
+
+The pinned Gecko source initializes Media Source eviction thresholds to **150 MiB for video and 20 MiB for audio** in [`TrackBuffersManager.cpp`](https://hg.mozilla.org/releases/mozilla-release/file/d84e7a6936554efe26097d9d9b24a0e11330e630/dom/media/mediasource/TrackBuffersManager.cpp). These are eviction thresholds, not upfront reservations, whole-tab limits, or guaranteed savings. Lower values can evict useful media and affect seeking/buffering; no global reduction is shipped without a playback regression test. `media.memory_cache_max_size` controls a different media-cache path and is not a reliable YouTube MSE memory knob.
+
+A fresh-profile Linux headless attempt to open a public YouTube video failed with `proxyConnectFailure`, before any video element or playback existed. It provides **no valid YouTube memory measurement** and cannot establish savings on the user's Windows/GPU setup. No site CSS injection, periodic forced GC, process working-set trimming or disabling the GPU/Fission/JIT was introduced.
+
+Useful existing controls:
+
+- Night's default YouTube domain exceptions keep even paused background pages loaded. Removing `youtube.com` and `youtu.be` under Memory → Keep loaded permits ordinary idle unloading. Active, playing, PiP and explicitly protected tabs remain protected. A discarded page reloads on return; playback position is not guaranteed by this setting.
+- YouTube's Ambient mode adds a background visual effect; it can be turned off in the player. This targets graphics work, with no guaranteed RAM reduction. See [YouTube's instructions](https://support.google.com/youtube/answer/12827017?co=GENIE.Platform%3DDesktop&hl=en).
+- Lower video resolution reduces the dimensions of decoded frames and usually the bitrate, at a visible quality cost. Disable feed previews if they are not useful.
+- Compare extensions separately with the same video, account, quality, viewport and playback position. Keep hardware acceleration enabled for the baseline; [Mozilla documents](https://support.mozilla.org/en-US/kb/firefox-uses-too-much-memory-or-cpu-resources) that it can reduce CPU and memory use.
+
+The next valid experiment needs a real Windows playback baseline: identify all process roles in `about:processes`; collect `about:memory` and a Gecko profile; record codec, resolution, frame drops and buffered seconds; compare short and sustained playback plus seeking, including a slower network. Judge private working set and commit alongside smoothness. A flat stable allocation is different from growth after repeated videos. Do not infer a leak or an engine fix from a single Task Manager total.
