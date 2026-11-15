@@ -53,3 +53,18 @@ The companion now merges [7d9bc801af2e41627ad7d15a6d2400bbda150aca](https://gith
 | Independent palettes made the applications feel unrelated | Optional RGB palette and motion sharing; independent hide/sync controls, with a return to the local palette | Protocol validation, style idempotence and Windows appearance toggles |
 
 The capsule reuses Island's restrained fill, pill radius, compact typography and short interaction motion. It has no continuous idle animation or polling. Download names truncate in the row and remain available in the tooltip and accessible name. Private windows do not show the public-download indicator. Start-page theme delivery does not wait for the search service.
+
+## Search and cross-application actions (0.10)
+
+| Observed problem | Resulting behavior | Verification |
+| --- | --- | --- |
+| The home input had no suggestions while the address input did | Both use Gecko's native history, bookmark and search providers; network suggestions follow the existing preference | Real Places history and a local OpenSearch suggestion endpoint |
+| A late response could replace the current query | Query cancellation and serial checks discard stale batches; result identity stays stable within a query | Delayed-response fixture and keyboard activation |
+| The sidebar address field jumped between widths and could remain expanded | Short opening/closing transitions, Escape returns focus to the page, outside focus closes the field, repeated opening works | Native keyboard/pointer input and settled geometry; reduced motion |
+| Island offered little beyond download progress | Explicit tab search, persistent Pocket, activity and intercepted-request actions share the existing connection | Native Windows keyboard, pointer and OLE drag/drop |
+| A global tab search could wake saved pages | Search reads metadata and cached icons; selecting a result activates its workspace and page | Local server receives no request before selection |
+| Saved materials had no clear persistence or recovery | Pocket acknowledges database writes, retains source links and offers undo after removal | Save, remove, undo, note conversion and application restart |
+
+The home list uses a combobox/listbox relationship with arrow navigation, Enter, Escape and outside-click dismissal. Quick links yield to the open list; no second search service or remote favicon lookup is added. Browser-specific suggestion labels use functional names. Site security, navigation and the upper address provider remain Gecko components.
+
+Island's new panels use its existing typography, rounded cards, theme and native rendering. Button hover feedback follows the actual hit regions; pending actions are disabled until acknowledged. Browser search is available through the configurable global shortcut or the existing command bar. Activity updates are event-driven and bounded. Private browser windows are excluded; Pocket receives only explicitly saved or dragged material.

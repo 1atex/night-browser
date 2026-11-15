@@ -2,6 +2,16 @@
 
 `npm test` checks unloading policy, request validation, bounded history, channel suspension/redirect behavior and module integration. These tests do not substitute for a browser runtime.
 
+## Search and Island hub checks
+
+`tests/native/search.py` exercises the packaged start page against actual Places history, cached favicons and a local OpenSearch suggestion server. It checks keyboard selection, navigation, Escape/outside dismissal, delayed-response rejection and the network-suggestion preference. Native address checks cover repeated Ctrl+L/Escape and focus restoration after animated expansion. These fixtures do not depend on a public search engine's current responses.
+
+`tests/native/island_hub.py` runs a real Windows Island process alongside Night. Native global hotkeys and clicks search a sleeping tab with a nested folder path and cached favicon; a local HTTP log proves that search alone does not load it. The test saves a real page selection through its context menu, removes/undoes it, converts it into a note and restarts Island before checking persistence. Native OLE pointer input drags a link into Pocket. It excludes a private browser window and exercises the native activity mute button with a tab-audio state fixture.
+
+Actual intercepted HTTP requests test all three Island actions. Forward must preserve the original upload and header; edit must focus the matching browser editor; reject must send nothing. Camera/microphone capture hardware and every possible media application are not covered by this fixture. Pocket stores image URLs rather than image files.
+
+The native drag fixture records both processes' Windows integrity levels and requires them to match. GitHub's elevated runner starts the fixture browser with `-no-deelevate`; otherwise Gecko lowers its own integrity while Island inherits the runner's level and Windows blocks OLE across that boundary. This argument exists only in the test, not in the product launcher or installer.
+
 ## Native tests
 
 ```sh
@@ -258,3 +268,20 @@ The public installer and ZIP were downloaded and matched their release SHA-256 f
 | --- | --- |
 | night-browser-0.9.3-preview-windows-x64.zip | `f0f241c545cd56c12de9b0b96c9a0c5ec14df3ec068eada492465072c232b552` |
 | night-browser-0.9.3-preview-windows-x64-setup.exe | `c861fb586339a743595eb72549444ddd5f6d3e05c1c4712aee7ef90c5583a75a` |
+
+
+## Published 0.10.0 result
+
+[Browser v0.10.0-preview.1](https://github.com/1atex/night-browser/releases/tag/v0.10.0-preview.1) uses `5ef837f7c8ab674fe90753449b5b5fc23f3c3f0a` and passed all 62 Node checks and the complete native Windows suite in [tag run 43666094132](https://github.com/1atex/night-browser/actions/runs/43666094132). The same source passed [branch run 43665419113](https://github.com/1atex/night-browser/actions/runs/43665419113) and the [focused native Island pair 43665419152](https://github.com/1atex/night-browser/actions/runs/43665419152). Both tag build and publication jobs succeeded.
+
+The compatible [Island v0.4.0-browser-preview.1](https://github.com/1atex/night-island/releases/tag/v0.4.0-browser-preview.1) uses `bf85a4182121072e509b07fcb97aecb8b386cc6b` and passed [tag run 43665923392](https://github.com/1atex/night-island/actions/runs/43665923392). Its [CI 43665410352](https://github.com/1atex/night-island/actions/runs/43665410352) passed formatting, Clippy with warnings denied and 559 Rust tests (557 app, two helper; 119 existing ignored). Foundation `7d9bc801af2e41627ad7d15a6d2400bbda150aca` remains an ancestor.
+
+The public installer, ZIP and Island EXE were downloaded and verified against their release SHA-256 files. The 145,562,553-byte ZIP passed CRC, manifest, native tab-patch and all 91 Night source-file checks, normalizing text line endings and checking the generated build-revision module separately. BuildID is `20261115015638`. Published startup-cache, start-flow, search and Island result files contain passing assertions; the hub result identifies the tagged source and records the unchanged HTTP upload/header. Published home-suggestion and native request-panel captures were visually inspected.
+
+Evidence: [home suggestions](https://github.com/1atex/night-browser/releases/download/v0.10.0-preview.1/night-home-suggestions.png), [search result](https://github.com/1atex/night-browser/releases/download/v0.10.0-preview.1/search-result.json), [Island search](https://github.com/1atex/night-browser/releases/download/v0.10.0-preview.1/night-island-tab-search.png), [Pocket](https://github.com/1atex/night-browser/releases/download/v0.10.0-preview.1/night-island-pocket.png), [request controls](https://github.com/1atex/night-browser/releases/download/v0.10.0-preview.1/night-island-request.png) and [hub result](https://github.com/1atex/night-browser/releases/download/v0.10.0-preview.1/hub-result.json). The local OpenSearch provider and colored favicon are test fixtures. These checks do not measure a real user profile's memory or prove a Gecko rendering speedup.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| night-browser-0.10.0-preview-windows-x64.zip | `20b5e56b4e5b980c5a43e1230f0de0f03af24fd6d67fa7a8ea5d2102d5b8f182` |
+| night-browser-0.10.0-preview-windows-x64-setup.exe | `21d228f18a4873b07aa3ab65c17cec4c76d92a8fad723abf533dde1a93e77adf` |
+| night-island.exe | `e7661fa09282d9fb78262e13286a12a9bca2c490f4e2db148464e41434d46972` |
