@@ -48,7 +48,7 @@ def run(binary, app_ini, island, output):
     b=Marionette(bin=binary,headless=False,prefs=prefs,app_args=['-app',app_ini],gecko_log=str(output/'hub-gecko.log'))
     process=None
     def state():
-        try:return json.loads(report.read_text())
+        try:return json.loads(report.read_text(encoding="utf-8"))
         except (ValueError,OSError):return {'state':{}}
     def chrome(script,args=None):
         b.set_context('chrome')
