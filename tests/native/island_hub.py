@@ -18,6 +18,25 @@ from smoke import wait_for
 WIN = "[...Services.wm.getEnumerator('navigator:browser')].find(w=>!ChromeUtils.importESModule('resource://gre/modules/PrivateBrowsingUtils.sys.mjs').PrivateBrowsingUtils.isWindowPrivate(w))"
 ICON = 'data:image/svg+xml,' + '%3Csvg xmlns="http://www.w3.org/2000/svg" width="16" height="16"%3E%3Crect width="16" height="16" fill="%23acb9cf"/%3E%3C/svg%3E'
 
+def integrity_level(pid):
+    k=ctypes.windll.kernel32;a=ctypes.windll.advapi32
+    k.OpenProcess.argtypes=[ctypes.c_ulong,ctypes.c_int,ctypes.c_ulong];k.OpenProcess.restype=ctypes.c_void_p
+    k.CloseHandle.argtypes=[ctypes.c_void_p]
+    a.OpenProcessToken.argtypes=[ctypes.c_void_p,ctypes.c_ulong,ctypes.POINTER(ctypes.c_void_p)]
+    a.GetTokenInformation.argtypes=[ctypes.c_void_p,ctypes.c_int,ctypes.c_void_p,ctypes.c_ulong,ctypes.POINTER(ctypes.c_ulong)]
+    a.GetSidSubAuthorityCount.argtypes=[ctypes.c_void_p];a.GetSidSubAuthorityCount.restype=ctypes.POINTER(ctypes.c_ubyte)
+    a.GetSidSubAuthority.argtypes=[ctypes.c_void_p,ctypes.c_ulong];a.GetSidSubAuthority.restype=ctypes.POINTER(ctypes.c_ulong)
+    process=k.OpenProcess(0x1000,False,pid);token=ctypes.c_void_p();size=ctypes.c_ulong()
+    try:
+        assert process and a.OpenProcessToken(process,8,ctypes.byref(token))
+        a.GetTokenInformation(token,25,None,0,ctypes.byref(size));data=ctypes.create_string_buffer(size.value)
+        assert a.GetTokenInformation(token,25,data,size,ctypes.byref(size))
+        sid=ctypes.cast(data,ctypes.POINTER(ctypes.c_void_p))[0]
+        return a.GetSidSubAuthority(sid,a.GetSidSubAuthorityCount(sid)[0]-1)[0]
+    finally:
+        if token:k.CloseHandle(token)
+        if process:k.CloseHandle(process)
+
 class Site(BaseHTTPRequestHandler):
     visits = []
     posts = []
@@ -47,7 +66,7 @@ def run(binary, app_ini, island, output):
     origin=f'http://127.0.0.1:{server.server_port}'
     prefs={'night.onboarding.completed':True,'night.network.enabled':True, **{f'night.island.{key}':True for key in ['tabs','pocket','activity','requests']}}
     os.environ['MOZ_LOG']='WidgetDragService:5'
-    b=Marionette(bin=binary,headless=False,prefs=prefs,app_args=['-app',app_ini],gecko_log=str(output/'hub-gecko.log'))
+    b=Marionette(bin=binary,headless=False,prefs=prefs,app_args=['-app',app_ini,'-no-deelevate'],gecko_log=str(output/'hub-gecko.log'))
     process=None
     def state():
         try:return json.loads(report.read_text(encoding="utf-8"))
@@ -91,6 +110,9 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         b.start_session();b.timeout.script=30;b.set_window_rect(x=20,y=300,width=900,height=460);b.navigate(origin+'/source')
         wait_for(lambda:chrome('return NightIsland.ready;'),timeout=45)
         wait_for(lambda:state()['state'].get('features',{}).get('tabs'))
+        levels={'browser':integrity_level(chrome('return Services.appinfo.processID;')),'island':integrity_level(process.pid)}
+        (output/'hub-integrity.json').write_text(json.dumps(levels))
+        assert levels['browser']==levels['island'],levels
         assert chrome('return NightIsland.entries.size===0;')
         chrome('''const s=w.gNightBrowser.shell.workspaces;w.hubOriginal=w.gBrowser.selectedTab;
           const space=s.create('Research'),parent=s.createFolder('Projects'),child=s.createFolder('Nested',parent);
