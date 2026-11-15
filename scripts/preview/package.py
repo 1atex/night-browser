@@ -193,6 +193,8 @@ def package(runtime, output, archive, platform):
         if "/branding/" in name and name.endswith(("about-logo.svg", "icon32.svg", "icon64.svg", "icon128.svg", "identity-icons-brand.svg")):
             browser[name] = (source / "branding/about-logo.svg").read_bytes()
     for name in list(browser):
+        if name.endswith("browser/sidebar/firefox.svg"):
+            browser[name] = (source / "branding/about-logo.svg").read_bytes()
         if "/branding/" in name and name.endswith(("about-logo.png", "about-logo@2x.png", "about-logo-private.png", "about-logo-private@2x.png")):
             browser[name] = (source / "branding/icon256.png").read_bytes()
         elif "/branding/" in name and name.endswith("wordmark.svg"):
@@ -210,9 +212,58 @@ def package(runtime, output, archive, platform):
             toolkit[name] += b"\n.image-container { display: none; } :host { --addons-promo-text-padding-inline: 0; }\n"
         elif name.endswith("global/elements/moz-page-nav-button.css"):
             toolkit[name] += b"\n" + (source / "navigation-component.css").read_bytes()
+        elif name.endswith("global/aboutNetError.css"):
+            toolkit[name] += b"\n.felt-privacy-container > .img-container { display: none !important; } .felt-privacy-container { justify-content: center; }\n"
     for name in list(toolkit):
         if name.endswith("global/in-content/common.css"):
             toolkit[name] += b"\n" + (source / "theme.css").read_bytes() + b"\n" + (source / "internal.css").read_bytes()
+    for locale in ["ru", "en-US"]:
+        name = f"localization/{locale}/toolkit/branding/brandings.ftl"
+        text = toolkit[name].decode()
+        for key, ru, en in [
+            ("firefox-suggest", "Подсказки", "Suggestions"),
+            ("firefoxview", "Обзор вкладок", "Tab overview"),
+            ("firefoxlabs", "Эксперименты", "Experiments"),
+            ("screenshots", "Снимки страниц", "Screenshots"),
+            ("translations", "Перевод страниц", "Translations"),
+        ]:
+            text, count = re.subn(rf"(?m)^-{key}-brand-name = .*$", f"-{key}-brand-name = {ru if locale == 'ru' else en}", text)
+            if count != 1:
+                raise ValueError("Internal feature name changed")
+        text, count = re.subn(r"(?m)^-firefox-home-brand-name =[^\n]*(?:\n[ \t]+[^\n]*)*", lambda match: match[0].replace(" Firefox", "").replace("Firefox ", ""), text)
+        if count != 1:
+            raise ValueError("Home feature name changed")
+        toolkit[name] = text.encode()
+    name = "chrome/browser/content/browser/preferences/main.js"
+    text = browser[name].decode()
+    for illustration in ["kit-happy", "kit-concerned"]:
+        original = f'imagesrc: "chrome://global/skin/illustrations/{illustration}.svg"'
+        if text.count(original) != 1:
+            raise ValueError("Default-browser illustration changed")
+        text = text.replace(original, 'imagesrc: ""')
+    browser[name] = text.encode()
+    for locale in ["ru", "en-US"]:
+        name = f"localization/{locale}/browser/preferences/preferences.ftl"
+        text = browser[name].decode()
+        for key, message in [
+            ("is-default-browser-2", "{ -brand-short-name } — браузер по умолчанию." if locale == "ru" else "{ -brand-short-name } is your default browser."),
+            ("is-not-default-browser-2", "{ -brand-short-name } не выбран браузером по умолчанию." if locale == "ru" else "{ -brand-short-name } is not your default browser."),
+        ]:
+            text, count = re.subn(rf"(?m)^({key} =\n[ \t]+\.message = ).*$", lambda match: match[1] + message, text)
+            if count != 1:
+                raise ValueError("Default-browser message changed")
+        browser[name] = text.encode()
+    name = "chrome/browser/content/browser/preferences/preferences.js"
+    text = browser[name].decode()
+    for original, replacement, expected in [
+        ('? "paneSync"\n    : "paneGeneral"', '? "paneHome"\n    : "paneGeneral"', 1),
+        ('redesignEnabled ? "sync" : "general"', 'redesignEnabled ? "home" : "general"', 1),
+        ('iconSrc: "chrome://browser/skin/sidebar/firefox.svg"', 'iconSrc: "chrome://browser/content/night/branding/about-logo.svg"', 2),
+    ]:
+        if text.count(original) != expected:
+            raise ValueError("Advanced settings integration changed")
+        text = text.replace(original, replacement)
+    browser[name] = text.encode()
     defaults = json.loads((ROOT / "config/preferences.json").read_text())
     browser["defaults/preferences/00-night.js"] = "\n".join(
         f"pref({json.dumps(name)}, {json.dumps(value)});" for name, value in defaults.items()

@@ -34,6 +34,13 @@ def run(binary,app_ini,output):
             if page=='about:logins':
                 assert content('const root=document.querySelector("login-intro").shadowRoot;return getComputedStyle(root.querySelector(".illustration")).display==="none"&&!root.querySelector("[data-l10n-id=login-intro-instructions-fxa2]");')
             if page=='about:config':assert content('return !!document.querySelector("#warningButton");')
+            if page.startswith('about:neterror'):
+                wait_for(lambda:content('return !!document.querySelector("net-error-card")?.shadowRoot?.querySelector(".img-container");'))
+                assert content('const root=document.querySelector("net-error-card").shadowRoot;return getComputedStyle(root.querySelector(".img-container")).display==="none"&&root.querySelector("#error-title").textContent.length>0;')
+            if page.endswith('/advanced.xhtml'):
+                wait_for(lambda:content('return !!document.querySelector("moz-page-nav-button[view=paneHome]")?.shadowRoot?.querySelector("button[selected]");'))
+                wait_for(lambda:content('const all=[];function walk(root){for(const el of root.querySelectorAll("*")){all.push(el);if(el.shadowRoot)walk(el.shadowRoot);}}walk(document);return all.some(el=>el.id==="setDefaultButton");'))
+                assert content('const all=[];function walk(root){for(const el of root.querySelectorAll("*")){all.push(el);if(el.shadowRoot)walk(el.shadowRoot);}}walk(document);return !all.some(el=>el.localName==="img"&&/kit-(happy|concerned)/.test(el.src));')
             result[page]=colors
             shot(f'night-surface-{index+1}.png')
         b.set_context('content');b.navigate('data:text/html,<title>Web content</title><p>Unmodified website</p>')

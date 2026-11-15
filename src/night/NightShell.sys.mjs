@@ -4,6 +4,7 @@ import { NightToolbar } from "resource:///modules/night/NightToolbar.sys.mjs";
 
 import { SessionStore } from "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs";
 import { validIcon } from "resource:///modules/night/WorkspaceModel.mjs";
+import {internalPage} from "resource:///modules/night/InternalPages.mjs";
 
 const XHTML = "http://www.w3.org/1999/xhtml";
 const setText = (node, value) => { if (node.textContent !== value) node.textContent = value; };
@@ -645,9 +646,9 @@ export class NightShell {
 
   #updateRow(tab, parts) {
     const uri = tab.linkedBrowser.currentURI.spec;
-    const internal = /^about:(home|newtab|preferences|blank)(?:[?#]|$)/.exec(uri);
+    const internal = internalPage(uri) ?? (/^about:(home|newtab|blank)(?:[?#]|$)/.test(uri) ? ["Новая вкладка", "newtab"] : null);
     const label = internal
-      ? internal[1] === "preferences" ? "Настройки" : "Новая вкладка"
+      ? internal[0]
       : SessionStore.getCustomTabValue(tab, "night-title") || (tab.label === "New Tab" ? "Новая вкладка" : tab.label);
     const { row, main, icon, title, state, close } = parts;
     row.toggleAttribute("data-loading", tab.hasAttribute("busy"));
@@ -664,7 +665,7 @@ export class NightShell {
     if (validIcon(live) && SessionStore.getCustomTabValue(tab, "night-favicon") !== live)
       SessionStore.setCustomTabValue(tab, "night-favicon", live);
     const image = internal
-      ? `chrome://browser/content/night/icons/${internal[1] === "preferences" ? "settings" : "newtab"}.svg`
+      ? `chrome://browser/content/night/icons/${internal[1]}.svg`
       : validIcon(live) ? live : SessionStore.getCustomTabValue(tab, "night-favicon");
     const fallback = /^https?:/.test(uri) ? `page-icon:${uri}` : "chrome://browser/content/night/icons/globe.svg";
     const source = validIcon(image) ? image : fallback;
@@ -726,9 +727,9 @@ export class NightShell {
       normal = [];
     for (const tab of tabs) {
       const uri = tab.linkedBrowser.currentURI.spec;
-      const internal = /^about:(home|newtab|preferences|blank)(?:[?#]|$)/.exec(uri);
+      const internal = internalPage(uri) ?? (/^about:(home|newtab|blank)(?:[?#]|$)/.test(uri) ? ["Новая вкладка", "newtab"] : null);
       const label = internal
-        ? internal[1] === "preferences" ? "Настройки" : "Новая вкладка"
+        ? internal[0]
         : SessionStore.getCustomTabValue(tab, "night-title") || (tab.label === "New Tab" ? "Новая вкладка" : tab.label);
       if (
         query &&

@@ -1,12 +1,8 @@
 import { SessionStore } from "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs";
 import { validIcon } from "resource:///modules/night/WorkspaceModel.mjs";
+import {internalPage} from "resource:///modules/night/InternalPages.mjs";
 
 const ICONS = "chrome://browser/content/night/icons/";
-const INTERNAL = {
-  addons: ["Расширения", "extensions"], logins: ["Пароли", "shield"], downloads: ["Загрузки", "download"],
-  preferences: ["Настройки", "settings"], processes: ["Процессы", "memory"], memory: ["Память", "memory"],
-  support: ["Диагностика", "settings"], config: ["Конфигурация", "code"], privatebrowsing: ["Приватное окно", "private"],
-};
 
 export class NightAddress {
   #window;
@@ -161,7 +157,7 @@ export class NightAddress {
   update() {
     const tab = this.#window.gBrowser.selectedTab;
     const url = tab.linkedBrowser.currentURI.spec;
-    const internal = INTERNAL[/^about:([a-z]+)/.exec(url)?.[1]];
+    const internal = internalPage(url);
     const page = url === "chrome://browser/content/night/welcome.xhtml" ? "Первый запуск" : internal?.[0] ?? "";
     if (this.#label.textContent !== page) this.#label.textContent = page;
     this.#bar.toggleAttribute("night-internal-page", !!page);

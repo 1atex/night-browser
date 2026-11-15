@@ -14,8 +14,8 @@ The browser still uses Gecko's native security, password, print and developer to
 | Passwords | Firefox fox and instructions to enable unavailable Firefox account sync | Remove decorative fox and inapplicable sync instructions; keep password creation, import and support controls | `surfaces.py`; native import suite |
 | Downloads, diagnostics, configuration | Old slate/blue palette | Shared Night tokens with live palette/Island appearance | `surfaces.py` |
 | Private page | Firefox wordmark and promotions | Remove decorative wordmark/promotions; preserve privacy explanation and search | `surfaces.py`; normal and private-window checks remain separate |
-| Error/recovery pages | Upstream colours and typography | Night surface tokens; keep error explanation, recovery controls and advanced warnings | `surfaces.py` |
-| Advanced settings | Hardcoded colours different from main settings | Shared live palette and field/category styling | `surfaces.py`, `settings.py` |
+| Error/recovery pages | Upstream colours, typography and fox illustration | Night surface tokens and recovery icons; remove decorative error illustration while keeping explanation, controls and warnings | `surfaces.py` checks the actual error card and warning |
+| Advanced settings | Separate colours, default account-sync pane, fox artwork and Firefox Home label | Shared live palette, functional labels, plain default-browser card, Night icons and Home/startup as the initial pane | `surfaces.py` checks the default pane and retained default-browser control; `settings.py` |
 | Library, page info, About dialog | Native chrome windows use separate palette | Scoped Night document actor and branded About assets | `surfaces.py` opens actual windows |
 | DevTools | Separate toolbar and sidebar colours | Night variables in toolbox and browser-owned tool documents; syntax/error colours remain semantic | `surfaces.py` opens the actual console |
 | Request workbench | Hardcoded colours and small text; CSS loaded in every window | Night tokens, readable labels, stylesheet present only while workbench is open | `surfaces.py`, native network smoke |

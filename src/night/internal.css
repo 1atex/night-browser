@@ -22,7 +22,12 @@
   --button-background-color-primary: var(--night-accent) !important;
   --button-background-color-primary-hover: color-mix(in srgb, var(--night-accent) 85%, var(--night-text)) !important;
   --button-background-color-primary-active: var(--night-accent) !important;
+  --button-background-color-primary-disabled: var(--night-accent) !important;
+  --button-background-color-primary-selected: var(--night-accent) !important;
   --button-text-color-primary: var(--night-on-accent) !important;
+  --button-text-color-primary-hover: var(--night-on-accent) !important;
+  --button-text-color-primary-active: var(--night-on-accent) !important;
+  --button-text-color-primary-disabled: var(--night-on-accent) !important;
   --button-text-color: var(--night-text) !important;
   --button-border-color: transparent !important;
   --button-border-radius: var(--night-pill) !important;
@@ -45,6 +50,12 @@
   --in-content-primary-button-text-color: var(--night-on-accent) !important;
   --in-content-item-selected: var(--night-selected) !important;
   --in-content-item-selected-text: var(--night-text) !important;
+  --table-background-color: var(--night-page) !important;
+  --table-header-background-color: var(--night-surface) !important;
+  --table-header-text-color: var(--night-text) !important;
+  --table-row-background-color: var(--night-page) !important;
+  --table-row-background-color-alternate: var(--night-field) !important;
+  --table-border-color: var(--night-line) !important;
   --font-family: var(--night-font);
   scrollbar-width: thin;
   scrollbar-color: var(--night-muted) transparent;
