@@ -26,9 +26,24 @@ curl -f https://browser.night-watchers.com/health
 
 Compose поднимает два контейнера: Node-сервис под пользователем node без root, с read-only файловой системой и отдельным volume; Caddy для HTTPS. Порт сервиса доступен только внутри Docker-сети, на хост опубликованы 80/443. Логи ограничены по размеру. Системные Node.js, Caddy и systemd-сервисы не устанавливаются. Начальная конфигурация VPS: 1 vCPU / 1 ГБ RAM; это ориентир для закрытого пилота, не измеренная гарантия нагрузки.
 
-## Если 80/443 уже заняты
+## Rootless Docker и существующий reverse proxy
 
-Не останавливай чужие сайты. Используй существующий reverse proxy: подключи его к сети `night-together_default` и направь домен на `together:8787`; контейнер caddy тогда не запускай (`docker compose up -d --build together`). При reverse proxy вне Docker можно отдельным compose override опубликовать только `127.0.0.1:8787:8787` для together и проксировать на localhost. Сертификат обслуживает существующий proxy.
+На rootless Docker не запускай встроенный Caddy: ему недоступны порты 80/443 без настройки администратора. Для уже распакованного архива добавь `compose.proxy.yaml` из репозитория рядом с compose.yaml. Затем от пользователя noon:
+
+```sh
+cd /home/noon/night-together/services/together
+docker compose stop caddy
+docker compose -f compose.yaml -f compose.proxy.yaml up -d --build together
+curl -f http://127.0.0.1:8787/health
+```
+
+Этот вариант публикует только `127.0.0.1:8787`, а Caddy помещает в неактивный профиль standalone. При следующих запусках используй те же `-f` аргументы. Данные и имя проекта остаются прежними. Менять sysctl и выдавать привилегии RootlessKit не требуется.
+
+Для nginx **на хосте** upstream — `http://127.0.0.1:8787`. В существующем HTTPS virtual host домена добавь `location / { proxy_pass http://127.0.0.1:8787; }`; сохрани его текущие сертификаты. Полный шаблон — deploy/nginx.conf.example, сертификатные директивы в него намеренно не включены. Для Caddy на хосте: `reverse_proxy 127.0.0.1:8787`. HTTPS завершает существующий proxy, а до сервиса идёт HTTP. WebSocket пока не используется.
+
+Если proxy находится **в Docker**, его `127.0.0.1` относится к самому контейнеру. Если он запущен тем же Docker daemon, подключи его к сети `night-together_default` и укажи upstream `http://together:8787`. Если proxy работает в другом daemon (например, rootful proxy и rootless сервис noon), сеть между ними не общая: нужен доступ proxy к loopback хоста через его сетевую конфигурацию. Не меняй публикацию на `0.0.0.0`, чтобы не открыть API наружу без HTTPS.
+
+После настройки proxy проверь `curl -f https://browser.night-watchers.com/health`; ожидается `{"ok":true}`. Адрес в браузере менять не нужно.
 
 ## Обновление и резервная копия
 
