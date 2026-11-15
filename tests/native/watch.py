@@ -74,7 +74,10 @@ def run(binary,app_ini,output):
         content(host,'document.querySelector("video").play();')
         wait_for(lambda:not player(guest)['paused'] and player(guest)['time']>14.2)
         content(guest,'document.querySelector("video").pause();')
-        wait_for(lambda:not player(guest)['paused'],timeout=10)
+        wait_for(lambda:player(host)['paused'],timeout=10)
+        time.sleep(2);assert player(guest)['paused']
+        content(guest,'document.querySelector("video").currentTime=8;document.querySelector("video").play();')
+        wait_for(lambda:not player(host)['paused'] and 7<player(host)['time']<12,timeout=10)
         next_video=video.replace('/watch','/next')
         room_id=state(host)['room']['id']
         async_chrome(host,'await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.action({type:"room-source",room:arguments[0],url:arguments[1]});',room_id,next_video)
@@ -97,12 +100,12 @@ def run(binary,app_ini,output):
         wait_for(lambda:chrome(guest,'return [...Services.wm.getEnumerator("navigator:browser")].length===2&&!!w.gNightBrowser;'))
         private=async_chrome(guest,'try{await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watch(w);return false;}catch{return true;}')
         assert private
-        result={'passed':True,'actual_video_play_pause_seek_rate':True,'host_changes_video':True,'guest_follows_host':True,'drift_seconds':round(drift,3),'disconnect_pauses_without_reset':True,'server_restart_preserves_id_and_name':True,'tab_close_stops_sync':True,'private_excluded':True,'social_profile_visible_to_friend':True,'autoplay_note':'Fixture explicitly allows autoplay; real websites may require pressing Play once.'}
+        result={'passed':True,'actual_video_play_pause_seek_rate':True,'host_changes_video':True,'guest_follows_host':True,'guest_can_pause_play_seek':True,'drift_seconds':round(drift,3),'disconnect_pauses_without_reset':True,'server_restart_preserves_id_and_name':True,'tab_close_stops_sync':True,'private_excluded':True,'social_profile_visible_to_friend':True,'autoplay_note':'Fixture explicitly allows autoplay; real websites may require pressing Play once.'}
         (output/'watch-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
     except Exception:
         for i,b in enumerate(drivers):
             try:
-                capture(b,f'watch-failure-{i}.png');(output/f'watch-failure-{i}.json').write_text(json.dumps(chrome(b,'const {NightTogether:T}=ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs");return {url:w.gBrowser.selectedBrowser.currentURI.spec,status:T.watchStatus,error:T.watchError,actor:!!T.watchSession?.actor,running:T.watchSession?.running};'),ensure_ascii=False))
+                capture(b,f'watch-failure-{i}.png');(output/f'watch-failure-{i}.json').write_text(json.dumps(chrome(b,'const {NightTogether:T}=ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs");return {url:w.gBrowser.selectedBrowser.currentURI.spec,status:T.watchStatus,error:T.watchError,intent:T.watchSession?.intent,revision:T.watchSession?.revision,sample:T.watchSession?.sample,actor:!!T.watchSession?.actor,running:T.watchSession?.running};'),ensure_ascii=False))
             except Exception:pass
         raise
     finally:

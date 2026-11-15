@@ -7,7 +7,7 @@ export class NightTogetherView {
     this.#window = window;
     this.#button = window.document.createElementNS('http://www.w3.org/1999/xhtml', 'button');
     this.#button.id = 'night-together-watch'; this.#button.type = 'button';
-    this.#button.addEventListener('click', () => window.openPreferences('together'));
+    this.#button.addEventListener('click', () => NightTogether.openRoom(window).catch(error=>console.error(error)));
     parent.append(this.#button);
     Services.obs.addObserver(this, 'night-together-watch');
     this.observe();

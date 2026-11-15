@@ -43,7 +43,7 @@ test('existing protocol-one identity and friendships survive profile migration',
   await writeFile(join(dir,'state.json'),JSON.stringify({users:{[a]:{id:a,token,friends:[b],incoming:[],outgoing:[],invites:[]},[b]:{id:b,token:'d'.repeat(64),friends:[a],incoming:[],outgoing:[],invites:[]}},rooms:{}}));
   server=await createService({path:join(dir,'state.json')});await new Promise(r=>server.listen(0,'127.0.0.1',r));
   const url=`http://127.0.0.1:${server.address().port}`,headers={Authorization:`Bearer ${a}:${token}`};
-  const before=await fetch(url+'/v1/state',{headers}).then(r=>r.json());assert.equal(before.protocol,2);assert.equal(before.friends[0].id,b);
+  const before=await fetch(url+'/v1/state',{headers}).then(r=>r.json());assert.equal(before.protocol,3);assert.equal(before.friends[0].id,b);
   const after=await fetch(url+'/v1/action',{method:'POST',headers,body:JSON.stringify({type:'profile-update',name:'Noon',color:'sky',icon:'☾'})}).then(r=>r.json());
   assert.equal(after.self.id,a);assert.equal(after.self.name,'Noon');assert.equal(after.friends[0].id,b);assert.equal(JSON.stringify(after).includes(token),false);
  } finally {if(server?.listening)await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});}

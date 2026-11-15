@@ -17,7 +17,7 @@ using System.Runtime.InteropServices.ComTypes;
 [assembly: AssemblyDescription("Night Browser")]
 [assembly: AssemblyCompany("Night")]
 [assembly: AssemblyProduct("Night Browser")]
-[assembly: AssemblyVersion("0.14.0.0")]
+[assembly: AssemblyVersion("0.15.0.0")]
 
 internal static class Launcher
 {
@@ -276,6 +276,13 @@ internal static class Launcher
             AppContext.SetSwitch("Switch.System.IO.BlockLongPaths", false);
             Directory.CreateDirectory(BaseDataRoot);
             args = SelectProfile(args);
+            if (args.Length == 2 && args[0] == "--join")
+            {
+                Uri invite;
+                if (!Uri.TryCreate(args[1], UriKind.Absolute, out invite) || invite.Scheme != "night" || invite.Host != "join" || !Regex.IsMatch(invite.AbsolutePath, "^/[a-f0-9]{64}$") || invite.Query != "" || invite.Fragment != "" || invite.UserInfo != "" || !invite.IsDefaultPort)
+                    throw new ArgumentException("Некорректное приглашение Night.");
+                args = new[] { "--url", "https://browser.night-watchers.com/join" + invite.AbsolutePath };
+            }
             Directory.CreateDirectory(DataRoot);
             string identity = Identity();
             if (args.Length == 1 && args[0] == "--default-browser")

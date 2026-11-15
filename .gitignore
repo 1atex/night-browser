@@ -10,3 +10,6 @@ mozconfig
 *.log
 test-artifacts/
 *.csv
+
+services/together/.env
+services/together/data/

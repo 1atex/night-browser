@@ -71,7 +71,7 @@ jobs:
           $output = (Resolve-Path dist/Night).Path
           python -u tests/native/onboarding.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -u tests/native/installer.py --setup dist/night-browser-0.14.0-preview-windows-x64-setup.exe --output test-artifacts
+          python -u tests/native/installer.py --setup dist/night-browser-0.15.0-preview-windows-x64-setup.exe --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test stale startup cache recovery
         run: |
@@ -97,6 +97,11 @@ jobs:
         run: |
           $output = (Resolve-Path dist/Night).Path
           python -u tests/native/watch.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test invite approval and peer chat and voice
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/social.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test isolated Windows profiles
         run: |
@@ -205,10 +210,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Package Together server
         run: |
-          python scripts/preview/server_archive.py --output dist/night-together-server-0.14.0.zip
+          python scripts/preview/server_archive.py --output dist/night-together-server-0.15.0.zip
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Create download archive
         run: |
+          Copy-Item test-artifacts/social-result.json dist/social-result.json
+          Copy-Item test-artifacts/night-invite.png dist/night-invite.png
+          Copy-Item test-artifacts/night-room.png dist/night-room.png
+          Copy-Item test-artifacts/night-website.png dist/night-website.png
           Copy-Item test-artifacts/watch-result.json dist/watch-result.json
           Copy-Item test-artifacts/night-watch-host.png dist/night-watch-host.png
           Copy-Item test-artifacts/night-watch-guest.png dist/night-watch-guest.png
@@ -250,14 +259,14 @@ jobs:
           Copy-Item test-artifacts/night-extensions-ordinary.png dist/night-extensions.png
           Copy-Item test-artifacts/night-menu-ordinary.png dist/night-menu.png
           Copy-Item test-artifacts/night-suggestions-ordinary.png dist/night-suggestions.png
-          7z a -tzip dist/night-browser-0.14.0-preview-windows-x64.zip ./dist/Night
+          7z a -tzip dist/night-browser-0.15.0-preview-windows-x64.zip ./dist/Night
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $hash = (Get-FileHash dist/night-browser-0.14.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
-          "$hash  night-browser-0.14.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
-          $setupHash = (Get-FileHash dist/night-browser-0.14.0-preview-windows-x64-setup.exe -Algorithm SHA256).Hash.ToLower()
-          "$setupHash  night-browser-0.14.0-preview-windows-x64-setup.exe" | Add-Content dist/SHA256SUMS.txt -Encoding ascii
-          $serverHash = (Get-FileHash dist/night-together-server-0.14.0.zip -Algorithm SHA256).Hash.ToLower()
-          "$serverHash  night-together-server-0.14.0.zip" | Add-Content dist/SHA256SUMS.txt -Encoding ascii
+          $hash = (Get-FileHash dist/night-browser-0.15.0-preview-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  night-browser-0.15.0-preview-windows-x64.zip" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          $setupHash = (Get-FileHash dist/night-browser-0.15.0-preview-windows-x64-setup.exe -Algorithm SHA256).Hash.ToLower()
+          "$setupHash  night-browser-0.15.0-preview-windows-x64-setup.exe" | Add-Content dist/SHA256SUMS.txt -Encoding ascii
+          $serverHash = (Get-FileHash dist/night-together-server-0.15.0.zip -Algorithm SHA256).Hash.ToLower()
+          "$serverHash  night-together-server-0.15.0.zip" | Add-Content dist/SHA256SUMS.txt -Encoding ascii
           Copy-Item test-artifacts/night-onboarding.png dist/night-onboarding.png
           Copy-Item test-artifacts/installer-result.json dist/installer-result.json
           Copy-Item test-artifacts/onboarding-result.json dist/onboarding-result.json
@@ -269,9 +278,13 @@ jobs:
         with:
           name: night-browser-windows-x64-preview
           path: |
-            dist/night-browser-0.14.0-preview-windows-x64.zip
-            dist/night-browser-0.14.0-preview-windows-x64-setup.exe
-            dist/night-together-server-0.14.0.zip
+            dist/night-browser-0.15.0-preview-windows-x64.zip
+            dist/night-browser-0.15.0-preview-windows-x64-setup.exe
+            dist/night-together-server-0.15.0.zip
+            dist/social-result.json
+            dist/night-invite.png
+            dist/night-room.png
+            dist/night-website.png
             dist/watch-result.json
             dist/night-watch-host.png
             dist/night-watch-guest.png
@@ -350,9 +363,13 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           gh release create "$RELEASE_TAG" \
-            release-assets/night-browser-0.14.0-preview-windows-x64.zip \
-            release-assets/night-browser-0.14.0-preview-windows-x64-setup.exe \
-            release-assets/night-together-server-0.14.0.zip \
+            release-assets/night-browser-0.15.0-preview-windows-x64.zip \
+            release-assets/night-browser-0.15.0-preview-windows-x64-setup.exe \
+            release-assets/night-together-server-0.15.0.zip \
+            release-assets/social-result.json \
+            release-assets/night-invite.png \
+            release-assets/night-room.png \
+            release-assets/night-website.png \
             release-assets/watch-result.json \
             release-assets/night-watch-host.png \
             release-assets/night-watch-guest.png \

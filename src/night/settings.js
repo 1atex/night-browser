@@ -925,7 +925,7 @@ window.addEventListener(
       const {NightTogether} = ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs");
       const {PrivateBrowsingUtils} = ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs");
       if (PrivateBrowsingUtils.isWindowPrivate(browserWindow)) { card("Приватное окно", "Друзья и комнаты доступны в обычном окне."); return; }
-      const section = card("Night Together", "Добавь друга, создай комнату со ссылкой на видео и пригласи его. Участники нажимают «Смотреть вместе»; плеером управляет ведущий.");
+      const section = card("Night Together", "Добавь друга, создай комнату со ссылкой на видео и пригласи его. Участники нажимают «Смотреть вместе»; пауза, продолжение и перемотка общие.");
       const credentials = await NightTogether.credentials();
       if (!section.isConnected) return;
       if (!credentials) {
@@ -992,6 +992,12 @@ window.addEventListener(
             const count = state.room.members.length;
             roomBody.append(element("p", `${count} ${count === 1 ? "участник" : count < 5 ? "участника" : "участников"} · Ведущий: ${state.room.owner === state.id ? "ты" : label(state.room.owner)}`));
             if ((state.protocol ?? 1) < 2) roomBody.append(element("p", "Для синхронизации и аватаров обнови сервер Together.", {class: "card-caption"}));
+            const endpoint=(await NightTogether.credentials()).endpoint;
+            roomBody.append(button("Чат и голос",()=>NightTogether.openRoom(browserWindow)));
+            if(state.protocol>=3 && state.room.owner===state.id){
+              roomBody.append(button("Скопировать приглашение",async()=>{const next=await NightTogether.action({type:"room-link",room:state.room.id});Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper).copyString(next.room.link);status("Приглашение скопировано. Ссылка действует 24 часа; вход подтверждаешь ты.");await refresh();}));
+              for(const person of state.room.requests??[]){const controls=element("div","",{class:"profile-actions"});controls.append(button("Принять",()=>action({type:"room-admit",room:state.room.id,id:person.id})),button("Отклонить",()=>action({type:"room-deny",room:state.room.id,id:person.id})));row(roomBody,person.name,"Просится по ссылке",controls);}
+            }
             const watch = button("Смотреть вместе", () => NightTogether.watch(browserWindow)); watch.id = "together-watch"; watch.disabled = (state.protocol ?? 1) < 2;
             roomBody.append(watch);
             if (NightTogether.watchSession) roomBody.append(button("Остановить синхронизацию", () => { NightTogether.stopWatch(); refresh(); }));

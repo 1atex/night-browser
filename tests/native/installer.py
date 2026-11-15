@@ -29,6 +29,8 @@ def run(setup, output):
             assert not (app/'profile').exists()
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Classes\NightBrowserHTML\shell\open\command') as key:
                 assert winreg.QueryValueEx(key, '')[0] == f'"{app / "Night.exe"}" --url "%1"'
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Classes\night\shell\open\command') as key:
+                assert winreg.QueryValueEx(key, '')[0] == f'"{app / "Night.exe"}" --join "%1"'
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\RegisteredApplications') as key:
                 assert winreg.QueryValueEx(key, 'Night Browser')[0].endswith('NightBrowser\\Capabilities')
             instance = start([app/'Night.exe'], 2828, output/'installed-gecko.log')
@@ -64,6 +66,11 @@ def run(setup, output):
             browser = instance[0]
             wait_for(lambda: browser.execute_script(f'return [...{WIN}.gBrowser.tabs].some(t=>t.linkedBrowser.currentURI.spec===arguments[0]);', script_args=[page.as_uri()]))
             assert browser.execute_script('return Services.prefs.getBoolPref("night.onboarding.completed");')
+            token='a'*64
+            subprocess.run([str(app/'Night.exe'),'--join','night://join/'+token],check=True,timeout=60)
+            wait_for(lambda:browser.execute_script(f'return [...{WIN}.gBrowser.tabs].some(t=>t.linkedBrowser.currentURI.spec===arguments[0]);',script_args=['https://browser.night-watchers.com/join/'+token]))
+            assert subprocess.run([str(app/'Night.exe'),'--join','night://join/bad'],timeout=15).returncode!=0
+            assert subprocess.run([str(app/'Night.exe'),'--join','night://join/'+token+'?redirect=https://evil.test'],timeout=15).returncode!=0
             stop(instance)
             instance = None
             subprocess.run([str(app/'unins000.exe'), '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART'],check=True,timeout=90)
@@ -74,8 +81,13 @@ def run(setup, output):
                 raise AssertionError('Uninstall left browser registration')
             except FileNotFoundError:
                 pass
+            try:
+                winreg.OpenKey(winreg.HKEY_CURRENT_USER,r'Software\Classes\night')
+                raise AssertionError('Uninstall left invitation protocol')
+            except FileNotFoundError:
+                pass
             installed = False
-            (output/'installer-result.json').write_text(json.dumps({'self_update_preserves_profile':True,'per_user_install':True,'url_registration':True,'profile_outside_app':True,'upgrade_preserves_profile':True,'unicode_url_launch':True,'uninstall_preserves_profile':True}))
+            (output/'installer-result.json').write_text(json.dumps({'self_update_preserves_profile':True,'per_user_install':True,'url_registration':True,'profile_outside_app':True,'upgrade_preserves_profile':True,'unicode_url_launch':True,'invite_protocol_registered_and_routed':True,'invalid_invites_rejected':True,'uninstall_preserves_profile':True}))
             print('PASS: installer, registration, independent profile, upgrade, URL launch and uninstall',flush=True)
         finally:
             if instance:

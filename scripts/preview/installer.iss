@@ -1,4 +1,4 @@
-#define ProductVersion "0.14.0"
+#define ProductVersion "0.15.0"
 [Setup]
 AppId={{7BFD9F1C-A0E3-48D2-A517-116CD33D6D80}
 AppName=Night Browser
@@ -41,6 +41,10 @@ Name: "{userprograms}\Night Browser"; Filename: "{app}\Night.exe"; AppUserModelI
 Name: "{userdesktop}\Night Browser"; Filename: "{app}\Night.exe"; Tasks: desktopicon; AppUserModelID: "Night.Browser.Installed"
 
 [Registry]
+Root: HKCU; Subkey: "Software\Classes\night"; ValueType: string; ValueData: "URL:Night Together"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\night"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\night\DefaultIcon"; ValueType: string; ValueData: "{app}\Night.exe,0"
+Root: HKCU; Subkey: "Software\Classes\night\shell\open\command"; ValueType: string; ValueData: """{app}\Night.exe"" --join ""%1"""
 Root: HKCU; Subkey: "Software\Classes\NightBrowserHTML"; ValueType: string; ValueData: "Night Browser HTML"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\NightBrowserHTML\DefaultIcon"; ValueType: string; ValueData: "{app}\Night.exe,0"
 Root: HKCU; Subkey: "Software\Classes\NightBrowserHTML\shell\open\command"; ValueType: string; ValueData: """{app}\Night.exe"" --url ""%1"""

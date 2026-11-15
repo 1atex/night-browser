@@ -13,7 +13,7 @@ export const NightTogether = {
     try {
       const response = await fetch(url.origin + route, {method: body ? "POST" : "GET", credentials: "omit", redirect: "error", signal: controller.signal,
         headers: {"Content-Type": "application/json", ...(credentials ? {Authorization: `Bearer ${credentials.id}:${credentials.token}`} : {})}, ...(body ? {body: JSON.stringify(body)} : {})});
-      const result = await response.json(); if (!response.ok) throw new Error(result.error ?? "Не удалось связаться с сервером."); return result;
+      const result = await response.json(); if (!response.ok) throw Object.assign(new Error(result.error ?? "Не удалось связаться с сервером."), {status:response.status}); return result;
     } finally { clearTimeout(timer); }
   },
   async connect(endpoint, window) {
@@ -26,6 +26,14 @@ export const NightTogether = {
   async state() { const credentials = await this.credentials(); if (!credentials) return null; return this.request(credentials.endpoint, "/v1/state", {credentials}); },
   async action(body) { const credentials = await this.credentials(); if (!credentials) throw new Error("Сначала подключи сервер."); const state = await this.request(credentials.endpoint, "/v1/action", {credentials, body}); if (body.type === "room-leave") this.stopWatch(); return state; },
   async disconnect() { this.stopWatch(); await IOUtils.remove(path(), {ignoreAbsent: true}); },
+  roomBrowsers: new WeakMap(),
+  async openRoom(window) {
+    const credentials=await this.credentials();if(!credentials)throw new Error("Сначала подключись в настройках друзей.");
+    const url=credentials.endpoint+"/room";
+    const existing=[...window.gBrowser.tabs].find(tab=>!tab.closing&&tab.linkedBrowser.currentURI.spec===url);
+    if(existing){window.gNightBrowser.shell.workspaces.switchTo(window.gNightBrowser.shell.workspaces.workspaceOf(existing),existing);return;}
+    window.openTrustedLinkIn(url,"tab");
+  },
   watchSession: null,
   watchStatus: "",
   notify(text) { if (this.watchStatus === text) return; this.watchStatus = text; Services.obs.notifyObservers(null, "night-together-watch"); },
@@ -55,9 +63,9 @@ export const NightTogether = {
   media(actor, value) {
     const session = this.watchSession;
     if (!session || session.actor !== actor) return;
-    const sample = mediaSample(value);
+    const sample = mediaSample(value?.sample);
     if (!sample) return;
-    session.sample = sample; session.dirty = true;
+    session.sample = sample; session.dirty = true; if (value.control) session.intent=sample;
     this.tick();
   },
   stopWatch(text = "") {
@@ -80,11 +88,11 @@ export const NightTogether = {
       if (state?.room?.id !== session.room) { this.stopWatch("Комната закрыта или ты больше не участвуешь."); return; }
       if (state.protocol < 2) throw new Error("Обнови сервер Together.");
       this.watchError = null;
-      const {room} = state;
+      let {room} = state;
       if (!watchURL(room.url)) throw new Error("Сервер вернул некорректную ссылку.");
       if (room.url !== session.source) {
         try { session.actor?.sendAsyncMessage("NightWatch:Stop"); } catch {}
-        session.source = room.url; session.actor = null; session.sample = null; session.dirty = true;
+        session.source = room.url; session.actor = null; session.sample = null; session.intent=null; session.dirty = true;
         session.tab.linkedBrowser.loadURI(Services.io.newURI(room.url), {triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});
         this.notify("Загружаем новое видео…"); return;
       }
@@ -95,26 +103,36 @@ export const NightTogether = {
       if (actor !== session.actor) {
         session.actor = actor; session.sample = mediaSample(await actor.sendQuery('NightWatch:Start')); session.dirty = true;
       }
+      if (session.intent && state.protocol >= 3) {
+        const intent=session.intent; session.intent=null;
+        try {
+          const updated=await this.action({type:'room-control',room:room.id,revision:room.revision,...intent});
+          room=updated.room; session.revision=room.revision; session.sent=Date.now();
+        } catch(error) {if(error.status===409)session.intent ??= intent;else throw error;}
+        this.notify(`Смотрим вместе · ${room.members.length} в комнате`); return;
+      }
       const owner = room.owner === state.id;
-      if (owner) {
-        const sample = mediaSample(await actor.sendQuery('NightWatch:Read'));
-        if (this.watchSession !== session) return;
-        if (!sample) { this.notify("Ведущий: ждём появления видеоплеера."); return; }
-        if (session.dirty || Date.now() - session.sent >= 5000) {
-          session.dirty = false;
-          await this.action({type: 'room-state', room: room.id, revision: room.revision, ...sample});
-          if (this.watchSession !== session) return;
-          session.sent = Date.now();
-        }
-        this.notify(sample.buffering ? "Ведущий: буферизация…" : `Ты ведущий · ${room.members.length} в комнате`);
-      } else {
-        const target = roomTarget(room, state.serverTime, (end - begin) / 2);
+      if (!owner || room.controlledBy && session.revision !== room.revision && room.controlledBy !== state.id) {
+        const target=roomTarget(room,state.serverTime,(end-begin)/2);
         if (!target) throw new Error("Некорректное состояние воспроизведения.");
-        const stale = state.serverTime - room.updatedAt > 15000;
-        if (stale) target.paused = true;
-        const result = await actor.sendQuery('NightWatch:Apply', target);
-        if (this.watchSession !== session) return;
-        this.notify(stale ? "Ждём ведущего…" : result?.status === 'autoplay-blocked' ? "Нажми Play в плеере: сайт запретил автозапуск." : result?.status === 'waiting-video' ? "Ждём появления видеоплеера…" : `Смотрим вместе · ${room.members.length} в комнате`);
+        const stale=state.serverTime-room.updatedAt>15000;
+        if(stale)target.paused=true;
+        const result=await actor.sendQuery('NightWatch:Apply',target);
+        if(this.watchSession!==session)return;
+        session.revision=room.revision;
+        this.notify(stale ? "Ждём соединения…" : result?.status==='autoplay-blocked' ? "Нажми Play в плеере: сайт запретил автозапуск." : result?.status==='waiting-video' ? "Ждём появления видеоплеера…" : `Смотрим вместе · ${room.members.length} в комнате`);
+      }
+      if (owner) {
+        const sample=mediaSample(await actor.sendQuery('NightWatch:Read'));
+        if(this.watchSession!==session)return;
+        if(!sample){this.notify("Ждём появления видеоплеера…");return;}
+        if(session.dirty || Date.now()-session.sent>=5000){
+          session.dirty=false;
+          try {const updated=await this.action({type:'room-state',room:room.id,revision:room.revision,...sample});session.revision=updated.room.revision;}
+          catch(error){if(error.status!==409)throw error;}
+          if(this.watchSession!==session)return;session.sent=Date.now();
+        }
+        this.notify(sample.buffering ? "Буферизация…" : `Смотрим вместе · ${room.members.length} в комнате`);
       }
     } catch (error) {
       if (this.watchError !== String(error)) console.error("Night Together player", error);

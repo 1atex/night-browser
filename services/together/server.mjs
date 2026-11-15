@@ -1,5 +1,6 @@
 import http from 'node:http';
-import {randomBytes, timingSafeEqual} from 'node:crypto';
+import {publicWeb} from './web.mjs';
+import {randomBytes, timingSafeEqual, createHmac} from 'node:crypto';
 import {readFile, writeFile, rename, mkdir} from 'node:fs/promises';
 import {dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -14,10 +15,18 @@ const safeURL = value => {
   try { const url = new URL(value); if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password || value.length > 2048) throw 0; return url.href; }
   catch { fail(400, 'Нужна ссылка HTTP или HTTPS без логина и пароля.'); }
 };
-export async function createService({path, now = Date.now} = {}) {
+export async function createService({path, now = Date.now, releases, iceServers, turnSecret = process.env.NIGHT_TURN_SECRET, turnURL = process.env.NIGHT_TURN_URL} = {}) {
   let state = {users: {}, rooms: {}};
   if (path) { try { state = JSON.parse(await readFile(path, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; } }
-  const rates = new Map();
+  const rates = new Map(), signals = new Map();
+  let signalSequence = 0;
+  const web = publicWeb({releases});
+  const rtc = user => {
+    const servers = iceServers ?? [{urls:'stun:stun.l.google.com:19302'}];
+    if (!turnSecret || !turnURL) return servers;
+    const username = `${Math.floor(now()/1000)+3600}:${user.id}`;
+    return [...servers,{urls:turnURL.split(','),username,credential:createHmac('sha1',turnSecret).update(username).digest('base64')}];
+  };
   let queue = Promise.resolve();
   const save = async () => { if (path) { await mkdir(dirname(path), {recursive: true}); await writeFile(path + '.tmp', JSON.stringify(state), {mode: 0o600}); await rename(path + '.tmp', path); } };
   function profile(user) { return {id: user.id, name: user.name || 'Участник ' + user.id.slice(-4), color: colors.includes(user.color) ? user.color : 'moon', icon: icons.includes(user.icon) ? user.icon : 'initial'}; }
@@ -27,8 +36,14 @@ export async function createService({path, now = Date.now} = {}) {
     const invitations = user.invites.filter(id => state.rooms[id]).map(id => ({id, owner: state.rooms[id].owner}));
     for (const item of invitations) visible.add(item.owner);
     const people = Object.fromEntries([...visible].filter(id => state.users[id]).map(id => [id, profile(state.users[id])]));
-    return {protocol: 2, self: profile(user), people, id: user.id, friends: user.friends.map(id => profile(state.users[id])), incoming: user.incoming, outgoing: user.outgoing,
-      invitations, room: room ? {...room, rate: room.rate ?? 1, buffering: room.buffering ?? false} : null, serverTime: now()};
+    const publicRoom = room ? {...room, rate: room.rate ?? 1, buffering: room.buffering ?? false} : null;
+    if (publicRoom) {
+      delete publicRoom.inviteToken; delete publicRoom.inviteExpires;
+      publicRoom.requests = room.owner === user.id ? (room.requests ?? []).filter(id=>state.users[id]).map(id=>profile(state.users[id])) : [];
+      publicRoom.link = room.owner === user.id && room.inviteToken && room.inviteExpires > now() ? `https://browser.night-watchers.com/join/${room.inviteToken}` : null;
+    }
+    return {protocol: 3, pendingRooms:Object.values(state.rooms).filter(r=>r.requests?.includes(user.id)).map(r=>({id:r.id,owner:profile(state.users[r.owner])})), self: profile(user), people, id: user.id, friends: user.friends.map(id => profile(state.users[id])), incoming: user.incoming, outgoing: user.outgoing,
+      invitations, room: publicRoom, serverTime: now()};
   }
   function authenticated(request) {
     const match = /^Bearer ([a-f0-9]{16}):([a-f0-9]{64})$/.exec(request.headers.authorization ?? '');
@@ -39,6 +54,7 @@ export async function createService({path, now = Date.now} = {}) {
   function leave(user) {
     for (const [key, room] of Object.entries(state.rooms)) if (room.members.includes(user.id)) {
       if (room.owner === user.id) delete state.rooms[key]; else room.members = room.members.filter(id => id !== user.id);
+      signals.delete(user.id);
     }
   }
   async function handle(request, body) {
@@ -49,7 +65,19 @@ export async function createService({path, now = Date.now} = {}) {
       state.users[user.id] = user; await save(); return {id: user.id, token: user.token};
     }
     const user = authenticated(request);
-    if (request.url === '/v1/state' && request.method === 'GET') return snapshot(user);
+    if (request.url === '/v1/rtc' && request.method === 'GET') {
+      const room = Object.values(state.rooms).find(r=>r.members.includes(user.id));
+      if (!room) fail(403,'Сначала войди в комнату.'); return {iceServers:rtc(user)};
+    }
+    if (request.url.startsWith('/v1/signals?') && request.method === 'GET') {
+      const after = Number(new URL(request.url,'http://localhost').searchParams.get('after'));
+      if (!Number.isSafeInteger(after) || after < 0) fail(400,'Неверный номер сигнала.');
+      const room = Object.values(state.rooms).find(r=>r.members.includes(user.id));
+      if (!room) fail(403,'Комната недоступна.');
+      const items = (signals.get(user.id) ?? []).filter(s=>s.room===room.id && s.at > now()-60000 && s.seq>after && room.members.includes(s.from));
+      return {items, cursor:signalSequence};
+    }
+    if (request.url === '/v1/state'  && request.method === 'GET') return snapshot(user);
     if (request.url !== '/v1/action' || request.method !== 'POST') fail(404, 'Не найдено.');
     const peer = state.users[body.id];
     switch (body.type) {
@@ -73,6 +101,40 @@ export async function createService({path, now = Date.now} = {}) {
         for (const [a,b] of [[user,peer],[peer,user]]) { a.friends = a.friends.filter(id => id !== b.id); a.incoming = a.incoming.filter(id => id !== b.id); a.outgoing = a.outgoing.filter(id => id !== b.id); a.invites = a.invites.filter(id => state.rooms[id]?.owner !== b.id); }
         for (const room of Object.values(state.rooms)) if (room.owner === user.id) room.members = room.members.filter(id => id !== peer.id); else if (room.owner === peer.id) room.members = room.members.filter(id => id !== user.id);
         break;
+      case 'room-link': {
+        const room=state.rooms[body.room]; if (room?.owner!==user.id) fail(403,'Ссылку создаёт владелец.');
+        if (!room.inviteToken || room.inviteExpires<=now() || body.rotate===true) {room.inviteToken=secret();room.inviteExpires=now()+86400000;room.requests=[];} break;
+      }
+      case 'room-request': {
+        if (typeof body.invite!=='string' || !/^[a-f0-9]{64}$/.test(body.invite)) fail(400,'Неверная ссылка.');
+        const room=Object.values(state.rooms).find(r=>r.inviteToken===body.invite && r.inviteExpires>now());
+        if (!room) fail(404,'Ссылка устарела или комната закрыта.');
+        if (room.members.includes(user.id)) return {...snapshot(user),requestedRoom:room.id};
+        room.requests ??= []; if (room.requests.length>=20) fail(409,'Слишком много заявок.');
+        if (!room.requests.includes(user.id)) room.requests.push(user.id); await save(); return {...snapshot(user),requestedRoom:room.id};
+      }
+      case 'room-admit':
+      case 'room-deny': {
+        const room=state.rooms[body.room];
+        if (room?.owner!==user.id || !peer || !room.requests?.includes(peer.id)) fail(403,'Заявка недоступна.');
+        if (body.type==='room-admit') {if(room.members.length>=8)fail(409,'В комнате уже восемь участников.');leave(peer);room.members.push(peer.id);}
+        room.requests=room.requests.filter(id=>id!==peer.id);break;
+      }
+      case 'room-cancel-request': {
+        const room=state.rooms[body.room];if(room)room.requests=room.requests?.filter(id=>id!==user.id)??[];break;
+      }
+      case 'room-signal': {
+        const room=state.rooms[body.room], payload=body.signal;
+        if (!room?.members.includes(user.id) || !room.members.includes(body.id) || body.id===user.id) fail(403,'Участник недоступен.');
+        if (!payload || !['description','candidate','bye'].includes(payload.kind) || typeof payload.session!=='string' || !/^[a-f0-9]{32}$/.test(payload.session) || JSON.stringify(payload).length>70000) fail(400,'Некорректный сигнал.');
+        if (payload.kind==='description' && (!['offer','answer'].includes(payload.description?.type) || typeof payload.description.sdp!=='string' || payload.description.sdp.length>65000)) fail(400,'Некорректное описание соединения.');
+        if (payload.kind==='candidate' && (typeof payload.candidate?.candidate!=='string' || payload.candidate.candidate.length>2048)) fail(400,'Некорректный сетевой адрес.');
+        for (const [key,items] of signals) {const live=items.filter(s=>s.at>now()-60000);if(live.length)signals.set(key,live);else signals.delete(key);}
+        const items=signals.get(peer.id)??[], bytes=JSON.stringify(payload).length;
+        if(items.length>=64 || JSON.stringify(items).length+bytes>524288 || JSON.stringify([...signals.values()]).length+bytes>4194304)fail(429,'Очередь соединения заполнена.');
+        items.push({seq:++signalSequence,from:user.id,room:room.id,at:now(),signal:payload});signals.set(peer.id,items);
+        return snapshot(user);
+      }
       case 'room-create': {
         const url = safeURL(body.url); leave(user);
         const room = {id: id(), owner: user.id, members: [user.id], url, position: 0, paused: true, revision: 0, updatedAt: now()};
@@ -93,16 +155,17 @@ export async function createService({path, now = Date.now} = {}) {
       case 'room-source': {
         const room = state.rooms[body.room];
         if (room?.owner !== user.id) fail(403, 'Видео меняет создатель комнаты.');
-        Object.assign(room, {url: safeURL(body.url), position: 0, paused: true, rate: 1, buffering: false, revision: room.revision + 1, updatedAt: now()}); break;
+        Object.assign(room, {url: safeURL(body.url), position: 0, paused: true, rate: 1, buffering: false, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id}); break;
       }
+      case 'room-control':
       case 'room-state': {
         const room = state.rooms[body.room];
-        if (room?.owner !== user.id) fail(403, 'Воспроизведением управляет создатель комнаты.');
+        if (!room?.members.includes(user.id) || body.type === 'room-state' && room.owner !== user.id) fail(403, 'Нужно участвовать в комнате.');
         if (body.revision !== room.revision) fail(409, 'Состояние комнаты изменилось.');
         if (!Number.isFinite(body.position) || body.position < 0 || body.position > 604800 || typeof body.paused !== 'boolean') fail(400, 'Некорректная позиция.');
         const rate = body.rate ?? 1;
         if (!Number.isFinite(rate) || rate < 0.25 || rate > 4 || (body.buffering !== undefined && typeof body.buffering !== 'boolean')) fail(400, 'Некорректная скорость.');
-        Object.assign(room, {position: body.position, paused: body.paused, rate, buffering: body.buffering === true, revision: room.revision + 1, updatedAt: now()}); break;
+        Object.assign(room, {position: body.position, paused: body.paused, rate, buffering: body.buffering === true, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id}); break;
       }
       default: fail(400, 'Неизвестное действие.');
     }
@@ -116,8 +179,9 @@ export async function createService({path, now = Date.now} = {}) {
       const rate = rates.get(address); 
       if (!rate || time - rate.time > 60000) rates.set(address,{time,count:1,registrations:request.url === '/v1/register' ? 1 : 0});
       else { rate.count++; if (request.url === '/v1/register') rate.registrations++; if (rate.count > 6000 || rate.registrations > 5) fail(429,'Слишком много запросов.'); }
+      if (await web(request,response)) return;
       let size=0; const chunks=[];
-      for await (const chunk of request) { size+=chunk.length; if(size>8192) fail(413,'Слишком большой запрос.'); chunks.push(chunk); }
+      for await (const chunk of request) { size+=chunk.length; if(size>73728) fail(413,'Слишком большой запрос.'); chunks.push(chunk); }
       let body={};try { if(size) body=JSON.parse(Buffer.concat(chunks)); } catch { fail(400,'Некорректный JSON.'); }
       if (!body || typeof body !== 'object' || Array.isArray(body)) fail(400,'Некорректный запрос.');
       const result = queue.then(()=>handle(request,body)); queue=result.catch(()=>{});

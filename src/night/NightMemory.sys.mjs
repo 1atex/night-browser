@@ -9,6 +9,7 @@ import {
 } from "resource:///modules/night/MemoryPolicy.mjs";
 import { SessionStore } from "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs";
 import { PrivateBrowsingUtils } from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
+import {NightTogether} from "resource:///modules/night/NightTogether.sys.mjs";
 import { webrtcUI } from "resource:///modules/webrtcUI.sys.mjs";
 
 export class NightMemory {
@@ -78,6 +79,7 @@ export class NightMemory {
 
   shouldKeepLoaded(tab) {
     return (
+      NightTogether.roomBrowsers.has(tab.linkedBrowser) || NightTogether.watchSession?.tab === tab ||
       (!!tab.splitview && tab.splitview === this.#window.gBrowser.activeSplitView) ||
       this.isProtected(tab) ||
       this.#isIntercepted(tab) ||
@@ -117,7 +119,7 @@ export class NightMemory {
       pending: tab.hasAttribute("pending"),
       closing: tab.closing,
       remote: browser?.isRemoteBrowser && browser.isConnected,
-      protected: tab.undiscardable || this.isProtected(tab),
+      protected: tab.undiscardable || this.isProtected(tab) || NightTogether.roomBrowsers.has(browser) || NightTogether.watchSession?.tab === tab,
       intercepted: this.#isIntercepted(tab),
       media: tab.soundPlaying || context?.mediaController?.isPlaying,
       pictureInPicture: tab.pictureinpicture,

@@ -37,6 +37,14 @@ ChromeUtils.registerWindowActor("NightWatch", {
   matches: ["http://*/*", "https://*/*"],
 });
 
+ChromeUtils.registerWindowActor("NightRoom", {
+  safeForUntrustedWebProcess:true,
+  remoteTypes:["web","webIsolated","webCOOP+COEP"],
+  parent:{esModuleURI:"resource:///modules/night/NightRoomParent.sys.mjs"},
+  child:{esModuleURI:"resource:///modules/night/NightRoomChild.sys.mjs",events:{DOMContentLoaded:{}}},
+  matches:["https://browser.night-watchers.com/*","http://127.0.0.1/*","http://localhost/*"],
+});
+
 const XHTML = "http://www.w3.org/1999/xhtml";
 const WORKBENCH_STYLE = "chrome://browser/content/night/workbench.css";
 
