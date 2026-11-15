@@ -139,7 +139,7 @@ export const NightIslandHub = {
   },
   activity() {
     if (!this.bridge.ready || !this.bridge.capabilities.has("activity")) return;
-    const tabs = this.enabled("activity") ? this.tabs().filter(item => item.activity.length).slice(0, 16).map(item => this.publicTab(item)) : [];
+    const tabs = this.enabled("activity") ? this.tabs().filter(item => item.activity.length).slice(0, 8).map(item => this.publicTab(item)) : [];
     const requests = [], alive = new Set();
     if (this.enabled("requests")) for (const window of this.windows.keys()) {
       if (window.closed || PrivateBrowsingUtils.isWindowPrivate(window)) continue;
@@ -151,7 +151,7 @@ export const NightIslandHub = {
       }
     }
     for (const id of this.requests.keys()) if (!alive.has(id)) this.requests.delete(id);
-    const text = JSON.stringify({v: 1, type: "activity", tabs, requests: requests.slice(0, 16)});
+    const text = JSON.stringify({v: 1, type: "activity", tabs, requests: requests.slice(0, 8)});
     if (text === this.lastActivity) return;
     this.lastActivity = text; this.bridge.send(text);
   },

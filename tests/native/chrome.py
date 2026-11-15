@@ -112,6 +112,7 @@ def run(binary, app_ini, output):
         wait_for(lambda: chrome("const i=d.getElementById('night-address-icon');return i?.complete&&i.naturalWidth>0&&i.getAttribute('src')===w.gBrowser.selectedTab.getAttribute('image');"))
         keys(Keys.CONTROL, 'l')
         wait_for(lambda: chrome("return d.getElementById('urlbar').hasAttribute('focused');"))
+        wait_for(lambda: chrome("const bar=d.getElementById('urlbar');return bar.hasAttribute('night-address-expanded')&&!bar.getAnimations().some(a=>a.playState==='running');"))
         address_geometry = chrome("const box=d.getElementById('urlbar').getBoundingClientRect();return {width:box.width,right:box.right,viewport:w.innerWidth};")
         assert address_geometry['width'] >= 600 and address_geometry['right'] <= address_geometry['viewport'], address_geometry
         chrome("w.gURLBar.value=arguments[0];w.gURLBar.inputField.dispatchEvent(new w.Event('input',{bubbles:true}));", origin+'/sidebar')

@@ -60,11 +60,14 @@ export class NightStartChild extends JSWindowActorChild {
       if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); this.#close(); }
       else if (["ArrowDown", "ArrowUp"].includes(event.key) && this.#items.length) {
         event.preventDefault();
-        this.#selected = (this.#selected + (event.key === "ArrowDown" ? 1 : -1) + this.#items.length) % this.#items.length;
+        this.#selected = this.#selected < 0 ? (event.key === "ArrowDown" ? 0 : this.#items.length - 1) :
+          (this.#selected + (event.key === "ArrowDown" ? 1 : -1) + this.#items.length) % this.#items.length;
         for (const [index, row] of [...list.children].entries()) row.setAttribute("aria-selected", String(index === this.#selected));
         const row = list.children[this.#selected];
         input.setAttribute("aria-activedescendant", row.id);
         row.scrollIntoView({block: "nearest"});
+      } else if (["ArrowDown", "ArrowUp"].includes(event.key) && !this.#items.length && input.value.trim()) {
+        event.preventDefault(); this.#suggest();
       } else if (event.key === "Enter" && this.#selected >= 0) { event.preventDefault(); this.#pick(this.#selected); }
       else if (event.key === "Tab") this.#close();
     });

@@ -75,6 +75,7 @@ def run(binary, app_ini, island, output):
         wait_for(lambda:not state()['state'].get('searching',True) and text in state().get('command',{}).get('query',''))
     def stop():
         u.PostMessageW(state()['hwnd'],0x10,0,0);process.wait(timeout=15)
+        wait_for(lambda:chrome('return !NightIsland.ready;'))
     def shot(name):
         hwnd=state()['hwnd']
         ps=r'''Add-Type -AssemblyName System.Drawing
@@ -126,6 +127,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         wait_for(lambda:state().get('tab')=='Note')
         stop();process=subprocess.Popen([str(island)],env=env)
         wait_for(lambda:chrome('return NightIsland.ready;'),timeout=45)
+        panel('pocket')
         wait_for(lambda:len(state().get('pocket',[]))==1)
         print('PASS: context selection, persistent Pocket, remove/undo and conversion to note; private window excluded',flush=True)
         panel('pocket')

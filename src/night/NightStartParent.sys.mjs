@@ -34,7 +34,7 @@ export class NightStartParent extends JSWindowActorParent {
         const submission = engine?.getSubmission(item.value, null, "homepage");
         if (submission) window.openTrustedLinkIn(submission.uri.spec, "current", {postData: submission.postData});
       } else if (/^https?:/.test(item.value)) {
-        const target = [...window.gBrowser.tabs].find(tab => tab !== window.gBrowser.selectedTab && tab.linkedBrowser.currentURI.spec === item.value && tab.userContextId === window.gBrowser.selectedTab.userContextId);
+        const target = item.kind === "tab" && [...window.gBrowser.tabs].find(tab => tab !== window.gBrowser.selectedTab && tab.linkedBrowser.currentURI.spec === item.value && tab.userContextId === window.gBrowser.selectedTab.userContextId);
         if (target) window.gNightBrowser.shell.workspaces.switchTo(window.gNightBrowser.shell.workspaces.workspaceOf(target), target);
         else window.openTrustedLinkIn(item.value, "current");
       }

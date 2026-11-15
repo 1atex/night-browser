@@ -126,6 +126,15 @@ def package(runtime, output, archive, platform):
             if count != 1:
                 raise ValueError(f"Unexpected site security message: {key}")
             browser[name] = text.encode()
+    for locale, label, manage in [("ru", "Сайты и вкладки", "Настроить подсказки"), ("en-US", "Sites and tabs", "Suggestion settings")]:
+        name = f"localization/{locale}/browser/browser.ftl"
+        text, count = re.subn(r"(?m)^(urlbar-group-firefox-suggest =\n[ \t]+\.label = ).*$", lambda m: m[1] + label, browser[name].decode())
+        if count != 1:
+            raise ValueError("Unexpected address suggestion label")
+        text, count = re.subn(r"(?m)^(urlbar-result-menu-manage-firefox-suggest2 = ).*$", lambda m: m[1] + manage, text)
+        if count != 1:
+            raise ValueError("Unexpected suggestion settings label")
+        browser[name] = text.encode()
     extensions_copy = {
         "ru": {
             "unified-extensions-empty-reason-zero-extensions-onboarding2": "Расширений пока нет",

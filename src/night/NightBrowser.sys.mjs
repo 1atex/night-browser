@@ -50,7 +50,8 @@ class NightWindow {
     if (action === "forward") this.#network.release(id);
     else if (action === "abort") this.#network.abort(id);
     else if (action === "edit") {
-      this.#window.gBrowser.selectedTab = this.#network.scopeTab;
+      const tab = this.#network.scopeTab;
+      this.shell.workspaces.switchTo(this.shell.workspaces.workspaceOf(tab), tab);
       this.#selectNetworkRequest(id);
       this.#window.restore(); this.#window.focus();
     } else return false;
