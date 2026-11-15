@@ -1,33 +1,50 @@
-# Установка Night Together
+# Night Together через Docker
 
-Для Debian 12/13 или Ubuntu 22.04/24.04 с systemd. Запускать от root или через sudo.
+На сервере нужны Docker Engine и Docker Compose v2. Установка Docker: https://docs.docker.com/engine/install/ . Системный Node.js не нужен.
 
-1. В DNS создай `A browser.night-watchers.com → 144.91.104.48`. Если есть неправильная AAAA-запись, исправь её или убери. Дождись обновления DNS. Для первой настройки удобно отключить proxy/CDN, чтобы HTTPS выдавался на сервер напрямую.
-2. Разреши входящие TCP 80 и 443 в панели хостинга и firewall. Порт 8787 наружу не открывай. Не меняй правило SSH. Если уже используешь nginx/Apache на 80/443 — сначала настрой существующий reverse proxy на `127.0.0.1:8787` и сертификат; install.sh с Caddy тогда не запускай.
-3. Скачай и распакуй архив:
+В DNS создай `A browser.night-watchers.com → 144.91.104.48`. Убери неправильную AAAA-запись, если она есть. Открой входящие TCP 80 и 443 в панели хостинга/firewall; не открывай 8787. Для первого запуска удобно отключить proxy/CDN и направить домен прямо на сервер. Caddy автоматически получает сертификат и перенаправляет HTTP на HTTPS.
+
+## Запуск
 
 ```sh
-curl -fL https://github.com/1atex/night-browser/releases/download/v0.13.0-preview.1/night-together-server-0.13.0.zip -o /tmp/night-together.zip
-sudo apt-get update && sudo apt-get install -y unzip
-sudo mkdir -p /opt/night-browser
-sudo unzip -o /tmp/night-together.zip -d /opt/night-browser
-cd /opt/night-browser
-sudo bash services/together/deploy/install.sh
+curl -fL https://github.com/1atex/night-browser/releases/download/v0.13.0-preview.2/night-together-server-0.13.0.zip -o /tmp/night-together.zip
+sudo mkdir -p /opt/night-together
+sudo unzip -o /tmp/night-together.zip -d /opt/night-together
+cd /opt/night-together/services/together
+sudo docker compose up -d --build
 ```
 
-Установщик добавляет отдельный Node 22 в `/opt/night-browser/node`, проверяя SHA-256 официального архива. Системный Node не заменяется. Сервис работает от `night-together`; данные — в `/var/lib/night-together/state.json`, права каталога 700. Существующий основной Caddyfile сохраняется в резервную копию и дополняется import. Если конфигурация этого домена уже существует в основном файле, настрой её вручную, чтобы не было дубликата.
+Если unzip отсутствует: `sudo apt-get update && sudo apt-get install -y unzip` для Debian/Ubuntu.
 
 ```sh
+sudo docker compose ps
+sudo docker compose logs --tail=80 together caddy
 curl -f https://browser.night-watchers.com/health
-sudo systemctl status night-together --no-pager
-sudo journalctl -u night-together -n 80 --no-pager
-sudo journalctl -u caddy -n 80 --no-pager
 ```
 
-Ожидается `{"ok":true}`. В Night: «Друзья и комнаты → Получить мой ID». Друг делает то же самое, добавляет твой ID; ты принимаешь запрос. Для этого обоим нужен Night 0.13, дополнительных клиентов не требуется.
+Ожидается `{"ok":true}`. В Night 0.13: «Друзья и комнаты → Получить мой ID». Друг делает то же, добавляет твой ID, ты подтверждаешь запрос. Адрес уже встроен в клиент.
 
-Если HTTPS ещё не заработал — проверь DNS/AAAA, входящие порты и журнал Caddy. Скрипт firewall не меняет. Не публикуй state.json и не отдавай каталог данных через веб-сервер: там ключи доступа.
+Compose поднимает два контейнера: Node-сервис под пользователем node без root, с read-only файловой системой и отдельным volume; Caddy для HTTPS. Порт сервиса доступен только внутри Docker-сети, на хост опубликованы 80/443. Логи ограничены по размеру. Системные Node.js, Caddy и systemd-сервисы не устанавливаются. Начальная конфигурация VPS: 1 vCPU / 1 ГБ RAM; это ориентир для закрытого пилота, не измеренная гарантия нагрузки.
 
-Для резервного копирования останови сервис, скопируй state.json в защищённое место и снова запусти. Повторная распаковка/установка сохраняет каталог данных. Для обновления кода распакуй новый архив в тот же каталог и выполни `sudo systemctl restart night-together`.
+## Если 80/443 уже заняты
 
-Это закрытый пилот: комнаты и друзья реализованы, синхронизация плееров сайтов пока следующий этап. Открытая массовая регистрация требует дополнительной защиты от ботов, мониторинга и процедуры удаления/восстановления ID. Подробности — docs/night/TOGETHER.md в архиве.
+Не останавливай чужие сайты. Используй существующий reverse proxy: подключи его к сети `night-together_default` и направь домен на `together:8787`; контейнер caddy тогда не запускай (`docker compose up -d --build together`). При reverse proxy вне Docker можно отдельным compose override опубликовать только `127.0.0.1:8787:8787` для together и проксировать на localhost. Сертификат обслуживает существующий proxy.
+
+## Обновление и резервная копия
+
+Повторно распакуй новый архив в тот же каталог и выполни `sudo docker compose up -d --build`. Данные находятся в volume `night-together_together_data` и сохраняются. Обычный `docker compose down` сохраняет volumes; `down -v` их удаляет.
+
+Резервная копия с короткой остановкой сервиса:
+
+```sh
+sudo docker compose stop together
+sudo docker run --rm -v night-together_together_data:/data:ro -v "$PWD":/backup alpine:3.22 tar czf /backup/night-together-backup.tgz -C /data .
+sudo docker compose start together
+sudo chmod 600 night-together-backup.tgz
+```
+
+Не публикуй backup и state.json: в них ключи доступа. Для восстановления останови together и распакуй копию в тот же volume с сохранением владельца файлов, затем запусти сервис.
+
+Если HTTPS не работает, проверь DNS/AAAA, доступность портов и журнал Caddy. Публичный доступ к серверу из среды разработки был недоступен; установка на твоём VPS здесь не выполнялась.
+
+Это основа закрытого пилота. Друзья и комнаты работают; автоматическая синхронизация плееров сайтов пока следующий этап. Для открытой массовой регистрации нужны дополнительная защита от ботов, мониторинг и процедура удаления/восстановления ID. Протокол и ограничения — docs/night/TOGETHER.md в архиве.

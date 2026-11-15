@@ -1,0 +1,3 @@
+browser.night-watchers.com {
+    reverse_proxy together:8787
+}

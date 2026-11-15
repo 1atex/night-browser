@@ -6,3 +6,8 @@
 *.html text eol=lf
 *.png binary
 *.ico binary
+
+*.yaml text eol=lf
+Dockerfile text eol=lf
+Caddyfile text eol=lf
+*.sh text eol=lf

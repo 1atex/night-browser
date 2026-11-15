@@ -15,3 +15,8 @@ jobs:
         with:
           node-version: "22"
       - run: npm run test:night
+  together-container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash tests/server/docker.sh
