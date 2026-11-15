@@ -352,3 +352,22 @@ All three public downloads matched SHA-256. The browser ZIP passed CRC, manifest
 | night-browser-0.13.0-preview-windows-x64.zip | `1ba684048d1ddcdca2e79beb81247047cb18b66c96ed8a284d2356d294b59e83` |
 | night-browser-0.13.0-preview-windows-x64-setup.exe | `0d097cb286124af3969a4f76ed26e5c1edcb84d0ec81a354e61ac5cac66ef46e` |
 | night-together-server-0.13.0.zip | `0e1d37b4510c9ffbdb14f1a78f9ac6665e0d211847a8d41e6a0d005847fb05dd` |
+
+
+## Published 0.14.0 result
+
+[Browser v0.14.0-preview.1](https://github.com/1atex/night-browser/releases/tag/v0.14.0-preview.1) uses `0e854ce7c4c91a2625f2cb5a1c8d5cd28b19e742`. All 73 Node checks and the full native Windows suite passed in [tag run 43759933537](https://github.com/1atex/night-browser/actions/runs/43759933537). Docker and nginx validation passed in [Linux CI 43759939092](https://github.com/1atex/night-browser/actions/runs/43759939092). The duplicate branch build was cancelled. One earlier candidate timed out in the existing new-tab typing check; the tagged run passed that check. A prior watch test exposed a source-change race against the old document; it was fixed before the tag and passed locally and on Windows.
+
+The [watch result](https://github.com/1atex/night-browser/releases/download/v0.14.0-preview.1/watch-result.json) uses two actual Gecko processes, a real local HTTP backend and HTML5 WebM video. It verifies host play/pause, seeking, playback rate, source changes, guest correction, duplicate Watch returning to the same tab, connection-loss pause without resetting position, backend restart retaining ID/name, tab-close cleanup and private exclusion. The Windows drift sample was 0.645 seconds; a separate Linux run reported 0.058 seconds. These are local fixture samples, not a WAN timing guarantee. The fixture explicitly allows autoplay. Live YouTube could not be tested: the local request reached the environment's proxy error page. Ads, DRM, live and embedded players remain unverified.
+
+The social name/color/icon are edited through settings and read back by the other browser. The managed-profile Windows test also edits the local color/icon through the real settings form, checks the footer badge and retention after rename, then repeats the existing password/bookmark/cookie/storage/extension isolation and launcher restart checks. The protocol-1 persistence unit fixture retains the old identities and friendship while adding profile defaults. Tokens are excluded from public snapshots.
+
+Public installer, portable ZIP and server ZIP were downloaded and matched SHA-256. Both ZIPs passed CRC. Browser source comparison covered all 116 tracked Night files, generated build revision, new-tab aliases and native patches. The server ZIP's nine tracked source/deployment files matched the tagged source, including loopback Compose defaults and the rootless upgrade instructions. Browser build ID: `20261115204620`. The published Together and watch frames were inspected; managed badge editing is asserted by the Windows test.
+
+The server upgrade is prepared for `/home/noon/night-together` with the existing Compose project/data volume and host reverse proxy; sudo, nginx and Cloudflare changes are not needed. The owner reported the previous deployed server healthy on localhost and public HTTPS. This new server package has not been deployed remotely by this task. Existing Mozilla Sync authentication and active-YouTube memory limitations remain unchanged.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| night-browser-0.14.0-preview-windows-x64.zip | `c240b95beedf5594b61be7a582c724d36c701f6660e2fc78bef488f7d561eada` |
+| night-browser-0.14.0-preview-windows-x64-setup.exe | `4a326e60d0b0a63596a0e489924b00564f070d9306c42abf618907c586094cbd` |
+| night-together-server-0.14.0.zip | `b859c26bce57c53549b44d5e527493df973fef31202b7456c1f632f3391f4618` |
