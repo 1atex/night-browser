@@ -59,3 +59,8 @@ test('temporary TURN credentials are available only after room admission',async(
   assert.equal((await fetch(base+'/v1/rtc')).status,401);
  }finally{await new Promise(r=>server.close(r));}
 });
+test('GitHub outage keeps a usable download path and does not invent counters',async()=>{
+ const server=await createService({releases:async()=>{throw Error('Fixture API outage');}});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
+ try{const info=await fetch(base+'/api/releases');assert.equal(info.status,503);assert.equal((await info.json()).downloads,undefined);const link=await fetch(base+'/download',{redirect:'manual'});assert.equal(link.status,302);assert.equal(link.headers.get('location'),'https://github.com/1atex/night-browser/releases');}
+ finally{await new Promise(r=>server.close(r));}
+});

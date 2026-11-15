@@ -5,9 +5,10 @@ from smoke import wait_for
 
 def run(binary,app_ini,output):
  output.mkdir(parents=True,exist_ok=True);drivers=[]
+ fixture=[{'tag_name':'v0.15.0-preview.2','assets':[{'name':'night-browser-0.15.0-preview-windows-x64-setup.exe','download_count':42,'browser_download_url':'https://github.com/1atex/night-browser/releases/download/v0.15.0-preview.2/night-browser-0.15.0-preview-windows-x64-setup.exe'}]}]
  module=(Path(__file__).resolve().parents[2]/'services/together/server.mjs').as_uri()
  with tempfile.TemporaryDirectory(prefix='night-social-') as temp:
-  script=f'import {{createService}} from {json.dumps(module)};const s=await createService({{path:{json.dumps(str(Path(temp)/"state.json"))},iceServers:[]}});s.listen(0,"127.0.0.1",()=>console.log(s.address().port));const other=await createService();other.listen(0,"127.0.0.1",()=>console.log(other.address().port));'
+  script=f'import {{createService}} from {json.dumps(module)};const s=await createService({{path:{json.dumps(str(Path(temp)/"state.json"))},iceServers:[],releases:async()=>{json.dumps(fixture,ensure_ascii=False)}}});s.listen(0,"127.0.0.1",()=>console.log(s.address().port));const other=await createService();other.listen(0,"127.0.0.1",()=>console.log(other.address().port));'
   backend=subprocess.Popen(['node','--input-type=module','-e',script],stdout=subprocess.PIPE,text=True);endpoint='http://127.0.0.1:'+backend.stdout.readline().strip();other_endpoint='http://127.0.0.1:'+backend.stdout.readline().strip()
   def chrome(b,script,*args):b.set_context('chrome');return b.execute_script('const w=Services.wm.getMostRecentWindow("navigator:browser"),d=w.document;'+script,script_args=list(args))
   def async_chrome(b,script,*args):
@@ -79,9 +80,13 @@ def run(binary,app_ini,output):
    chrome(guest,'d.getElementById("Tools:PrivateBrowsing").doCommand();')
    wait_for(lambda:chrome(guest,'return [...Services.wm.getEnumerator("navigator:browser")].length===2&&!!w.gNightBrowser;'))
    navigate(guest,'/room');wait_for(lambda:'обычном окне' in text(guest,'room-status'))
+   chrome(host,'w.gBrowser.selectedTab.splitview?.unsplitTabs();')
    navigate(host,'/');wait_for(lambda:content(host,'return !!document.querySelector(".browser-preview");'))
-   capture(host,'night-website.png')
-   result={'passed':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
+   wait_for(lambda:text(host,'downloads')=='42');capture(host,'night-website.png')
+   host.set_window_rect(width=660,height=900)
+   assert content(host,'return document.documentElement.scrollWidth<=document.documentElement.clientWidth+2;')
+   host.set_window_rect(width=1280,height=900)
+   result={'passed':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
    (output/'social-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
   except Exception:
    for i,b in enumerate(drivers):

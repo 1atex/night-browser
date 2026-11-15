@@ -1,6 +1,6 @@
 import {readFile} from 'node:fs/promises';
 const root = new URL('./public/', import.meta.url);
-const files = {'/':['index.html','text/html'], '/room':['room.html','text/html'], '/site.css':['site.css','text/css'], '/site.js':['site.js','text/javascript'], '/room.js':['room.js','text/javascript']};
+const files = {'/icon.svg':['icon.svg','image/svg+xml'],'/':['index.html','text/html'], '/room':['room.html','text/html'], '/site.css':['site.css','text/css'], '/site.js':['site.js','text/javascript'], '/room.js':['room.js','text/javascript']};
 export function publicWeb({releases = async () => {
   const response = await fetch('https://api.github.com/repos/1atex/night-browser/releases?per_page=100', {headers:{Accept:'application/vnd.github+json','User-Agent':'Night-Together'},signal:AbortSignal.timeout(10000)});
   if (!response.ok) throw Error('Release service unavailable'); return response.json();
@@ -29,7 +29,7 @@ export function publicWeb({releases = async () => {
     if (path === '/api/releases' || path === '/download') {
       try { const info=await releaseInfo(); if (path==='/download') { response.writeHead(302,{Location:info.installer,'Cache-Control':'no-store'}); response.end(); }
         else { response.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'public, max-age=60'});response.end(JSON.stringify(info)); } }
-      catch {response.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'});response.end(JSON.stringify({error:'Сервис загрузок временно недоступен.'}));}
+      catch {if(path==='/download'){response.writeHead(302,{Location:'https://github.com/1atex/night-browser/releases','Cache-Control':'no-store'});response.end();}else{response.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'});response.end(JSON.stringify({error:'Сервис загрузок временно недоступен.'}));}}
       return true;
     }
     const file = /^\/join\/[a-f0-9]{64}$/.test(path) ? ['join.html','text/html'] : files[path];
