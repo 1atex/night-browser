@@ -7,7 +7,7 @@
 ## Запуск
 
 ```sh
-curl -fL https://github.com/1atex/night-browser/releases/download/v0.13.0-preview.3/night-together-server-0.13.0.zip -o /tmp/night-together.zip
+curl -fL https://github.com/1atex/night-browser/releases/download/v0.13.0-preview.4/night-together-server-0.13.0.zip -o /tmp/night-together.zip
 sudo mkdir -p /opt/night-together
 sudo unzip -o /tmp/night-together.zip -d /opt/night-together
 cd /opt/night-together/services/together

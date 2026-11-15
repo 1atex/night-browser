@@ -200,7 +200,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Package Together server
         run: |
-          7z a -tzip dist/night-together-server-0.13.0.zip ./services/together ./docs/night/TOGETHER.md
+          python scripts/preview/server_archive.py --output dist/night-together-server-0.13.0.zip
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Create download archive
         run: |
