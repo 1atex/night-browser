@@ -371,3 +371,26 @@ The server upgrade is prepared for `/home/noon/night-together` with the existing
 | night-browser-0.14.0-preview-windows-x64.zip | `c240b95beedf5594b61be7a582c724d36c701f6660e2fc78bef488f7d561eada` |
 | night-browser-0.14.0-preview-windows-x64-setup.exe | `4a326e60d0b0a63596a0e489924b00564f070d9306c42abf618907c586094cbd` |
 | night-together-server-0.14.0.zip | `b859c26bce57c53549b44d5e527493df973fef31202b7456c1f632f3391f4618` |
+
+
+## Published 0.15.0 result
+
+[Browser v0.15.0-preview.3](https://github.com/1atex/night-browser/releases/tag/v0.15.0-preview.3) uses `7f5164f03aaed4f3856265f6092bae3ac78b64ad`. All 80 Node checks and the complete native Windows suite passed in [tag run 43767518257](https://github.com/1atex/night-browser/actions/runs/43767518257). Linux logic, Docker, nginx and pinned Alpine Coturn checks passed in [CI 43767517743](https://github.com/1atex/night-browser/actions/runs/43767517743). Duplicate branch builds were cancelled. Previews 1 and 2 were cancelled before publication while download fallback, responsive coverage and late microphone cleanup were completed. An earlier branch run stopped on a transient split screenshot capture failure after its geometry checks passed. Capture now retries only that specific compositor error for up to five seconds and still requires the screenshot; the independent Linux product suite and full tagged Windows suite passed.
+
+[Watch results](https://github.com/1atex/night-browser/releases/download/v0.15.0-preview.3/watch-result.json) use two real Gecko processes and local HTML5 WebM. The guest can pause, resume and seek while the owner follows; host source changes, rates, disconnect pause without reset, restart persistence and private exclusion retain their checks. The Windows drift sample was 0.007 seconds; this is one local fixture sample, not a WAN promise. A separate Linux run passed the shared-control test.
+
+[Social results](https://github.com/1atex/night-browser/releases/download/v0.15.0-preview.3/social-result.json) create a new ID from a link, require owner approval without friendship, exchange real RTCDataChannel chat both ways and verify RTP bytes in both directions with artificial microphones. They also verify explicit microphone stop, owner kick ending capture, peer cleanup, one active chat per profile, temporary unload protection, side-by-side video/chat and foreign-origin/private rejection. Local native runs repeated these flows with both initiator roles. The website screenshot uses an explicit 42-download fixture. Its DOM counter and narrow viewport are asserted, not presented as live project statistics. Three controlled-promise unit tests cover delayed permission after leave, duplicate acquisition and an older result after a new session; the actual shared MicrophoneSession is used by the room page. The native suite also exits in the same turn as the request and checks the disabled capture UI. Physical microphones, WAN/NAT relay connectivity and live YouTube/advertisements/DRM remain unverified.
+
+The optional Coturn test runs the actual Compose command under an isolated project with no host ports published, confirms the generated secret/IP configuration, read-only running process and successful STUN response. It does not test a public relay allocation through the owner's firewall or TURN/TLS. The image's bind capability is retained for its executable; the service runs as nobody on ports above 1024. Unit checks cover room-only ephemeral credentials and bounded signaling. The shipped pinned Alpine image passed the startup test locally and in CI.
+
+The local environment's direct Node GitHub metadata request returned 503. Outage behavior is covered: counts stay unavailable and downloads fall back to the official release page. Production counters use GitHub metadata, including repeated downloads and the last 100 release records; no remote deployment or live VPS counter claim is made.
+
+Public installer, portable and server/site ZIPs were downloaded again and matched SHA-256. Both ZIPs passed CRC. All 118 packaged Night source files, generated revision, new-tab aliases, native patches and all 19 tracked server/deployment files matched the tagged source. Browser build ID: `20261115220738`. Published room, invitation and website captures were inspected. The Windows installer also checks per-user night:// registration, valid routing, invalid input rejection and cleanup on uninstall.
+
+The server/site upgrade preserves the existing Compose project/data volume under `/home/noon/night-together`, with no sudo, nginx or Cloudflare changes. The optional TURN service additionally needs reachable UDP/TCP ports as documented. The owner deploys the archive; this task did not change the remote VPS. Existing Mozilla Sync and active-YouTube memory limitations remain unchanged.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| night-browser-0.15.0-preview-windows-x64.zip | `236642135da096bb52dda9c8125975a16ac9d1d660647a94303ef5b0c8f0930a` |
+| night-browser-0.15.0-preview-windows-x64-setup.exe | `099ccaf4738f8636288aa414e42a8be8a46e1432a54d28b9dd943d5f9ce04b0b` |
+| night-together-server-0.15.0.zip | `6c7efed8fd7c9702e1296011067fd47bf7cb9a6ca8a6bf96df0317d3b3f2af38` |
