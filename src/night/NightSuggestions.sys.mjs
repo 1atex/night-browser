@@ -54,6 +54,7 @@ export class NightSuggestions {
     catch (error) { if (revision === this.#revision) { console.error(error); publish([]); } }
     finally {
       this.#manager.cancelQuery(context);
+      if (this.#context === context) this.#context = null;
       if (!batch && revision === this.#revision) publish([]);
     }
   }

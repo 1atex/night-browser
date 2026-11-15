@@ -1,0 +1,124 @@
+{
+  "environment": "Linux headless Gecko; synthetic 50 requests with 64 KiB distinct bodies. Forced collection only in measurement, never product code. Not whole-browser Windows memory.",
+  "rounds": [
+    {
+      "before": {
+        "heap": 181285280,
+        "uss": 204525568,
+        "gcHeap": 26214400,
+        "systemRealms": 12
+      },
+      "retained": {
+        "heap": 194371344,
+        "uss": 211615744,
+        "gcHeap": 26214400,
+        "systemRealms": 13
+      },
+      "released": {
+        "heap": 181252608,
+        "uss": 204664832,
+        "gcHeap": 26214400,
+        "systemRealms": 12
+      },
+      "items": 50,
+      "textBytes": 6557860,
+      "compareMs": 29.155638399999997
+    },
+    {
+      "before": {
+        "heap": 181506672,
+        "uss": 204775424,
+        "gcHeap": 26214400,
+        "systemRealms": 12
+      },
+      "retained": {
+        "heap": 194564928,
+        "uss": 211832832,
+        "gcHeap": 26214400,
+        "systemRealms": 13
+      },
+      "released": {
+        "heap": 181439216,
+        "uss": 204914688,
+        "gcHeap": 26214400,
+        "systemRealms": 12
+      },
+      "items": 50,
+      "textBytes": 6557860,
+      "compareMs": 21.149597700000005
+    },
+    {
+      "before": {
+        "heap": 181433632,
+        "uss": 204906496,
+        "gcHeap": 26214400,
+        "systemRealms": 12
+      },
+      "retained": {
+        "heap": 194552224,
+        "uss": 211804160,
+        "gcHeap": 26214400,
+        "systemRealms": 13
+      },
+      "released": {
+        "heap": 181435168,
+        "uss": 204906496,
+        "gcHeap": 26214400,
+        "systemRealms": 12
+      },
+      "items": 50,
+      "textBytes": 6557860,
+      "compareMs": 15.014668500000017
+    },
+    {
+      "before": {
+        "heap": 181433056,
+        "uss": 204906496,
+        "gcHeap": 26214400,
+        "systemRealms": 12
+      },
+      "retained": {
+        "heap": 194558288,
+        "uss": 211820544,
+        "gcHeap": 26214400,
+        "systemRealms": 13
+      },
+      "released": {
+        "heap": 181580112,
+        "uss": 204955648,
+        "gcHeap": 26214400,
+        "systemRealms": 12
+      },
+      "items": 50,
+      "textBytes": 6557860,
+      "compareMs": 14.811635999999998
+    },
+    {
+      "before": {
+        "heap": 180397296,
+        "uss": 203923456,
+        "gcHeap": 26214400,
+        "systemRealms": 12
+      },
+      "retained": {
+        "heap": 193512160,
+        "uss": 210849792,
+        "gcHeap": 26214400,
+        "systemRealms": 13
+      },
+      "released": {
+        "heap": 180397168,
+        "uss": 203841536,
+        "gcHeap": 26214400,
+        "systemRealms": 12
+      },
+      "items": 50,
+      "textBytes": 6557860,
+      "compareMs": 13.583073100000002
+    }
+  ],
+  "history_heap_delta_median": 13114864,
+  "history_text_bytes": 6557860,
+  "retained_requests": 50,
+  "compare_ms_median": 15.014668500000017
+}

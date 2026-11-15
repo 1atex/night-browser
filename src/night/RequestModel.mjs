@@ -5,6 +5,7 @@
 const TOKEN = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 export const MAX_BODY_BYTES = 64 * 1024;
 export const MAX_RESPONSE_BYTES = 1024 * 1024;
+export const MAX_HISTORY_BYTES = 512 * 1024;
 
 export function parseHeaders(text) {
   if (new TextEncoder().encode(text).length > MAX_BODY_BYTES)
@@ -69,18 +70,25 @@ export function toByteString(text) {
 
 export class RequestHistory {
   #items = [];
-  constructor(limit = 50) {
+  #bytes = 0;
+  constructor(limit = 50, byteLimit = MAX_HISTORY_BYTES) {
     this.limit = limit;
+    this.byteLimit = byteLimit;
   }
   get items() {
-    return [...this.#items];
+    return this.#items.map(entry => entry.item);
   }
+  get retainedBytes() { return this.#bytes; }
   add(item) {
-    this.#items.unshift(item);
-    if (this.#items.length > this.limit) this.#items.length = this.limit;
+    const bytes = [item.url, item.method, item.headers, item.body].reduce((total, text) => total + (typeof text === "string" ? text.length * 2 : 0), 0);
+    if (bytes > this.byteLimit) return;
+    this.#items.unshift({item, bytes});
+    this.#bytes += bytes;
+    while (this.#items.length > this.limit || this.#bytes > this.byteLimit) this.#bytes -= this.#items.pop().bytes;
   }
   clear() {
     this.#items.length = 0;
+    this.#bytes = 0;
   }
 }
 
@@ -92,11 +100,15 @@ export function compareResponses(previous, current) {
   if (previous.headers !== current.headers)
     changes.push("Response headers changed.");
   if (previous.body !== current.body) {
-    const a = previous.body.split("\n"),
-      b = current.body.split("\n");
-    const first = a.findIndex((line, index) => line !== b[index]);
+    const a = previous.body, b = current.body;
+    let index = 0, line = 1;
+    while (index < a.length && index < b.length && a.charCodeAt(index) === b.charCodeAt(index)) {
+      if (a.charCodeAt(index) === 10) line++;
+      index++;
+    }
+    if ((index === a.length && b.charCodeAt(index) === 10) || (index === b.length && a.charCodeAt(index) === 10)) line++;
     changes.push(
-      `Body differs from line ${(first < 0 ? a.length : first) + 1}.`,
+      `Body differs from line ${line}.`,
     );
   }
   return changes.join("\n") || "Responses are identical.";

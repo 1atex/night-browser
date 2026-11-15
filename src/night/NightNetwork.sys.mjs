@@ -47,7 +47,13 @@ export class NightNetwork {
     this.#window.clearTimeout(held.timer);
     held.record.status = "forwarded";
     held.channel.resume();
+    this.#pruneRecords();
     this.#notify();
+  }
+
+  #pruneRecords() {
+    const retained = new Set([...this.history.items.map(item => item.id), ...this.#pending.keys()]);
+    for (const key of this.#records.keys()) if (!retained.has(key)) this.#records.delete(key);
   }
 
   get pending() {
@@ -155,12 +161,7 @@ export class NightNetwork {
         }
         this.history.add(record);
         this.#records.set(id, record);
-        const retained = new Set([
-          ...this.history.items.map((item) => item.id),
-          ...this.#pending.keys(),
-        ]);
-        for (const key of this.#records.keys())
-          if (!retained.has(key)) this.#records.delete(key);
+        this.#pruneRecords();
       } else {
         const record = this.#records.get(id);
         if (!record) return;
@@ -219,6 +220,7 @@ export class NightNetwork {
       this.#pending.delete(id);
       held.record.status = "forwarded";
       held.channel.resume();
+      this.#pruneRecords();
       this.#notify();
     } catch (error) {
       this.abort(id, "edit failed — cancelled");
@@ -261,6 +263,7 @@ export class NightNetwork {
       try {
         held.channel.resume();
       } catch {}
+      this.#pruneRecords();
       this.#notify();
     }
   }
@@ -324,7 +327,8 @@ export class NightNetwork {
       30_000,
     );
     return new Promise((resolve, reject) => {
-      const chunks = [];
+      const decoder = new TextDecoder();
+      let text = "";
       let size = 0,
         truncated = false;
       try {
@@ -338,7 +342,7 @@ export class NightNetwork {
             const length = Math.min(count, MAX_RESPONSE_BYTES - size);
             if (length > 0) {
               const raw = NetUtil.readInputStreamToString(stream, length);
-              chunks.push(Uint8Array.from(raw, (char) => char.charCodeAt(0)));
+              text += decoder.decode(Uint8Array.from(raw, char => char.charCodeAt(0)), {stream: true});
               size += length;
             }
             if (length < count) {
@@ -349,12 +353,7 @@ export class NightNetwork {
           onStopRequest: (_request, status) => {
             this.#window.clearTimeout(timer);
             this.#replays.delete(channel);
-            const bytes = new Uint8Array(size);
-            let offset = 0;
-            for (const chunk of chunks) {
-              bytes.set(chunk, offset);
-              offset += chunk.length;
-            }
+            text += decoder.decode();
             const headers = [];
             let code = 0;
             try {
@@ -372,7 +371,7 @@ export class NightNetwork {
             resolve({
               status: code,
               headers: headers.join("\n"),
-              body: new TextDecoder().decode(bytes),
+              body: text,
               duration: Date.now() - started,
               truncated,
             });

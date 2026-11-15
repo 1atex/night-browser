@@ -32,3 +32,22 @@ Page-level improvements require a reproducible slow path and a separately compil
 Capture profiles through the Gecko profiler (`about:profiling`) and separate main-thread script, GC/CC, style recalculation, layout, painting/compositing and network wait. Compare responsiveness and time to usable page along with process-tree memory; unloading a tab can reduce memory while adding a reload delay. Keep Fission, the sandbox and hardware acceleration enabled during baseline measurements.
 
 Only then change the identified engine path, compile both variants with comparable optimization/PGO settings, and run correctness plus representative regressions. This release adds the baseline and removes shell overhead; it does not ship an unmeasured SpiderMonkey/HTML/CSS parser patch.
+
+## Request retention and home lifecycle — 2026-11-15
+
+`tests/native/shell_memory.py` compares the unchanged 0.10 baseline (`be5e373`) with the 0.11 implementation on the same pinned Gecko 160 Linux runtime. It allocates 50 distinct 64 KiB request bodies, measures five rounds after collection and compares ten 1 MiB responses per round. Forced collection is confined to this measurement fixture; product code never forces GC or trims process working sets.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Median additional parent heap allocated while retaining history | 13,114,864 bytes | 798,720 bytes |
+| Retained request count in this large-body fixture | 50 | 3 |
+| Retained text budget (conservative two bytes per character) | 6,557,860 bytes | 393,474 bytes |
+| Median comparison time per response | 15.01 ms | 3.90 ms |
+
+Raw rounds: [before](measurements/2026-11-15-shell-before.json), [after](measurements/2026-11-15-shell-after.json). This is a deliberately heavy request-history workload, not a claim that Gmail, YouTube or the entire Windows browser now consumes 94% less RAM. The heap delta includes allocator/runtime activity and is not Task Manager's process-group total.
+
+History now has both a 50-entry limit and a 512 KiB conservative retained-text budget. Oldest records are evicted first. Up to eight actively intercepted requests remain protected separately so reducing history cannot lose a suspended channel; the current editor/previous response are also separate. The limit is stated in the workbench UI. Completed held requests no longer keep evicted records in the channel lookup map.
+
+Response comparison scans the common prefix without creating per-line arrays. Replays decode incoming UTF-8 incrementally instead of retaining chunks and allocating another full response byte buffer. The request selector reuses existing DOM options, and its stylesheet is attached only while the tool is open. Closed tab rows and the workspace's last-tab references are released immediately rather than waiting for a rendering frame. Home widgets unsubscribe when hidden; the clock stops when hidden or disabled; completed suggestion contexts are released.
+
+Gecko's JIT, site isolation, sandbox and GPU rendering have not been weakened. Changing CSS colours or minifying source is not presented as a web-engine memory optimisation. The existing real Windows minimized-memory and rendering workloads remain in CI to catch regressions outside this synthetic measurement.

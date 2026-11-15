@@ -117,3 +117,21 @@ test("response comparison handles status changes, additions and deletions", () =
     "Responses are identical.",
   );
 });
+
+test("history evicts payloads by retained text budget as well as request count", () => {
+  const history = new RequestHistory(50, 100);
+  history.add({id: 1, body: "я".repeat(30)});
+  history.add({id: 2, body: "x".repeat(30)});
+  assert.deepEqual(history.items.map(item => item.id), [2]);
+  assert.equal(history.retainedBytes, 60);
+  history.add({id: 3, body: "x".repeat(51)});
+  assert.deepEqual(history.items.map(item => item.id), [2]);
+  history.clear();
+  assert.equal(history.retainedBytes, 0);
+});
+
+test("response comparison keeps line accuracy for empty and very long responses", () => {
+  const response = body => ({status: 200, headers: "", body});
+  for (const [a, b, line] of [["", "a", 1], ["", "\n", 2], ["a\nb", "a\nc", 2], ["a\n", "a\nx", 2], ["a\n".repeat(100000), "a\n".repeat(100000) + "tail", 100001]])
+    assert.match(compareResponses(response(a), response(b)), new RegExp(`line ${line}\\.`));
+});
