@@ -9,6 +9,7 @@ test('updater refuses older, malformed and foreign release assets',()=>{
  assert.equal(releaseUpdate([foreign],'0.13.0'),null);
  assert.equal(releaseUpdate([release('0.14.0')],'0.13.0').version,'0.14.0');
  assert.equal(releaseUpdate([release('0.13.0',2)],'0.13.0').tag,'v0.13.0-preview.2');
+ assert.equal(releaseUpdate([release('0.13.0',3)],'0.13.0',3),null);
  assert.equal(checksumFor('a'.repeat(64)+'  setup.exe','setup.exe'),'a'.repeat(64));
  assert.throws(()=>checksumFor('a'.repeat(64)+'  other.exe','setup.exe'));
 });

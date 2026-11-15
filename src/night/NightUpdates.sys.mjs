@@ -2,7 +2,7 @@ import {setTimeout, clearTimeout} from "resource://gre/modules/Timer.sys.mjs";
 import {releaseUpdate, checksumFor} from "resource:///modules/night/UpdateModel.mjs";
 import {NightProfiles} from "resource:///modules/night/NightProfiles.sys.mjs";
 import {PrivateBrowsingUtils} from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
-import {version} from "resource:///modules/night/NightVersion.sys.mjs";
+import {version, preview} from "resource:///modules/night/NightVersion.sys.mjs";
 
 function file(path) { const result = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile); result.initWithPath(path); return result; }
 async function request(url) {
@@ -16,7 +16,7 @@ export const NightUpdates = {
   get supported() { return Services.appinfo.OS === "WINNT" && file(PathUtils.join(NightProfiles.context.application, "installed.marker")).exists(); },
   async check() {
     if (this.busy) throw new Error("Обновление уже выполняется.");
-    this.candidate = releaseUpdate(JSON.parse(await request("https://api.github.com/repos/1atex/night-browser/releases?per_page=20")), version);
+    this.candidate = releaseUpdate(JSON.parse(await request("https://api.github.com/repos/1atex/night-browser/releases?per_page=20")), version, preview);
     return this.candidate;
   },
   async install(window) {
