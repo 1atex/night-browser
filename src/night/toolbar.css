@@ -345,3 +345,10 @@
   opacity: 0;
   inset: 0;
 }
+
+:root[night-browser] #urlbar .urlbarView-row[label]::before { content: none !important; display: none !important; }
+:root[night-browser] #urlbar .urlbarView-row[label] { margin-block-start: 0 !important; }
+@media (prefers-reduced-motion: no-preference) {
+  :root[night-browser][night-motion] #urlbar[open] .urlbarView { animation: night-search-reveal 140ms ease-out; }
+}
+@keyframes night-search-reveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }

@@ -22,6 +22,7 @@
     <main aria-label="Новая вкладка">
       <div class="home-time"><div class="date" id="date"></div>
       <div class="clock" id="clock" aria-label="Текущее время"></div></div>
+      <div class="home-search">
       <form action="https://www.google.com/search" method="get">
         <label for="query" class="sr-only">Поиск или адрес</label
         ><svg viewBox="0 0 24 24" aria-hidden="true">
@@ -32,8 +33,14 @@
           name="q"
           placeholder="Поиск или адрес"
           autocomplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls="suggestions"
+          aria-expanded="false"
         /><button type="submit" aria-label="Искать">↗</button>
       </form>
+      <div id="suggestions" role="listbox" aria-label="Подсказки" hidden></div>
+      </div>
       <nav aria-label="Быстрые ссылки">
         <a href="https://www.youtube.com/"
           ><span class="tile-icon youtube"><img src="resource://newtab/prerendered/sites/youtube.png" alt="" /></span><span>YouTube</span></a

@@ -87,6 +87,11 @@ jobs:
           $output = (Resolve-Path dist/Night).Path
           python -u tests/native/start_flow.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test home suggestions and address transitions
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/search.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test Night product and session restoration
         run: |
           $output = (Resolve-Path dist/Night).Path

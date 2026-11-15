@@ -24,3 +24,24 @@ nav a:hover { color: var(--night-text); background: var(--night-hover); }
 input:focus-visible { outline: none; box-shadow: none; }
 @media (max-width: 400px) { nav { gap: 2px; padding: 0; } nav a { padding-inline: 9px; } }
 @media (max-height: 500px) { main { margin-top: 0; padding: 24px 0; } }
+
+.home-search { position: relative; }
+#suggestions { position: absolute; z-index: 2; top: calc(100% + 8px); left: 0; right: 0; padding: 6px; border: 1px solid var(--night-line); border-radius: 18px; background: var(--night-panel); box-shadow: 0 14px 36px #0005; max-height: min(360px, 42vh); overflow-y: auto; }
+#suggestions[hidden] { display: none; }
+.search-option { display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 8px 12px; border-radius: 12px; cursor: pointer; }
+.search-option:hover, .search-option[aria-selected="true"] { background: var(--night-selected); }
+.search-option > img, .search-option > svg { width: 18px; height: 18px; flex-shrink: 0; }
+.search-option > svg { fill: none; stroke: var(--night-secondary); stroke-width: 1.7; }
+.search-option-copy { min-width: 0; flex: 1; }
+.search-option-title, .search-option-detail { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-option-title { font-size: 13px; }
+.search-option-detail { color: var(--night-secondary); font-size: 11px; margin-top: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  #suggestions:not([hidden]) { animation: search-appear 130ms ease-out; }
+}
+@keyframes search-appear { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+:root[data-island-motion="false"] #suggestions { animation: none; }
+
+main:has(#suggestions:not([hidden])) nav { visibility: hidden; }
+
+:root[data-motion="false"] #suggestions { animation: none; }

@@ -1,8 +1,8 @@
 # Night Browser ↔ Night Island
 
-## Downloads integration
+## Setup and shared appearance
 
-Install the companion [Island browser preview](https://github.com/1atex/night-island/releases/tag/v0.3.3-browser-preview.1). Enable **Night Browser downloads** in Island's integration settings, then **Настройки → Интеграции → Показывать загрузки в Island** in the browser. Both settings default to off.
+Install the companion [Island browser preview](https://github.com/1atex/night-island/releases/tag/v0.4.0-browser-preview.1). Enable **Связь с Night Browser** in Island's integration settings, then select the desired capabilities in **Настройки → Интеграции** in Night Browser 0.10.0. New capabilities default to off.
 
 The companion foundation is `7d9bc801af2e41627ad7d15a6d2400bbda150aca` with the browser integration merged on top. Both Windows workflows read the exact companion revision from `scripts/preview/island.json` and verify that it contains this ancestor. The pin is included in the browser’s BUILD.json.
 
@@ -24,10 +24,16 @@ Both sides use overlapped Windows IO and completion ports. The browser has one w
 
 `tests/native/island.py` launches both real applications on Windows, downloads from a local server, and clicks Island's actual controls. It enables the browser setting through the settings UI, rejects an unrelated executable name with a visible diagnostic, then connects automatically to `night-island (1).exe` and reconnects to the original filename. It also checks private exclusion, pause/resume/cancel, disable/re-enable, restart/reconnect, completion and reveal. The Island fixture's demo build exposes only UI geometry and state to the test file; commands still travel through native pointer input and the production pipe. The shipped Island executable is built without demo.
 
-## Next slices
+## Tabs, Pocket, activity and intercepted requests
 
-- **Media:** Island already uses Windows SMTC for playback controls. Verify Night's app identity and multiple sessions before adding anything. An explicit “Open playing tab” action would need an opaque tab mapping over this connection.
-- **Find a tab:** query bounded results on demand, with workspace and folder paths; selecting a sleeping tab restores it. Private windows remain excluded. No continuous transmission of browsing history.
-- **Send to notes:** an explicit browser context-menu action sends selected text/link to an Island note, with source and undo. No background extraction from pages.
+Each capability has a separate browser opt-in. `Ctrl+Alt+B` opens tab search in Island from other applications; `@query` also works in its command bar. Results include cached favicons, workspace/folder paths and sleeping state. Searching never loads the tab; selection switches workspace and focuses its browser window. Closing search ends the query subscription. Results are bounded to eight; changes are coalesced over 350 ms only while a search is open. The global shortcut is configurable in Island's Keys settings.
 
-Each future capability should have its own opt-in. Idle CPU wakeups and memory overhead need representative desktop measurement before considering default enablement; this preview makes no RAM-saving claim for integration.
+The page context menu explicitly saves a link, selection or image URL to **Pocket**. Native text/link drag-and-drop also saves into Pocket. Data is local SQLite, survives restarts and carries a source URL when available. Copy, open source, make a note, remove and undo the last removal are available. Acknowledgement follows the database write. Limits: 100 items, 4096 text characters, HTTP(S) links only. Image entries store the URL, not downloaded image bytes. Full capacity reports an error without silently deleting old material.
+
+The Browser panel shows tabs producing sound or using camera, microphone or screen sharing, with focus and tab mute/unmute actions. Existing Windows media controls remain independent. Camera/microphone permissions are still managed in the browser. Private windows are excluded; explicit user drag-and-drop into Pocket is a separate action.
+
+When interception is enabled for a tab in Night's request tools, Island shows the method and host of held requests. Forward resumes the original channel without changing its body or headers; reject cancels; edit focuses the matching browser editor. No request bodies, headers, cookies or credentials travel to Island. Opaque IDs are revalidated against current pending requests before acting. Closing the tools retains the existing cancellation behavior.
+
+The negotiated capabilities are `tabs`, `pocket`, `activity`, `requests`, in addition to downloads/appearance. `features` communicates the four opt-ins. `tab-query`/`tabs` exchange bounded search results; `tab-query-end` ends updates. `activity` carries tab states and request metadata. `pocket` receives `pocket-result` only after local storage; tab/request actions receive a common `result`. The fixed `show` panels now include Browser and Pocket. No background page extraction, screenshot streaming or additional helper process is involved. Existing download-only peers remain supported.
+
+`tests/native/island_hub.py` exercises the real Windows pair: the global shortcut, native result selection, sleeping tabs, private exclusion, context selection, Pocket persistence/removal/undo/note conversion, OLE dragging, activity controls and held-request decisions. State/geometry files are demo-only; clicks and commands use the native UI and production transport. This integration makes no RAM or engine-rendering performance claim.

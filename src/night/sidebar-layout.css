@@ -96,11 +96,11 @@
   margin: 6px 40px 2px 2px;
 }
 :root[night-sidebar-navigation] #urlbar { font-size: 13px; }
-:root[night-sidebar-navigation] #urlbar[focused][night-address-editing] {
+:root[night-sidebar-navigation] #urlbar[night-address-expanded] {
   position: fixed;
-  left: 12px;
-  top: 44px;
-  width: min(680px, calc(100vw - 28px)) !important;
+  left: var(--night-address-left, 12px);
+  top: var(--night-address-top, 44px);
+  width: var(--night-address-width, min(640px, calc(100vw - 28px)));
   height: 42px;
   z-index: 105;
 }

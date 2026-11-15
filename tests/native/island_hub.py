@@ -45,7 +45,7 @@ def run(binary, app_ini, island, output):
     threading.Thread(target=server.serve_forever,daemon=True).start()
     origin=f'http://127.0.0.1:{server.server_port}'
     prefs={'night.onboarding.completed':True,'night.network.enabled':True, **{f'night.island.{key}':True for key in ['tabs','pocket','activity','requests']}}
-    b=Marionette(bin=binary,headless=True,prefs=prefs,app_args=['-app',app_ini],gecko_log=str(output/'hub-gecko.log'))
+    b=Marionette(bin=binary,headless=False,prefs=prefs,app_args=['-app',app_ini],gecko_log=str(output/'hub-gecko.log'))
     process=None
     def state():
         try:return json.loads(report.read_text())
@@ -84,7 +84,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         subprocess.run(['powershell','-NoProfile','-Command',ps.replace('HWND',str(hwnd)).replace('DEST',str((output/name).resolve()).replace("'","''"))],check=True,capture_output=True)
     try:
         process=subprocess.Popen([str(island)],env=env)
-        b.start_session();b.timeout.script=30;b.navigate(origin+'/source')
+        b.start_session();b.timeout.script=30;b.set_window_rect(x=20,y=300,width=900,height=460);b.navigate(origin+'/source')
         wait_for(lambda:chrome('return NightIsland.ready;'),timeout=45)
         wait_for(lambda:state()['state'].get('features',{}).get('tabs'))
         assert chrome('return NightIsland.entries.size===0;')
@@ -128,6 +128,16 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
         wait_for(lambda:chrome('return NightIsland.ready;'),timeout=45)
         wait_for(lambda:len(state().get('pocket',[]))==1)
         print('PASS: context selection, persistent Pocket, remove/undo and conversion to note; private window excluded',flush=True)
+        panel('pocket')
+        b.set_context('content')
+        start=b.execute_script("const r=document.querySelector('a').getBoundingClientRect();return {x:mozInnerScreenX+r.x+r.width/2,y:mozInnerScreenY+r.y+r.height/2};")
+        current=state();p=Point(100,150);u.ClientToScreen(current['hwnd'],ctypes.byref(p))
+        u.SetCursorPos(round(start['x']),round(start['y']));time.sleep(.2);u.mouse_event(2,0,0,0,0)
+        for i in range(1,31):
+            u.SetCursorPos(round(start['x']+(p.x-start['x'])*i/30),round(start['y']+(p.y-start['y'])*i/30));time.sleep(.03)
+        time.sleep(.4);u.mouse_event(4,0,0,0,0)
+        wait_for(lambda:any(x['url']==origin+'/saved' for x in state().get('pocket',[])),timeout=20)
+        print('PASS: native OLE link drag from browser to persistent Pocket',flush=True)
         chrome('w.gBrowser.selectedTab.setAttribute("soundplaying","true");NightIsland.hub.schedule();')
         active=wait_for(lambda:next((x for x in state()['state'].get('activity',[]) if 'audio' in x['activity']),None))
         panel('browser');action('activity',active['id'],1)
