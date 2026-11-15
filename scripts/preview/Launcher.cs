@@ -7,6 +7,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using System.Collections.Generic;
+using System.Web.Script.Serialization;
 using Microsoft.Win32;
 using System.Runtime.InteropServices.ComTypes;
 
@@ -14,7 +16,7 @@ using System.Runtime.InteropServices.ComTypes;
 [assembly: AssemblyDescription("Night Browser")]
 [assembly: AssemblyCompany("Night")]
 [assembly: AssemblyProduct("Night Browser")]
-[assembly: AssemblyVersion("0.9.2.0")]
+[assembly: AssemblyVersion("0.9.3.0")]
 
 internal static class Launcher
 {
@@ -138,6 +140,19 @@ internal static class Launcher
         result.Append('\\', slashes * 2);
         return result.Append('\"').ToString();
     }
+    private static bool CacheIsCurrent(string profile, string executable)
+    {
+        try
+        {
+            var json = new JavaScriptSerializer();
+            var build = json.Deserialize<Dictionary<string, object>>(File.ReadAllText(Path.Combine(Root, "BUILD.json")));
+            var previous = json.Deserialize<Dictionary<string, object>>(File.ReadAllText(Path.Combine(profile, "night-runtime.json")));
+            string revision = build["night_revision"] as string;
+            return revision != null && revision.Length == 40 && revision == previous["revision"] as string &&
+                string.Equals(executable, previous["application"] as string, StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
+    }
     [STAThread]
     private static int Main(string[] args)
     {
@@ -187,6 +202,7 @@ internal static class Launcher
                 WorkingDirectory = runtime,
                 UseShellExecute = false
             };
+            if (!CacheIsCurrent(profile, executable)) start.Arguments += " -purgecaches";
             if (args.Length == 2 && args[0] == "--url")
             {
                 Uri target;

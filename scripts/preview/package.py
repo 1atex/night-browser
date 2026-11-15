@@ -45,8 +45,10 @@ def package(runtime, output, archive, platform):
     if any("ZenStartup" in name or "ZenPreloadedScripts" in name for name in browser):
         raise ValueError("Night requires an unmodified Firefox runtime")
     source = ROOT / "src/night"
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     for module in source.glob("*.mjs"):
         browser[f"modules/night/{module.name}"] = module.read_bytes()
+    browser["modules/night/NightBuild.sys.mjs"] = f"export const revision = {json.dumps(revision)};\n".encode()
     for file in source.rglob("*"):
         if file.is_file() and file.suffix != ".mjs":
             browser[f"chrome/browser/content/browser/night/{file.relative_to(source).as_posix()}"] = file.read_bytes()
@@ -173,7 +175,6 @@ def package(runtime, output, archive, platform):
     ).encode()
     write_jar(target / "browser/omni.ja", browser)
     write_jar(target / "omni.ja", toolkit)
-    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     commit_time = int(subprocess.check_output(["git", "show", "-s", "--format=%ct", "HEAD"], cwd=ROOT, text=True).strip())
     build_id = datetime.fromtimestamp(commit_time, timezone.utc).strftime("%Y%m%d%H%M%S")
     config["App"]["BuildID"] = build_id
@@ -204,7 +205,7 @@ def package(runtime, output, archive, platform):
         "source": f"https://github.com/1atex/night-browser/tree/{revision}",
     }, indent=2))
     (output / "README.txt").write_text(
-        "Night Browser 0.9.2 Preview\n\n"
+        "Night Browser 0.9.3 Preview\n\n"
         "Распакуй всю папку в доступное для записи место и запусти Night.exe.\n"
         "В portable-версии профиль хранится в папке profile рядом с Night.exe.\n"
         "После установки через setup профиль находится в %LOCALAPPDATA%\\NightBrowser\\profile.\n"
