@@ -1,5 +1,7 @@
+import {NightWatchOverlay} from "resource:///modules/night/NightWatchOverlay.sys.mjs";
 export class NightWatchChild extends JSWindowActorChild {
   #active = false;
+  #overlay=null;
   #video = null;
   #observer = null;
   #applying = false;
@@ -36,6 +38,8 @@ export class NightWatchChild extends JSWindowActorChild {
       this.#find();
     }
     if (!this.#active) return null;
+    if(name==='NightWatch:OverlayState')return this.#overlay?.state()??{visible:false};
+    if(name==='NightWatch:Overlay'){if(!data?.enabled){this.#overlay?.destroy();this.#overlay=null;return;}this.#overlay??=new NightWatchOverlay(this.contentWindow,value=>this.sendAsyncMessage('NightWatch:Control',value));this.#overlay.update(data);return;}
     if (name === 'NightWatch:Pause') { this.#expect('pause',sample=>sample?.paused===true); this.#video?.pause(); return null; }
     if (name === 'NightWatch:Read' || name === 'NightWatch:Start') return this.#sample();
     if (name !== 'NightWatch:Apply') return null;
@@ -62,5 +66,5 @@ export class NightWatchChild extends JSWindowActorChild {
       return {status: 'connected', drift};
     } finally { this.#applying = false; }
   }
-  didDestroy() { this.#active = false; this.#observer?.disconnect(); this.#observer = null; this.#unbind(); this.#expected.clear(); }
+  didDestroy() { try{this.#overlay?.destroy();}catch{}this.#overlay=null;this.#active = false; this.#observer?.disconnect(); this.#observer = null; this.#unbind(); this.#expected.clear(); }
 }

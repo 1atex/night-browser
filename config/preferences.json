@@ -101,5 +101,7 @@
   "services.sync.prefs.sync.night.ui.navigation-layout": true,
   "services.sync.prefs.sync.night.ui.address-details": true,
   "services.sync.prefs.sync.night.home.widgets": true,
-  "night.together.server": "https://browser.night-watchers.com"
+  "night.together.server": "https://browser.night-watchers.com",
+  "night.together.fullscreen-controls": true,
+  "night.together.microphone-shortcut": true
 }

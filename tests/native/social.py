@@ -1,4 +1,4 @@
-import argparse,base64,json,subprocess,tempfile,time
+import argparse,base64,json,os,subprocess,tempfile,time
 from pathlib import Path
 from marionette_driver.marionette import Marionette
 from smoke import wait_for
@@ -11,6 +11,7 @@ def run(binary,app_ini,output,delayed_scripts=False):
   script=f'import {{createService}} from {json.dumps(module)};const s=await createService({{path:{json.dumps(str(Path(temp)/"state.json"))},iceServers:[],releases:async()=>{json.dumps(fixture,ensure_ascii=False)}}});s.listen(0,"127.0.0.1",()=>console.log(s.address().port));const other=await createService();other.listen(0,"127.0.0.1",()=>console.log(other.address().port));'
   if delayed_scripts:
    script=script.replace('s.listen(0,', 'const serve=s.listeners("request")[0];s.removeAllListeners("request");s.on("request",(req,res)=>{const path=req.url.split("?")[0];if(path==="/room"||path.startsWith("/join/")){const end=res.end.bind(res);res.end=(body,...args)=>end(body?Buffer.from(body.toString().replace(/<script /g,"<script async ").replace(/ defer/g,"")):body,...args);}if(path==="/room.js"||path==="/site.js")setTimeout(()=>serve(req,res),600);else serve(req,res);});s.listen(0,')
+  script=script.replace('s.listen(0,', 'const original=s.listeners("request")[0];s.removeAllListeners("request");s.on("request",(req,res)=>{const path=req.url.split("?")[0];if(path==="/fixture.webm"){import("node:fs/promises").then(fs=>fs.readFile(new URL("../../tests/native/fixtures/watch.webm",'+json.dumps(module)+'))).then(body=>{res.writeHead(200,{"Content-Type":"video/webm"});res.end(body);});return;}if(path==="/fixture-video"){res.writeHead(200,{"Content-Type":"text/html","Content-Security-Policy":"default-src \'self\'; script-src \'self\'; style-src \'self\'; media-src \'self\'"});res.end(\'<!doctype html><title>Shared video fixture</title><video width="640" height="360" controls preload="auto" src="/fixture.webm"></video>\');return;}original(req,res);});s.listen(0,')
   backend=subprocess.Popen(['node','--input-type=module','-e',script],stdout=subprocess.PIPE,text=True);endpoint='http://127.0.0.1:'+backend.stdout.readline().strip();other_endpoint='http://127.0.0.1:'+backend.stdout.readline().strip()
   def chrome(b,script,*args):b.set_context('chrome');return b.execute_script('const w=Services.wm.getMostRecentWindow("navigator:browser"),d=w.document;'+script,script_args=list(args))
   def async_chrome(b,script,*args):
@@ -22,17 +23,26 @@ def run(binary,app_ini,output,delayed_scripts=False):
   def action(b,body):return async_chrome(b,'return ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.action(arguments[0]);',body)
   def text(b,id):return content(b,'return document.getElementById(arguments[0])?.textContent??"";',id) or ''
   def click(b,id):content(b,'document.getElementById(arguments[0]).click();',id)
-  def capture(b,name):b.set_context('chrome');(output/name).write_bytes(base64.b64decode(b.screenshot()))
+  def capture(b,name):
+   b.set_context('chrome');(output/name).write_bytes(base64.b64decode(b.screenshot()))
+   if os.name=='nt' and name=='night-together-controls.png':
+    chrome(b,'w.restore();w.focus();')
+    script=r'''Add-Type -AssemblyName System.Drawing
+Add-Type 'using System;using System.Runtime.InteropServices;public class RoomShot{[StructLayout(LayoutKind.Sequential)]public struct R{public int l,t,r,b;}[DllImport("user32.dll")]public static extern IntPtr GetForegroundWindow();[DllImport("user32.dll")]public static extern bool GetWindowRect(IntPtr h,out R r);}'
+$r=New-Object RoomShot+R;[RoomShot]::GetWindowRect([RoomShot]::GetForegroundWindow(),[ref]$r)|Out-Null
+$b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::FromImage($b);$g.CopyFromScreen($r.l,$r.t,0,0,$b.Size);$b.Save('DEST',[Drawing.Imaging.ImageFormat]::Png);$g.Dispose();$b.Dispose()'''
+    subprocess.run(['powershell','-NoProfile','-Command',script.replace('DEST',str((output/name).resolve()).replace("'","''"))],check=True,capture_output=True)
+
   def stats(b):
    old=content(b,'const node=document.getElementById("rtc-report");document.getElementById("rtc-refresh").click();return node.dataset.serial;');wait_for(lambda:content(b,'return document.getElementById("rtc-report").dataset.serial;')!=old);return json.loads(text(b,'rtc-report'))
   try:
    for index in range(2):
-    prefs={'marionette.port':2828+index,'night.onboarding.completed':True,'night.together.server':endpoint,'media.navigator.streams.fake':True,'media.navigator.permission.disabled':True,'media.peerconnection.ice.loopback':True,'media.autoplay.default':0}
-    b=Marionette(bin=binary,port=2828+index,headless=True,prefs=prefs,app_args=['-app',app_ini],gecko_log=str(output/f'social-{index}.log'));drivers.append(b);b.start_session();b.timeout.script=45;b.set_window_rect(width=1280,height=900);wait_for(lambda:chrome(b,'return !!w.gNightBrowser;'))
+    prefs={'marionette.port':2828+index,'night.onboarding.completed':True,'night.together.server':endpoint,'media.navigator.streams.fake':True,'media.navigator.permission.disabled':True,'media.peerconnection.ice.loopback':True,'media.autoplay.default':0,'full-screen-api.allow-trusted-requests-only':False,'full-screen-api.warning.timeout':0}
+    b=Marionette(bin=binary,port=2828+index,headless=os.name!='nt',prefs=prefs,app_args=['-app',app_ini],gecko_log=str(output/f'social-{index}.log'));drivers.append(b);b.start_session();b.timeout.script=45;b.set_window_rect(width=1280,height=900);wait_for(lambda:chrome(b,'return !!w.gNightBrowser;'))
    host,guest=drivers
    async_chrome(host,'await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.connect(arguments[0],w);',endpoint)
    action(host,{'type':'profile-update','name':'Noon','color':'jade','icon':'☾'})
-   room=action(host,{'type':'room-create','url':endpoint+'/'})['room']['id'];link=action(host,{'type':'room-link','room':room})['room']['link'];token=link.split('/')[-1]
+   room=action(host,{'type':'room-create','url':endpoint+'/fixture-video'})['room']['id'];link=action(host,{'type':'room-link','room':room})['room']['link'];token=link.split('/')[-1]
    navigate(guest,'/join/'+token)
    wait_for(lambda:content(guest,'return document.getElementById("join-form")&&!document.getElementById("join-form").hidden;'),timeout=30)
    content(guest,'document.getElementById("join-name").value="Друг";document.getElementById("join-form").requestSubmit();')
@@ -61,11 +71,46 @@ def run(binary,app_ini,output,delayed_scripts=False):
    click(guest,'voice');wait_for(lambda:content(guest,'return !document.getElementById("mute").hidden;'),timeout=20)
    wait_for(lambda:any(s['received']>100 for s in stats(host)),timeout=20)
    click(host,'voice');wait_for(lambda:any(s['received']>100 for s in stats(guest)),timeout=20)
+   wait_for(lambda:chrome(host,'return ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.communication?.microphone===true;'))
+   content(host,'const range=document.querySelector(".member-audio input:not([hidden])");const other=[...document.querySelectorAll("#members>div")].find(r=>r.dataset.state!=="self");const input=other.querySelector("input");input.value="25";input.dispatchEvent(new Event("input",{bubbles:true}));')
+   wait_for(lambda:content(host,'return [...document.querySelectorAll("audio")].some(audio=>Math.abs(audio.volume-.25)<.01);'))
+   chrome(host,'w.restore();w.focus();d.getElementById("night-together-watch").click();')
+   wait_for(lambda:chrome(host,'return d.getElementById("night-together-panel").state==="open";'))
+   wait_for(lambda:chrome(host,'return !!d.querySelector("#night-together-panel [data-volume]");'))
+   chrome(host,'const input=d.querySelector("#night-together-panel [data-volume]");input.value="40";input.dispatchEvent(new w.Event("input",{bubbles:true}));')
+   wait_for(lambda:content(host,'return [...document.querySelectorAll("audio")].some(audio=>Math.abs(audio.volume-.4)<.01);'))
+   capture(host,'night-together-controls.png');chrome(host,'d.getElementById("night-together-panel").hidePopup();d.getElementById("night-together-microphone").click();')
+   wait_for(lambda:content(host,'return document.getElementById("mute").hidden;'))
+   chrome(host,'return true;');host.actions.sequence('key','mic-shortcut').key_down('\ue009').key_down('\ue00a').key_down('m').key_up('m').key_up('\ue00a').key_up('\ue009').perform()
+   wait_for(lambda:content(host,'return !document.getElementById("mute").hidden;'))
    host_stats=stats(host);guest_stats=stats(guest)
    capture(host,'night-room.png')
    click(host,'watch-split');wait_for(lambda:chrome(host,'return w.gBrowser.activeSplitView?.tabs.length===2;'))
    async_chrome(host,'await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.openRoom(w);')
    wait_for(lambda:content(host,'return !!document.getElementById("message-form");'))
+   chrome(host,'w.gBrowser.selectedTab.splitview?.unsplitTabs();w.gBrowser.selectedTab=ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watchSession.tab;')
+   wait_for(lambda:content(host,'return document.querySelector("video")?.readyState>=3;'))
+   wait_for(lambda:async_chrome(host,'const T=ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether;return !!T.watchSession.actor;'))
+   content(host,'document.querySelector("video").requestFullscreen();')
+   wait_for(lambda:content(host,'return !!document.fullscreenElement;'))
+   def overlay():return async_chrome(host,'return ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watchSession.actor.sendQuery("NightWatch:OverlayState");')
+   assert not overlay()['visible']
+   size=content(host,'return {width:innerWidth,height:innerHeight};');host.set_context('content');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(size['width']-20,20).perform()
+   wait_for(lambda:overlay()['visible'] and overlay()['rect']['width']>0)
+   position=overlay()['microphone'];content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(position['x'],position['y']).pointer_down().pointer_up().perform()
+   wait_for(lambda:chrome(host,'return ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.communication?.microphone===false;'))
+   position=overlay()['peopleButton'];content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(position['x'],position['y']).pointer_down().pointer_up().perform()
+   wait_for(lambda:overlay()['volumes'][0]['width']>0);capture(host,'night-fullscreen-controls.png')
+   slider=overlay()['volumes'][0];content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(slider['x']+slider['width']*.7,slider['y']+slider['height']/2).pointer_down().pointer_up().perform()
+   wait_for(lambda:chrome(host,'return ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.communication.participants[0].volume>.5;'))
+   content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(size['width']/2,size['height']/2).perform()
+   wait_for(lambda:not overlay()['visible'],timeout=7);assert content(host,'return !!document.fullscreenElement;')
+   content(host,'document.exitFullscreen();');wait_for(lambda:not content(host,'return !!document.fullscreenElement;'))
+   chrome(host,'Services.prefs.setBoolPref("night.together.fullscreen-controls",false);')
+   wait_for(lambda:overlay()=={'visible':False})
+   chrome(host,'Services.prefs.setBoolPref("night.together.microphone-shortcut",false);');host.actions.sequence('key','disabled-mic-shortcut').key_down('\ue009').key_down('\ue00a').key_down('m').key_up('m').key_up('\ue00a').key_up('\ue009').perform()
+   assert chrome(host,'return ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.communication.microphone===false;')
+   async_chrome(host,'await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.openRoom(w);')
    click(guest,'mute');assert content(guest,'return document.getElementById("mute").hidden;')
    content(guest,'document.getElementById("voice").click();document.getElementById("voice").click();document.getElementById("leave").click();')
    wait_for(lambda:len(state(host)['room']['members'])==1)
@@ -76,13 +121,14 @@ def run(binary,app_ini,output,delayed_scripts=False):
    navigate(guest,'/room');wait_for(lambda:'общие' in text(guest,'room-status'));click(guest,'connect')
    wait_for(lambda:'1 соединений' in text(guest,'chat-state'),timeout=45);click(guest,'voice')
    wait_for(lambda:content(guest,'return !document.getElementById("mute").hidden;'))
-   content(host,'document.querySelector("#members button").click();')
+   content(host,'document.querySelector("[data-room-kick]").click();')
    wait_for(lambda:state(guest)['room'] is None)
    wait_for(lambda:content(guest,'return document.getElementById("mute").hidden;'))
    chrome(guest,'w.gBrowser.loadURI(Services.io.newURI(arguments[0]),{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});',other_endpoint+'/room')
    wait_for(lambda:'не управляет' in text(guest,'room-status'))
    chrome(guest,'d.getElementById("Tools:PrivateBrowsing").doCommand();')
    wait_for(lambda:chrome(guest,'return [...Services.wm.getEnumerator("navigator:browser")].length===2&&!!w.gNightBrowser;'))
+   assert chrome(guest,'return d.getElementById("night-together-dock").hidden;')
    navigate(guest,'/room');wait_for(lambda:'обычном окне' in text(guest,'room-status'))
    chrome(host,'w.gBrowser.selectedTab.splitview?.unsplitTabs();')
    navigate(host,'/');wait_for(lambda:content(host,'return !!document.querySelector(".browser-preview");'))
@@ -90,7 +136,7 @@ def run(binary,app_ini,output,delayed_scripts=False):
    host.set_window_rect(width=660,height=900)
    assert content(host,'return document.documentElement.scrollWidth<=document.documentElement.clientWidth+2;')
    host.set_window_rect(width=1280,height=900)
-   result={'passed':True,'delayed_scripts':delayed_scripts,'leave_during_microphone_request_keeps_capture_off':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
+   result={'passed':True,'quick_microphone_and_shortcut':True,'participant_volume_web_and_browser':True,'fullscreen_controls_autohide':True,'delayed_scripts':delayed_scripts,'leave_during_microphone_request_keeps_capture_off':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
    (output/'social-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
   except Exception:
    for i,b in enumerate(drivers):

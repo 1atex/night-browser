@@ -70,7 +70,7 @@ test('room and invitation assets resist intermediary rewriting without weakening
   const response=await fetch(base+path),html=await response.text();assert.equal(response.status,200);assert.match(response.headers.get('cache-control'),/no-transform/);
   assert.equal(response.headers.get('content-security-policy').includes('unsafe-inline'),false);
   const scripts=[...html.matchAll(/<script[^>]+>/g)].map(m=>m[0]);assert.ok(scripts.length);assert.ok(scripts.every(s=>s.includes('data-cfasync="false"')&&s.indexOf('data-cfasync')<s.indexOf('src=')));
-  assert.ok(scripts.every(s=>s.includes('?v=0.15.1')));
+  assert.ok(scripts.every(s=>s.includes('?v=0.16.0')));
   if(path!=='/')assert.match(response.headers.get('cache-control'),/no-store/);
  }}finally{await new Promise(r=>server.close(r));}
 });

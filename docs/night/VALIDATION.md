@@ -2,6 +2,14 @@
 
 `npm test` checks unloading policy, request validation, bounded history, channel suspension/redirect behavior and module integration. These tests do not substitute for a browser runtime.
 
+## Together 0.16 checks
+
+`tests/native/watch.py` creates and joins a room from the sidebar panel, then holds an unrelated HTTP image request open while both HTML5 videos are ready. Play must reach the other browser within eight seconds while both tabs still carry `busy`. The remaining checks exercise shared pause/seek/rate, source changes, backend restart and private exclusion.
+
+`tests/native/social.py` exercises real RTCDataChannel chat and bidirectional RTP with fake microphones on two Gecko clients. It verifies participant volume in the page and browser panel against the receiving audio element, the quick microphone button, Ctrl+Alt+M, and trusted pointer input on a fullscreen overlay, including volume and automatic dismissal without leaving fullscreen. Preferences disable the overlay and shortcut; private windows hide the dock. The delayed-script variant runs the same scenario after DOMContentLoaded and tests bridge readiness without relying on the early event.
+
+`tests/night/together-ui.test.mjs` checks admitted-roster validation, bounded levels and local persistence, corrupt/denied storage, and structural signatures that ignore playback ticks. Mesh capacity remains eight including the owner; this suite uses two clients and does not measure eight-client throughput. The native fixture disables fullscreen warnings only in its temporary test profile, leaving the product's fullscreen warning intact.
+
 ## Profile and account checks
 
 `tests/native/accounts.py` presses real Ctrl+Shift+N, verifies private cookie isolation, waits for the last-private-context shutdown, reopens a private window and checks that private cookies/history are absent. It checks that private windows cannot enable Sync and that normal settings do not enable it merely by opening. An explicit click initializes native FxA/WebChannel and opens the official account URL. It inspects a real native Sync preferences record for Night palette/navigation values and excluded Island settings. Remote-page completion is recorded separately because external TLS/network availability is not a local feature assertion. No real Mozilla account is supplied; authenticated two-device synchronization is not tested.

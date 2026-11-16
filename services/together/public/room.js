@@ -1,11 +1,15 @@
 const $=id=>document.getElementById(id), peers=new Map(), waiting=new Map();
 import {MicrophoneSession} from './microphone.mjs';
-const capture=new MicrophoneSession();
+import {AudioLevels} from './audio-levels.mjs';
+const capture=new MicrophoneSession(),levels=new AudioLevels(localStorage),memberRows=new Map();
+let capabilities=new Set(),uiSignature='',autoConnectAttempted=false;
 let serial=0,state=null,active=false,stream=null,cursor=0,timer,busy=false,available=false,rtcConfig,signature='';
 function bridge(method,body,waitMs=15000){return new Promise((resolve,reject)=>{const id=++serial,timeout=setTimeout(()=>{waiting.delete(id);reject(Error('Night не ответил. Проверь обновления браузера и сервера.'));},waitMs);waiting.set(id,{resolve,reject,timeout});document.dispatchEvent(new CustomEvent('NightRoom:Query',{detail:JSON.stringify({id,method,body})}));});}
 window.addEventListener('NightRoom:Reply',event=>{let v;try{v=JSON.parse(event.detail);}catch{return;}const p=waiting.get(v.id);if(!p)return;available=true;waiting.delete(v.id);clearTimeout(p.timeout);v.error?p.reject(Error(v.error)):p.resolve(v.result);});
 window.addEventListener('NightRoom:Available',()=>{available=true;refresh();});
-const status=text=>{$('room-status').textContent=text;};
+const status=text=>{if($('room-status').textContent!==text)$('room-status').textContent=text;};
+function publishUI(){if(!capabilities.has('room-controls'))return;const value={active,microphone:!!capture.stream,microphonePending:capture.pending,peers:state?.room?.members.filter(id=>id!==state.id).map(id=>({id,volume:levels.get(id),state:peers.get(id)?.pc.connectionState??'waiting'}))??[]};const next=JSON.stringify(value);if(next===uiSignature)return;uiSignature=next;bridge('ui-state',value).catch(()=>{uiSignature='';});}
+function setVolume(id,value){levels.set(id,value);const peer=peers.get(id);if(peer?.audio)peer.audio.volume=value;renderMembers();publishUI();}
 function random(){return crypto.randomUUID().replaceAll('-','');}
 function signal(peer,value){peer.sending=peer.sending.catch(()=>{}).then(()=>bridge('action',{type:'room-signal',room:peer.room,id:peer.id,signal:{session:peer.session,...value}}));return peer.sending;}
 function closePeer(id){const peer=peers.get(id);if(!peer)return;peers.delete(id);peer.pc.onconnectionstatechange=null;peer.pc.close();peer.audio?.remove();}
@@ -32,7 +36,7 @@ function makePeer(id,session=random(),offering=true){
  pc.onconnectionstatechange=()=>renderMembers();
  pc.ontrack=event=>{
   if(event.track.kind!=='audio')return;
-  const audio=document.createElement('audio');audio.autoplay=true;audio.srcObject=new MediaStream([event.track]);audio.dataset.peer=id;peer.audio?.remove();peer.audio=audio;$('audios').append(audio);
+  const audio=document.createElement('audio');audio.autoplay=true;audio.volume=levels.get(id);audio.srcObject=new MediaStream([event.track]);audio.dataset.peer=id;peer.audio?.remove();peer.audio=audio;$('audios').append(audio);
   audio.play().catch(()=>status('Нажми «Разрешить звук», чтобы слышать участников.'));
  };
  return peer;
@@ -57,11 +61,24 @@ async function incoming(item){
 }
 function renderMembers(){
  if(!state?.room)return;
- const ids=state.room.members,next=JSON.stringify([active,ids.map(id=>[id,state.people[id]?.name??state.self.name,peers.get(id)?.pc.connectionState,peers.get(id)?.channel?.readyState])]);
- if(next===signature)return;signature=next;$('members').replaceChildren();
- for(const id of ids){const row=document.createElement('div'),name=document.createElement('span'),info=document.createElement('small');row.dataset.id=id;row.dataset.state=id===state.id?'self':peers.get(id)?.pc.connectionState??'waiting';name.textContent=id===state.id?state.self.name+' · ты':state.people[id]?.name??id;const p=peers.get(id);info.textContent=id===state.id?'В комнате':p?.pc.connectionState==='connected'?(p.channel?.readyState==='open'?'Чат подключён':'Соединён'):p?.pc.connectionState==='failed'?'Сеть не пропускает связь':active?'Подключение…':'В комнате';row.append(name,info);if(state.room.owner===state.id&&id!==state.id){const kick=document.createElement('button');kick.textContent='Удалить';kick.onclick=()=>bridge('action',{type:'room-kick',room:state.room.id,id}).then(()=>refresh()).catch(error=>status(error.message));row.append(kick);}$('members').append(row);}
+ const ids=state.room.members;
+ for(const [id,row]of memberRows)if(!ids.includes(id)){row.root.remove();memberRows.delete(id);}
+ for(const id of ids){
+  let row=memberRows.get(id);
+  if(!row){
+   const root=document.createElement('div'),name=document.createElement('span'),info=document.createElement('small'),controls=document.createElement('div'),volume=document.createElement('input'),level=document.createElement('output'),mute=document.createElement('button'),kick=document.createElement('button');
+   controls.className='member-audio';volume.type='range';volume.min='0';volume.max='100';volume.step='1';volume.dataset.volume=id;
+   volume.oninput=()=>setVolume(id,Number(volume.value)/100);mute.onclick=()=>setVolume(id,levels.get(id)>0?0:levels.toggle(id));
+   kick.textContent='Удалить';kick.dataset.roomKick=id;kick.onclick=()=>bridge('action',{type:'room-kick',room:state.room.id,id}).then(()=>refresh()).catch(error=>status(error.message));
+   controls.append(mute,volume,level);root.append(name,info,controls,kick);root.dataset.id=id;row={root,name,info,controls,volume,level,mute,kick};memberRows.set(id,row);$('members').append(root);
+  }
+  const self=id===state.id,peer=peers.get(id),level=levels.get(id),name=self?state.self.name:state.people[id]?.name??'Участник';
+  row.root.dataset.state=self?'self':peer?.pc.connectionState??'waiting';row.name.textContent=name+(self?' · ты':'');
+  row.info.textContent=self?'В комнате':peer?.pc.connectionState==='connected'?(peer.channel?.readyState==='open'?'Чат подключён':'Соединён'):peer?.pc.connectionState==='failed'?'Нет соединения':active?'Подключение…':'В комнате';
+  row.controls.hidden=self;row.volume.setAttribute('aria-label','Громкость: '+name);if(document.activeElement!==row.volume)row.volume.value=String(Math.round(level*100));row.level.textContent=Math.round(level*100)+'%';row.mute.textContent=level===0?'Включить звук':'Без звука';row.mute.setAttribute('aria-pressed',String(level===0));row.kick.hidden=state.room.owner!==state.id||self;if(row.kick.hidden)delete row.kick.dataset.roomKick;else row.kick.dataset.roomKick=id;
+ }
  const connected=[...peers.values()].filter(p=>p.channel?.readyState==='open').length;
- $('chat-state').textContent=active?(connected?`${connected} соединений`:'Соединение…'):'Не подключён';$('message').disabled=!connected;$('send').disabled=!connected;
+ $('chat-state').textContent=active?(connected?`${connected} соединений`:'Соединение…'):'Не подключён';$('message').disabled=!connected;$('send').disabled=!connected;publishUI();
 }
 function renderRequests(){
  const requests=state.room.requests??[],next=JSON.stringify(requests);if($('requests').dataset.value===next)return;$('requests').dataset.value=next;$('requests').replaceChildren();
@@ -70,11 +87,12 @@ function renderRequests(){
 async function refresh(){
  if(!available||busy)return;busy=true;
  try{
-  const next=(await bridge('status')).state;
+  const snapshot=await bridge('status');capabilities=new Set(snapshot.capabilities??[]);const next=snapshot.state;
   if(!next?.room){stop();state=next;status('Комната закрыта или ты вышел. Создай новую в настройках Night.');$('watch').disabled=true;$('watch-split').disabled=true;$('connect').disabled=true;return;}
   if(state?.room&&state.room.id!==next.room.id){stop();cursor=0;}
   state=next;$('connect').disabled=false;$('watch').disabled=false;$('watch-split').disabled=false;$('invite').hidden=state.room.owner!==state.id;$('video-link').textContent=new URL(state.room.url).hostname;$('video-link').href=state.room.url;$('connection').textContent=`${state.room.members.length} в комнате`;
   renderMembers();renderRequests();
+  if(!autoConnectAttempted&&new URL(location.href).searchParams.get('connect')==='1'){autoConnectAttempted=true;setTimeout(startChat,0);}
   if(!active){status('Пауза, продолжение и перемотка общие. Видео можно открыть в отдельной вкладке, а эту оставить для общения.');return;}
   for(const id of [...peers.keys()])if(!state.room.members.includes(id))closePeer(id);
   const batch=await bridge('signals',{after:cursor});cursor=batch.cursor;
@@ -92,7 +110,7 @@ async function microphone(){
  const room=state?.room?.id;let acquired;$('voice').disabled=true;
  try{
   if(!active)throw Error('Сначала подключи чат.');
-  acquired=await capture.start(()=>navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false}));
+  const request=capture.start(()=>navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false}));publishUI();acquired=await request;
   if(!acquired)return;
   if(!active||state?.room?.id!==room){capture.stop();return;}
   stream=acquired;stream.getAudioTracks()[0].onended=()=>{stopMicrophone();status('Микрофон отключён устройством.');};
@@ -106,11 +124,13 @@ async function microphone(){
   acquired?.getTracks().forEach(t=>t.stop());
   if(capture.stream===acquired){capture.stop();stream=null;}
   if(active)status(error.name==='NotAllowedError'?'Доступ к микрофону не разрешён. Чат продолжает работать.':error.message);
- }finally{$('voice').disabled=!active||capture.pending;}
+ }finally{$('voice').disabled=!active||capture.pending;publishUI();}
 }
-function stopMicrophone(){capture.stop();stream=null;for(const p of peers.values())p.transceiver?.sender.replaceTrack(null).catch(()=>{});$('voice').hidden=false;$('mute').hidden=true;$('voice').disabled=!active;}
+function stopMicrophone(){capture.stop();stream=null;for(const p of peers.values())p.transceiver?.sender.replaceTrack(null).catch(()=>{});$('voice').hidden=false;$('mute').hidden=true;$('voice').disabled=!active;publishUI();}
 function stop(){if(active)bridge('session',{active:false}).catch(()=>{});active=false;stopMicrophone();for(const id of [...peers.keys()])closePeer(id);$('connect').textContent='Подключить чат';$('voice').disabled=true;signature='';renderMembers();}
-$('connect').onclick=async()=>{if(active){for(const p of peers.values())signal(p,{kind:'bye'}).catch(()=>{});stop();return;}try{rtcConfig=await bridge('rtc');await bridge('session',{active:true});active=true;$('connect').textContent='Отключить чат';$('voice').disabled=false;await refresh();}catch(error){status(error.message);}};
+async function startChat(){if(active)return;try{rtcConfig=await bridge('rtc');await bridge('session',{active:true});active=true;$('connect').textContent='Отключить чат';$('voice').disabled=false;renderMembers();await refresh();}catch(error){status(error.message);}}
+$('connect').onclick=()=>{autoConnectAttempted=true;if(active){for(const p of peers.values())signal(p,{kind:'bye'}).catch(()=>{});stop();}else startChat();};
+window.addEventListener('NightRoom:Command',event=>{let value;try{value=JSON.parse(event.detail);}catch{return;}if(value.type==='connect')startChat();else if(value.type==='microphone-off')stopMicrophone();else if(value.type==='microphone-toggle'){if(capture.stream||capture.pending)stopMicrophone();else microphone();}else if(value.type==='volume'&&state?.room?.members.includes(value.id)&&value.id!==state.id&&Number.isFinite(value.volume)&&value.volume>=0&&value.volume<=1)setVolume(value.id,value.volume);else if(value.type==='disconnect')stop();});
 $('voice').onclick=microphone;$('mute').onclick=()=>{stopMicrophone();status('Микрофон выключен.');};
 const sound=document.createElement('button');sound.textContent='Разрешить звук';sound.onclick=()=>{for(const audio of $('audios').children)audio.play().catch(error=>status(error.message));};$('mute').after(sound);
 $('invite').onclick=async()=>{try{const next=await bridge('action',{type:'room-link',room:state.room.id});await navigator.clipboard.writeText(next.room.link);status('Приглашение скопировано. Вход подтверждаешь ты.');}catch(error){status(error.message);}};

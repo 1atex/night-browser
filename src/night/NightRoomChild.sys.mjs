@@ -10,5 +10,6 @@ export class NightRoomChild extends JSWindowActorChild {
     }, false, true);
     this.contentWindow.dispatchEvent(new this.contentWindow.CustomEvent('NightRoom:Available'));
   }
+  receiveMessage({name,data}){if(name==='NightRoom:Command')try{this.contentWindow.dispatchEvent(new this.contentWindow.CustomEvent('NightRoom:Command',{detail:JSON.stringify(data)}));}catch{}}
   #reply(id,value) { try {this.contentWindow.dispatchEvent(new this.contentWindow.CustomEvent('NightRoom:Reply',{detail:JSON.stringify({id,...value})}));}catch{} }
 }

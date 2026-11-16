@@ -1,8 +1,10 @@
+import {communicationState} from 'resource:///modules/night/TogetherUIModel.mjs';
 import {NightTogether} from 'resource:///modules/night/NightTogether.sys.mjs';
 import {PrivateBrowsingUtils} from 'resource://gre/modules/PrivateBrowsingUtils.sys.mjs';
 export class NightRoomParent extends JSWindowActorParent {
   #browser=null;
-  didDestroy(){if(this.#browser && NightTogether.roomBrowsers.get(this.#browser)===this)NightTogether.roomBrowsers.delete(this.#browser);this.#browser=null;if(NightTogether.roomActor===this)NightTogether.roomActor=null;}
+  #state=null;
+  didDestroy(){if(this.#browser && NightTogether.roomBrowsers.get(this.#browser)===this)NightTogether.roomBrowsers.delete(this.#browser);this.#browser=null;if(NightTogether.roomActor===this){NightTogether.roomActor=null;NightTogether.setCommunication(null);}}
   async receiveMessage({name,data}) {
     if(name!=='NightRoom:Request')return;
     const browser=this.browsingContext.top.embedderElement,window=browser?.ownerDocument.defaultView;
@@ -11,7 +13,7 @@ export class NightRoomParent extends JSWindowActorParent {
     const credentials=await NightTogether.credentials(),endpoint=credentials?.endpoint??Services.prefs.getStringPref('night.together.server','https://browser.night-watchers.com');
     const url=new URL(this.manager.documentURI.spec);
     if(url.origin!==new URL(endpoint).origin || !(/^\/join\/[a-f0-9]{64}$/.test(url.pathname)||url.pathname==='/room'))throw Error('Эта страница не управляет комнатой.');
-    if(data.method==='status')return {connected:!!credentials,state:credentials?await NightTogether.state():null};
+    if(data.method==='status'){this.#state=credentials?await NightTogether.state():null;return {connected:!!credentials,state:this.#state,capabilities:['room-controls']};}
     if(data.method==='request') {
       if(!/^\/join\/[a-f0-9]{64}$/.test(url.pathname))throw Error('Нужна ссылка приглашения.');
       if(!credentials)await NightTogether.connect(endpoint,window);
@@ -23,8 +25,9 @@ export class NightRoomParent extends JSWindowActorParent {
       if(!Number.isSafeInteger(data.body?.after)||data.body.after<0)throw Error('Неверный номер сигнала.');
       return NightTogether.request(endpoint,'/v1/signals?after='+data.body.after,{credentials});
     }
+    if(data.method==='ui-state'){if(NightTogether.roomActor!==this)return {accepted:false};NightTogether.setCommunication(communicationState(data.body,this.#state));return {accepted:true};}
     if(data.method==='session') {
-      if(data.body?.active===true){if(!(await NightTogether.state())?.room)throw Error('Комната недоступна.');if(NightTogether.roomActor&&NightTogether.roomActor!==this)throw Error('Чат уже подключён в другой вкладке. Отключи его там или вернись к ней.');NightTogether.roomActor=this;NightTogether.roomBrowsers.set(browser,this);this.#browser=browser;}
+      if(data.body?.active===true){this.#state=await NightTogether.state();if(!this.#state?.room)throw Error('Комната недоступна.');if(NightTogether.roomActor&&NightTogether.roomActor!==this)throw Error('Чат уже подключён в другой вкладке. Отключи его там или вернись к ней.');NightTogether.roomActor=this;NightTogether.roomBrowsers.set(browser,this);this.#browser=browser;}
       else this.didDestroy();return {active:NightTogether.roomBrowsers.has(browser)};
     }
     if(data.method==='rtc')return NightTogether.request(endpoint,'/v1/rtc',{credentials});
