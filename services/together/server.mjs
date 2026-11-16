@@ -1,4 +1,6 @@
 import http from 'node:http';
+import {RoomReadiness} from './readiness.mjs';
+import {notificationAction,publicNotices} from './notifications.mjs';
 import {publicWeb} from './web.mjs';
 import {randomBytes, timingSafeEqual, createHmac} from 'node:crypto';
 import {readFile, writeFile, rename, mkdir} from 'node:fs/promises';
@@ -18,7 +20,7 @@ const safeURL = value => {
 export async function createService({path, now = Date.now, releases, iceServers, turnSecret = process.env.NIGHT_TURN_SECRET, turnURL = process.env.NIGHT_TURN_URL} = {}) {
   let state = {users: {}, rooms: {}};
   if (path) { try { state = JSON.parse(await readFile(path, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; } }
-  const rates = new Map(), signals = new Map();
+  const rates = new Map(), signals = new Map(), readiness=new RoomReadiness(now);
   let signalSequence = 0;
   const web = publicWeb({releases});
   const rtc = user => {
@@ -29,20 +31,22 @@ export async function createService({path, now = Date.now, releases, iceServers,
   };
   let queue = Promise.resolve();
   const save = async () => { if (path) { await mkdir(dirname(path), {recursive: true}); await writeFile(path + '.tmp', JSON.stringify(state), {mode: 0o600}); await rename(path + '.tmp', path); } };
-  function profile(user) { return {id: user.id, name: user.name || 'Участник ' + user.id.slice(-4), color: colors.includes(user.color) ? user.color : 'moon', icon: icons.includes(user.icon) ? user.icon : 'initial'}; }
+  function profile(user) { return {id: user.id, name: user.name || 'Участник ' + user.id.slice(-4), color: colors.includes(user.color) ? user.color : 'moon', icon: icons.includes(user.icon) ? user.icon : 'initial',noticeKey:user.noticeKey??null}; }
   function snapshot(user) {
     const room = Object.values(state.rooms).find(item => item.members.includes(user.id));
     const visible = new Set([...user.friends, ...user.incoming, ...user.outgoing, ...(room?.members ?? [])]);
     const invitations = user.invites.filter(id => state.rooms[id]).map(id => ({id, owner: state.rooms[id].owner}));
     for (const item of invitations) visible.add(item.owner);
     const people = Object.fromEntries([...visible].filter(id => state.users[id]).map(id => [id, profile(state.users[id])]));
+    const ready=room?readiness.view(room):null;
     const publicRoom = room ? {...room, rate: room.rate ?? 1, buffering: room.buffering ?? false} : null;
     if (publicRoom) {
       delete publicRoom.inviteToken; delete publicRoom.inviteExpires;
+      publicRoom.readiness=ready;
       publicRoom.requests = room.owner === user.id ? (room.requests ?? []).filter(id=>state.users[id]).map(id=>profile(state.users[id])) : [];
       publicRoom.link = room.owner === user.id && room.inviteToken && room.inviteExpires > now() ? `https://browser.night-watchers.com/join/${room.inviteToken}` : null;
     }
-    return {protocol: 3, pendingRooms:Object.values(state.rooms).filter(r=>r.requests?.includes(user.id)).map(r=>({id:r.id,owner:profile(state.users[r.owner])})), self: profile(user), people, id: user.id, friends: user.friends.map(id => profile(state.users[id])), incoming: user.incoming, outgoing: user.outgoing,
+    return {protocol: 4,features:['readiness','cast','encrypted-notices'],notices:publicNotices(user,now()), pendingRooms:Object.values(state.rooms).filter(r=>r.requests?.includes(user.id)).map(r=>({id:r.id,owner:profile(state.users[r.owner])})), self: profile(user), people, id: user.id, friends: user.friends.map(id => profile(state.users[id])), incoming: user.incoming, outgoing: user.outgoing,
       invitations, room: publicRoom, serverTime: now()};
   }
   function authenticated(request) {
@@ -53,7 +57,7 @@ export async function createService({path, now = Date.now, releases, iceServers,
   }
   function leave(user) {
     for (const [key, room] of Object.entries(state.rooms)) if (room.members.includes(user.id)) {
-      if (room.owner === user.id) delete state.rooms[key]; else room.members = room.members.filter(id => id !== user.id);
+      if (room.owner === user.id) {readiness.remove(room);delete state.rooms[key];} else room.members = room.members.filter(id => id !== user.id);
       signals.delete(user.id);
     }
   }
@@ -81,6 +85,16 @@ export async function createService({path, now = Date.now, releases, iceServers,
     if (request.url !== '/v1/action' || request.method !== 'POST') fail(404, 'Не найдено.');
     const peer = state.users[body.id];
     switch (body.type) {
+      case 'notice-key':case 'notice-send':case 'notice-ack':notificationAction(state,user,body,now());break;
+      case 'room-ready': {
+        const room=state.rooms[body.room];if(!room?.members.includes(user.id))fail(403,'Комната недоступна.');
+        if(typeof body.ready!=='boolean'||typeof body.ad!=='boolean'||!['enabled','none','unknown'].includes(body.blocker))fail(400,'Неверное состояние готовности.');
+        readiness.set(room,user.id,body);return snapshot(user);
+      }
+      case 'room-cast': {
+        const room=state.rooms[body.room];if(room?.owner!==user.id||typeof body.active!=='boolean')fail(403,'Трансляцией управляет владелец.');
+        room.mode=body.active?'cast':'local';room.revision++;room.updatedAt=now();break;
+      }
       case 'profile-update': {
         if (typeof body.name !== 'string' || !body.name.trim() || body.name.trim().length > 40 || /[\x00-\x1f\x7f]/.test(body.name) || !colors.includes(body.color) || !icons.includes(body.icon)) fail(400, 'Имя: 1–40 символов; выбери цвет и значок из списка.');
         Object.assign(user, {name: body.name.trim(), color: body.color, icon: body.icon}); break;
@@ -130,6 +144,8 @@ export async function createService({path, now = Date.now, releases, iceServers,
       case 'room-signal': {
         const room=state.rooms[body.room], payload=body.signal;
         if (!room?.members.includes(user.id) || !room.members.includes(body.id) || body.id===user.id) fail(403,'Участник недоступен.');
+        if (payload?.channel!==undefined&&!['chat','cast'].includes(payload.channel))fail(400,'Неверный канал соединения.');
+        if(payload?.channel==='cast'&&(room.mode!=='cast'||user.id!==room.owner&&body.id!==room.owner||payload.kind==='description'&&(payload.description?.type==='offer'?user.id!==room.owner:body.id!==room.owner)))fail(403,'Трансляция недоступна.');
         if (!payload || !['description','candidate','bye'].includes(payload.kind) || typeof payload.session!=='string' || !/^[a-f0-9]{32}$/.test(payload.session) || JSON.stringify(payload).length>70000) fail(400,'Некорректный сигнал.');
         if (payload.kind==='description' && (!['offer','answer'].includes(payload.description?.type) || typeof payload.description.sdp!=='string' || payload.description.sdp.length>65000)) fail(400,'Некорректное описание соединения.');
         if (payload.kind==='candidate' && (typeof payload.candidate?.candidate!=='string' || payload.candidate.candidate.length>2048)) fail(400,'Некорректный сетевой адрес.');
@@ -141,7 +157,7 @@ export async function createService({path, now = Date.now, releases, iceServers,
       }
       case 'room-create': {
         const url = safeURL(body.url); leave(user);
-        const room = {id: id(), owner: user.id, members: [user.id], url, position: 0, paused: true, revision: 0, updatedAt: now()};
+        const room = {id: id(), owner: user.id, members: [user.id], url, mode:'local', position: 0, paused: true, revision: 0, controlRevision:0, updatedAt: now()};
         state.rooms[room.id] = room; break;
       }
       case 'room-invite': {
@@ -159,17 +175,20 @@ export async function createService({path, now = Date.now, releases, iceServers,
       case 'room-source': {
         const room = state.rooms[body.room];
         if (room?.owner !== user.id) fail(403, 'Видео меняет создатель комнаты.');
-        Object.assign(room, {url: safeURL(body.url), position: 0, paused: true, rate: 1, buffering: false, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id}); break;
+        readiness.remove(room);Object.assign(room, {mode:'local',url: safeURL(body.url), position: 0, paused: true, rate: 1, buffering: false, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id}); break;
       }
       case 'room-control':
       case 'room-state': {
         const room = state.rooms[body.room];
         if (!room?.members.includes(user.id) || body.type === 'room-state' && room.owner !== user.id) fail(403, 'Нужно участвовать в комнате.');
+        const waiting=readiness.view(room).hold;
+        if(body.type==='room-state'&&waiting)return snapshot(user);
         if (body.revision !== room.revision) fail(409, 'Состояние комнаты изменилось.');
         if (!Number.isFinite(body.position) || body.position < 0 || body.position > 604800 || typeof body.paused !== 'boolean') fail(400, 'Некорректная позиция.');
         const rate = body.rate ?? 1;
         if (!Number.isFinite(rate) || rate < 0.25 || rate > 4 || (body.buffering !== undefined && typeof body.buffering !== 'boolean')) fail(400, 'Некорректная скорость.');
-        Object.assign(room, {position: body.position, paused: body.paused, rate, buffering: body.buffering === true, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id}); break;
+        if(body.type==='room-control'){room.controlRevision=(room.controlRevision??0)+1;room.command=['play','pause','seek','rate'].includes(body.command)?body.command:'state';}
+        Object.assign(room, {position: body.position, paused: body.paused, rate, buffering: body.buffering === true, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id});if(body.type==='room-control')readiness.control(room); break;
       }
       default: fail(400, 'Неизвестное действие.');
     }

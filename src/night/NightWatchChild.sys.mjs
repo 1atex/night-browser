@@ -1,8 +1,12 @@
+import {playbackCorrection} from "resource:///modules/night/WatchModel.mjs";
 import {NightWatchOverlay} from "resource:///modules/night/NightWatchOverlay.sys.mjs";
 export class NightWatchChild extends JSWindowActorChild {
   #active = false;
   #overlay=null;
   #video = null;
+  #nominalRate=null;
+  #advertising=false;
+  #quietUntil=0;
   #observer = null;
   #applying = false;
   #expected = new Map();
@@ -13,20 +17,23 @@ export class NightWatchChild extends JSWindowActorChild {
     this.#video = [...this.document.querySelectorAll('video')].sort((a,b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight)[0] ?? null;
     if (this.#video) for (const name of this.#events) this.#video.addEventListener(name, this);
   }
-  #unbind() { if (this.#video) for (const name of this.#events) this.#video.removeEventListener(name, this); this.#video = null; }
+  #unbind() { if (this.#video) for (const name of this.#events) this.#video.removeEventListener(name, this); this.#video = null;this.#nominalRate=null;this.#advertising=false;this.#quietUntil=0; }
+  #ad(){const marked=!!this.#video?.closest('.ad-showing,.ad-interrupting');if(marked){this.#advertising=true;return true;}if(this.#advertising){if((this.#video?.readyState??0)<2)return true;this.#advertising=false;this.#quietUntil=Date.now()+1500;}return false;}
   #sample() {
     this.#find(); const video = this.#video;
     if (!video || video.readyState === 0 || !Number.isFinite(video.currentTime)) return null;
-    return {position: video.currentTime, paused: video.paused || video.ended, rate: video.playbackRate, buffering: !video.paused && video.readyState < 3};
+    return {position: video.currentTime, paused: video.paused || video.ended, rate: this.#nominalRate??video.playbackRate, buffering: !video.paused && video.readyState < 3,ready:video.readyState>=2,ad:this.#ad(),duration:Number.isFinite(video.duration)?video.duration:null};
   }
   handleEvent(event) {
     if (!this.#active) return;
-    const sample=this.#sample(), expected=this.#expected.get(event.type);
+    let sample=this.#sample();const expected=this.#expected.get(event.type);
     if (expected) {
       this.#expected.delete(event.type);
       if (Date.now()<expected.until && expected.matches(sample)) return;
     }
-    if (!this.#applying) this.sendAsyncMessage('NightWatch:Media', {sample, control:['play','pause','seeked','ratechange'].includes(event.type)});
+    if(event.type==='ratechange'){this.#nominalRate=this.#video?.playbackRate??null;sample=this.#sample();}
+    if(sample?.ad||Date.now()<this.#quietUntil)return;
+    if (!this.#applying) this.sendAsyncMessage('NightWatch:Media', {sample,event:event.type, control:['play','pause','seeked','ratechange'].includes(event.type)});
   }
   #expect(name, matches) { this.#expected.set(name,{until:Date.now()+2000,matches}); }
   async receiveMessage({name, data}) {
@@ -38,6 +45,7 @@ export class NightWatchChild extends JSWindowActorChild {
       this.#find();
     }
     if (!this.#active) return null;
+    if(name==='NightWatch:Status'){this.#find();return {sample:this.#sample(),ad:this.#ad(),ready:(this.#video?.readyState??0)>=2};}
     if(name==='NightWatch:OverlayState')return this.#overlay?.state()??{visible:false};
     if(name==='NightWatch:Overlay'){if(!data?.enabled){this.#overlay?.destroy();this.#overlay=null;return;}this.#overlay??=new NightWatchOverlay(this.contentWindow,value=>this.sendAsyncMessage('NightWatch:Control',value));this.#overlay.update(data);return;}
     if (name === 'NightWatch:Pause') { this.#expect('pause',sample=>sample?.paused===true); this.#video?.pause(); return null; }
@@ -49,10 +57,11 @@ export class NightWatchChild extends JSWindowActorChild {
     this.#applying = true;
     try {
       const position = Number.isFinite(video.duration) ? Math.min(target.position, Math.max(0, video.duration - .05)) : target.position;
-      const drift = position - video.currentTime;
-      if (Math.abs(drift) > (target.paused ? .15 : .8) && !video.seeking) { this.#expect('seeked',sample=>sample && Math.abs(sample.position-position)<1); video.currentTime = position; }
-      const rate = !target.paused && Math.abs(drift) > .15 && Math.abs(drift) < .8 ? Math.min(4, Math.max(.25, target.rate + Math.sign(drift) * .05)) : target.rate;
-      if (Math.abs(video.playbackRate - rate) > .001) { this.#expect('ratechange',sample=>sample && Math.abs(sample.rate-rate)<.001); video.playbackRate = rate; }
+      if(this.#sample()?.ad)return {status:'advertisement'};
+      const correction=playbackCorrection({position:video.currentTime,paused:video.paused,rate:video.playbackRate},{...target,position});
+      const {drift,rate}=correction;this.#nominalRate=target.rate;
+      if(correction.seek&&!video.seeking){this.#expect('seeked',sample=>sample&&Math.abs(sample.position-position)<1);video.currentTime=position;}
+      if(Math.abs(video.playbackRate-rate)>.001){this.#expect('ratechange',()=>Math.abs(video.playbackRate-rate)<.001);video.playbackRate=rate;}
       if (target.paused || target.buffering) { if (!video.paused) this.#expect('pause',sample=>sample?.paused===true); video.pause(); }
       else if (video.paused) {
         this.#expect('play',sample=>sample?.paused===false);
@@ -66,5 +75,5 @@ export class NightWatchChild extends JSWindowActorChild {
       return {status: 'connected', drift};
     } finally { this.#applying = false; }
   }
-  didDestroy() { try{this.#overlay?.destroy();}catch{}this.#overlay=null;this.#active = false; this.#observer?.disconnect(); this.#observer = null; this.#unbind(); this.#expected.clear(); }
+  didDestroy() { try{this.#overlay?.destroy();}catch{}this.#overlay=null;this.#active = false;if(this.#video&&this.#nominalRate!==null)try{this.#video.playbackRate=this.#nominalRate;}catch{} this.#observer?.disconnect(); this.#observer = null; this.#unbind(); this.#expected.clear(); }
 }
