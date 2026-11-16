@@ -44,9 +44,9 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 
 ## Запуск и разработка
 
-[Установщик Night 0.18.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.18.0-preview.3/night-browser-0.18.0-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.18.0-preview.3/night-browser-0.18.0-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.18.0-preview.3)
+[Установщик Night 0.18.1 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.18.1-preview.3/night-browser-0.18.1-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.18.1-preview.3/night-browser-0.18.1-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.18.1-preview.3)
 
-[Сервер Together для Docker](https://github.com/1atex/night-browser/releases/download/v0.18.0-preview.3/night-together-server-0.18.0.zip) · [Команды установки](services/together/INSTALL.md). Адрес browser.night-watchers.com встроен в клиент; сервис разворачивается владельцем VPS.
+[Сервер Together для Docker](https://github.com/1atex/night-browser/releases/download/v0.18.1-preview.3/night-together-server-0.18.1.zip) · [Команды установки](services/together/INSTALL.md). Адрес browser.night-watchers.com встроен в клиент; сервис разворачивается владельцем VPS.
 
 Для интеграции нужен [Island 0.4.0 на основе 7d9bc80](https://github.com/1atex/night-island/releases/tag/v0.4.0-browser-preview.1). Точная совместимая ревизия записана в `scripts/preview/island.json` и BUILD.json; сборка проверяет наличие этой основы в истории.
 

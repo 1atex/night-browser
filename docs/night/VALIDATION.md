@@ -2,13 +2,25 @@
 
 `npm test` checks unloading policy, request validation, bounded history, channel suspension/redirect behavior and module integration. These tests do not substitute for a browser runtime.
 
+## Published 0.18.1 verification
+
+Release [v0.18.1-preview.3](https://github.com/1atex/night-browser/releases/tag/v0.18.1-preview.3), source `fbf08cf3a7cb04dcb7e6de0fde6ef5e241962a01`, BuildID `20261116063915`. [Run 43818237896](https://github.com/1atex/night-browser/actions/runs/43818237896) passed all Windows, Docker/nginx/TURN, Island and publication stages. It includes 100 Node checks and the extended two-browser skip scenario, normal/delayed RTC chat and audio, fullscreen controls, player broadcasting, profile/import/update/startup and Island tests.
+
+All 71 release assets were downloaded. Distribution SHA-256, ZIP CRC, all 148 Night source files, prerendered assets and all server files match the tag:
+
+- Portable ZIP: `fab6cdfbce700a3a29b77e12dafaabe1ae40928ba35ebe5b74fdd9da57fce353`.
+- Installer: `76192857a3d3db6a26bf0e60936dcd8e8959eef2d08845c30886570ad2a163ca`.
+- Server ZIP: `da2d5a0d65ec99b56babacbe13f476b0bc9e737b96ede7ead1774206211e96a5`.
+
+Published Windows results confirm `automatic_skip_from_either_member`, `delayed_skip_event_does_not_roll_back`, `server_authoritative_timeline`, shared fullscreen play/seek, bidirectional RTC audio and viewer controls of a captured player. The actual anime site was not identified; local HTML5/explicit ad markers do not establish support for every site's advertising or alternate episode edits. The archive is published; the owner's VPS has not been deployed by this task.
+
 ## Server timeline and skip regression 0.18.1
 
 `authoritative-watch.test.mjs` checks a server clock independent of owner position reports, content-duration bounds, combined seek/play intent, one-time command acceptance, stale command rejection after a source change, ad hold/release, initial position capture and unchanged position when starting a cast. The Node suite contains 100 checks.
 
 `watch.py` now performs automatic `currentTime` jumps from each participant with media notifications deliberately delayed 1.6 seconds. The initiator must stay at the new position before its command reaches the parent, and both clients must converge without a rollback. The remaining scenario covers shared controls, ad hold/release, loading resources, source changes, server restart and private exclusion.
 
-Local native pass: `/workspace/scratch/night-0181-watch5`. As a control experiment, removing only the pending-local-seek guard from the candidate runtime made the same assertion fail: an 18-second jump was rolled back to 4.666247 seconds before delivery. The source was restored; this is a mutation experiment, not a claim that an unmodified older binary was tested with the new protocol. Two-client chat/voice passed separately. The early navigation path also deferred fullscreen overlay construction until the document is ready: Windows exposed a null documentElement during parsing, followed by duplicate agent-sheet errors. The delayed-script fixture now waits for explicit overlay readiness and checks preference-driven teardown; Python logs use UTF-8. A Windows tagged run is required before publication.
+Local native pass: `/workspace/scratch/night-0181-watch5`. As a control experiment, removing only the pending-local-seek guard from the candidate runtime made the same assertion fail: an 18-second jump was rolled back to 4.666247 seconds before delivery. The source was restored; this is a mutation experiment, not a claim that an unmodified older binary was tested with the new protocol. Two-client chat/voice passed separately. The early navigation path also deferred fullscreen overlay construction until the document is ready: Windows exposed a null documentElement during parsing, followed by duplicate agent-sheet errors. The delayed-script fixture now waits for explicit overlay readiness and checks preference-driven teardown; Python logs use UTF-8. The complete tagged Windows run passed; publication verification is recorded below.
 
 The actual anime site was not supplied. These tests use local HTML5 WebM and explicit ad markers; different cuts, iframe-only players and unmarked or server-inserted ad timelines are outside the fixture. Playback still uses authenticated HTTP requests. There is no gRPC/WebSocket migration or reverse-proxy change in this fix.
 
