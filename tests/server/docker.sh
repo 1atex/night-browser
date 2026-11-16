@@ -4,7 +4,7 @@ docker compose -f services/together/compose.yaml config --quiet
 docker build -t night-together-check services/together
 container="night-together-test-$$"
 volume="night-together-test-$$"
-trap 'docker rm -f "$container" >/dev/null 2>&1 || true; docker volume rm "$volume" >/dev/null 2>&1 || true' EXIT
+trap 'docker logs "$container" 2>/dev/null || true; docker rm -f "$container" >/dev/null 2>&1 || true; docker volume rm "$volume" >/dev/null 2>&1 || true' EXIT
 docker run -d --name "$container" --read-only --cap-drop ALL --security-opt no-new-privileges:true -v "$volume:/data" night-together-check
 for attempt in $(seq 1 30); do
   if docker exec "$container" node -e "fetch('http://127.0.0.1:8787/health').then(r=>{if(!r.ok)throw Error('health')}).catch(()=>process.exit(1))"; then break; fi

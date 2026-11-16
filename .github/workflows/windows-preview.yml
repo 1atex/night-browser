@@ -374,9 +374,18 @@ jobs:
           path: test-artifacts/
           retention-days: 14
 
+  server-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm run test:night
+      - run: bash tests/server/docker.sh
+      - run: bash tests/server/nginx.sh
+      - run: python3 tests/server/turn.py
+
   publish:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: preview
+    needs: [preview, server-checks]
     runs-on: ubuntu-latest
     permissions:
       contents: write

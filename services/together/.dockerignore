@@ -1,6 +1,5 @@
 *
-!server.mjs
-!web.mjs
+!*.mjs
 !public/
 !public/**
 !Dockerfile
