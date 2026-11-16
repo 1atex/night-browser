@@ -37,7 +37,7 @@ export const NightTogether = {
   setPhase(phase,text){const session=this.watchSession;if(session&&session.phase!==phase){session.phase=phase;this.trace('phase',{phase});}this.notify(text);},
   setCommunication(value){const signature=JSON.stringify(value);if(signature===this.communicationSignature)return;this.communication=value;this.communicationSignature=signature;Services.obs.notifyObservers(null,'night-together-communication');this.updateOverlay();},
   command(value){const command=roomCommand(value,this.communication);if(!command||!this.roomActor)return false;try{this.roomActor.sendAsyncMessage('NightRoom:Command',command);return true;}catch{return false;}},
-  updateOverlay(){const session=this.watchSession;if(!session?.actor)return;try{session.actor.sendAsyncMessage('NightWatch:Overlay',{enabled:Services.prefs.getBoolPref('night.together.fullscreen-controls',true),microphone:this.communication?.microphone===true,active:this.communication?.active===true,participants:this.communication?.participants??[],status:this.watchStatus});}catch{}},
+  updateOverlay(){const session=this.watchSession;if(!session?.actor)return;try{session.actor.sendAsyncMessage('NightWatch:Overlay',{enabled:Services.prefs.getBoolPref('night.together.fullscreen-controls',true),glass:Services.prefs.getBoolPref('night.together.glass',true),microphone:this.communication?.microphone===true,active:this.communication?.active===true,participants:this.communication?.participants??[],status:this.watchStatus});}catch{}},
   roomBrowsers: new WeakMap(),
   roomActor: null,
   async openRoom(window,{connect=true,background=false}={}) {

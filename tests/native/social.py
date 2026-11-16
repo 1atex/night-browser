@@ -26,7 +26,6 @@ def run(binary,app_ini,output,delayed_scripts=False):
   def capture(b,name):
    b.set_context('chrome');(output/name).write_bytes(base64.b64decode(b.screenshot()))
    if os.name=='nt' and name=='night-together-controls.png':
-    chrome(b,'w.restore();w.focus();')
     script=r'''Add-Type -AssemblyName System.Drawing
 Add-Type 'using System;using System.Runtime.InteropServices;public class RoomShot{[StructLayout(LayoutKind.Sequential)]public struct R{public int l,t,r,b;}[DllImport("user32.dll")]public static extern IntPtr GetForegroundWindow();[DllImport("user32.dll")]public static extern bool GetWindowRect(IntPtr h,out R r);}'
 $r=New-Object RoomShot+R;[RoomShot]::GetWindowRect([RoomShot]::GetForegroundWindow(),[ref]$r)|Out-Null
@@ -74,11 +73,13 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
    wait_for(lambda:chrome(host,'return ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.communication?.microphone===true;'))
    content(host,'const range=document.querySelector(".member-audio input:not([hidden])");const other=[...document.querySelectorAll("#members>div")].find(r=>r.dataset.state!=="self");const input=other.querySelector("input");input.value="25";input.dispatchEvent(new Event("input",{bubbles:true}));')
    wait_for(lambda:content(host,'return [...document.querySelectorAll("audio")].some(audio=>Math.abs(audio.volume-.25)<.01);'))
+   if os.name=='nt':chrome(guest,'w.minimize();')
    chrome(host,'w.restore();w.focus();d.getElementById("night-together-watch").click();')
    wait_for(lambda:chrome(host,'return d.getElementById("night-together-panel").state==="open";'))
    wait_for(lambda:chrome(host,'return !!d.querySelector("#night-together-panel [data-volume]");'))
    chrome(host,'const input=d.querySelector("#night-together-panel [data-volume]");input.value="40";input.dispatchEvent(new w.Event("input",{bubbles:true}));')
    wait_for(lambda:content(host,'return [...document.querySelectorAll("audio")].some(audio=>Math.abs(audio.volume-.4)<.01);'))
+   assert chrome(host,'const primary=d.getElementById("night-together-start"),secondary=d.getElementById("night-together-split");return w.getComputedStyle(primary).backgroundColor!==w.getComputedStyle(secondary).backgroundColor&&w.getComputedStyle(primary,"::before").maskImage.includes("play.svg");')
    capture(host,'night-together-controls.png');chrome(host,'d.getElementById("night-together-panel").hidePopup();d.getElementById("night-together-microphone").click();')
    wait_for(lambda:content(host,'return document.getElementById("mute").hidden;'))
    chrome(host,'return true;');host.actions.sequence('key','mic-shortcut').key_down('\ue009').key_down('\ue00a').key_down('m').key_up('m').key_up('\ue00a').key_up('\ue009').perform()
@@ -97,6 +98,11 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
    assert not overlay()['visible']
    size=content(host,'return {width:innerWidth,height:innerHeight};');host.set_context('content');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(size['width']-20,20).perform()
    wait_for(lambda:overlay()['visible'] and overlay()['rect']['width']>0)
+   assert 'blur(' in overlay()['glass']['filter']
+   chrome(host,'Services.prefs.setBoolPref("night.together.glass",false);')
+   wait_for(lambda:overlay()['glass']['filter']=='none')
+   chrome(host,'Services.prefs.setBoolPref("night.together.glass",true);')
+   wait_for(lambda:'blur(' in overlay()['glass']['filter'])
    position=overlay()['microphone'];content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(position['x'],position['y']).pointer_down().pointer_up().perform()
    wait_for(lambda:chrome(host,'return ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.communication?.microphone===false;'))
    position=overlay()['peopleButton'];content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(position['x'],position['y']).pointer_down().pointer_up().perform()
@@ -136,7 +142,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
    host.set_window_rect(width=660,height=900)
    assert content(host,'return document.documentElement.scrollWidth<=document.documentElement.clientWidth+2;')
    host.set_window_rect(width=1280,height=900)
-   result={'passed':True,'quick_microphone_and_shortcut':True,'participant_volume_web_and_browser':True,'fullscreen_controls_autohide':True,'delayed_scripts':delayed_scripts,'leave_during_microphone_request_keeps_capture_off':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
+   result={'passed':True,'button_accents_and_icons':True,'glass_toggle':True,'quick_microphone_and_shortcut':True,'participant_volume_web_and_browser':True,'fullscreen_controls_autohide':True,'delayed_scripts':delayed_scripts,'leave_during_microphone_request_keeps_capture_off':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
    (output/'social-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
   except Exception:
    for i,b in enumerate(drivers):

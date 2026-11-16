@@ -927,6 +927,7 @@ window.addEventListener(
       if (PrivateBrowsingUtils.isWindowPrivate(browserWindow)) { card("Приватное окно", "Друзья и комнаты доступны в обычном окне."); return; }
       const controls=card("Быстрое управление","Кнопка «Вместе» в боковой панели открывает комнату, приглашение и звук без перехода в настройки.");
       toggle(controls,"Микрофон: Ctrl+Alt+M","Переключает микрофон текущей комнаты, когда подключён чат.","night.together.microphone-shortcut",true);
+      toggle(controls,"Прозрачность и размытие оверлея","Полупрозрачное стекло поверх видео. Выключи, чтобы получить сплошной фон.","night.together.glass",true);
       toggle(controls,"Управление поверх полноэкранного видео","Появляется при наведении в правый верхний угол; можно выключить микрофон и настроить громкость.","night.together.fullscreen-controls",true);
       const section = card("Night Together", "Добавь друга, создай комнату со ссылкой на видео и пригласи его. Участники нажимают «Смотреть вместе»; пауза, продолжение и перемотка общие.");
       const credentials = await NightTogether.credentials();
