@@ -101,6 +101,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
    content(host,'document.querySelector("video").requestFullscreen();')
    wait_for(lambda:content(host,'return !!document.fullscreenElement;'))
    def overlay():return async_chrome(host,'return ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watchSession.actor.sendQuery("NightWatch:OverlayState");')
+   wait_for(lambda:overlay().get("ready") is True)
    assert not overlay()['visible']
    size=content(host,'return {width:innerWidth,height:innerHeight};');host.set_context('content');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(size['width']-20,20).perform()
    wait_for(lambda:overlay()['visible'] and overlay()['rect']['width']>0)
@@ -143,7 +144,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
    wait_for(lambda:content(host,'return document.querySelector("video").currentTime>10;'))
    content(host,'document.exitFullscreen();');wait_for(lambda:not content(host,'return !!document.fullscreenElement;'))
    chrome(host,'Services.prefs.setBoolPref("night.together.fullscreen-controls",false);')
-   wait_for(lambda:overlay()=={'visible':False})
+   wait_for(lambda:overlay().get('ready') is False and overlay()['visible'] is False)
    chrome(host,'Services.prefs.setBoolPref("night.together.microphone-shortcut",false);');host.actions.sequence('key','disabled-mic-shortcut').key_down('\ue009').key_down('\ue00a').key_down('m').key_up('m').key_up('\ue00a').key_up('\ue009').perform()
    assert chrome(host,'return ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.communication.microphone===false;')
    async_chrome(host,'await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.openRoom(w);')

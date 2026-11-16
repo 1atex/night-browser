@@ -4,6 +4,7 @@ import {NightWatchOverlay} from "resource:///modules/night/NightWatchOverlay.sys
 export class NightWatchChild extends JSWindowActorChild {
   #active = false;
   #overlay=null;
+  #overlayData=null;
   #cast=null;
   #viewer=false;
   #video = null;
@@ -33,6 +34,7 @@ export class NightWatchChild extends JSWindowActorChild {
     return {position: video.currentTime, paused: video.paused || video.ended, rate: this.#nominalRate??video.playbackRate, buffering: !video.paused && video.readyState < 3,ready:video.readyState>=2,ad:this.#ad(),duration:Number.isFinite(video.duration)?video.duration:null};
   }
   handleEvent(event) {
+    if(event.type==='DOMContentLoaded'){this.#syncOverlay();return;}
     if (!this.#active) return;
     let sample=this.#sample();if(!sample)return;const expected=this.#expected.get(event.type);
     if(['seeking','seeked'].includes(event.type)&&this.#remoteSeek){
@@ -66,6 +68,7 @@ export class NightWatchChild extends JSWindowActorChild {
     if (name === 'NightWatch:Stop') { this.didDestroy(); return null; }
     if (name === 'NightWatch:Start' && !this.#active) {
       this.#active = true;this.#viewer=data?.viewer===true;this.#controlRevision=data?.controlRevision??0;this.#sourceRevision=data?.sourceRevision??0;
+      if(this.document.readyState==='loading')this.document.addEventListener('DOMContentLoaded',this,{once:true});
       this.#observer = new this.contentWindow.MutationObserver(() => this.#find());
       this.#observer.observe(this.document, {childList: true, subtree: true});
       this.#find();
@@ -76,8 +79,8 @@ export class NightWatchChild extends JSWindowActorChild {
     if(name==='NightWatch:CastStop'){this.#cast?.stop();this.#cast=null;return {active:false};}
     if(name==='NightWatch:CastStats')return this.#cast?.stats()??{active:false};
     if(name==='NightWatch:Status'){this.#find();return {sample:this.#sample(),ad:this.#ad(),ready:(this.#video?.readyState??0)>=2};}
-    if(name==='NightWatch:OverlayState')return this.#overlay?.state()??{visible:false};
-    if(name==='NightWatch:Overlay'){if(!data?.enabled){this.#overlay?.destroy();this.#overlay=null;return;}this.#overlay??=new NightWatchOverlay(this.contentWindow,value=>this.sendAsyncMessage('NightWatch:Control',value));this.#overlay.update(data);return;}
+    if(name==='NightWatch:OverlayState')return this.#overlay?.state()??{visible:false,ready:false};
+    if(name==='NightWatch:Overlay'){this.#overlayData=data;this.#syncOverlay();return;}
     if(name==='NightWatch:DiscardSeek'){this.#localSeek=null;return null;}
     if (name === 'NightWatch:Pause') { this.#expect('pause',sample=>sample?.paused===true); this.#video?.pause(); return null; }
     if (name === 'NightWatch:Read' || name === 'NightWatch:Start') return this.#sample();
@@ -111,5 +114,11 @@ export class NightWatchChild extends JSWindowActorChild {
       return {status: 'connected', drift};
     } finally { this.#applying = false; }
   }
-  didDestroy() {this.#cast?.stop();this.#cast=null; try{this.#overlay?.destroy();}catch{}this.#overlay=null;this.#active = false;this.#controlRevision=0;this.#sourceRevision=0;if(this.#video&&this.#nominalRate!==null)try{this.#video.playbackRate=this.#nominalRate;}catch{} this.#observer?.disconnect(); this.#observer = null; this.#unbind(); this.#expected.clear(); }
+  #syncOverlay(){
+    const data=this.#overlayData;
+    if(!data?.enabled){this.#overlay?.destroy();this.#overlay=null;return;}
+    if(!this.#active||!this.document.documentElement||this.document.readyState==='loading')return;
+    this.#overlay??=new NightWatchOverlay(this.contentWindow,value=>this.sendAsyncMessage('NightWatch:Control',value));this.#overlay.update(data);
+  }
+  didDestroy() {try{this.document.removeEventListener('DOMContentLoaded',this);}catch{}this.#overlayData=null;this.#cast?.stop();this.#cast=null; try{this.#overlay?.destroy();}catch{}this.#overlay=null;this.#active = false;this.#controlRevision=0;this.#sourceRevision=0;if(this.#video&&this.#nominalRate!==null)try{this.#video.playbackRate=this.#nominalRate;}catch{} this.#observer?.disconnect(); this.#observer = null; this.#unbind(); this.#expected.clear(); }
 }
