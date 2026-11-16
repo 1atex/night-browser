@@ -32,6 +32,7 @@ test('server relays only bounded encrypted notices between confirmed friends and
  let time=1000;const f=await fixture(()=>time);
  try{
   const a=await f.user(),b=await f.user(),c=await f.user(),ka=await createNoticeIdentity(),kb=await createNoticeIdentity();
+  assert.equal((await f.act(a,{type:'notice-key',publicKey:Buffer.concat([Buffer.from([4]),Buffer.alloc(64)]).toString('base64url')})).status,400);
   await f.act(a,{type:'notice-key',publicKey:ka.publicKey});await f.act(b,{type:'notice-key',publicKey:kb.publicKey});
   const envelope=await encryptNotice(ka.privateKey,kb.publicKey,{from:a.id,to:b.id,text:'Пойдём смотреть',at:time});
   assert.equal((await f.act(a,{type:'notice-send',id:b.id,envelope})).status,403);
@@ -45,5 +46,6 @@ test('server relays only bounded encrypted notices between confirmed friends and
   await f.act(b,{type:'notice-ack',ids:[envelope.id]});assert.deepEqual((await f.request('/v1/state',b)).body.notices,[]);
   const next=await encryptNotice(ka.privateKey,kb.publicKey,{from:a.id,to:b.id,text:'Ещё сообщение',at:time});await f.act(a,{type:'notice-send',id:b.id,envelope:next});time+=86400001;
   assert.deepEqual((await f.request('/v1/state',b)).body.notices,[]);
+  await f.act(b,{type:'notice-disable'});assert.equal((await f.request('/v1/state',b)).body.self.noticeKey,null);
  }finally{await f.close();}
 });

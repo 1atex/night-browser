@@ -94,7 +94,7 @@ async function refresh(){
   if(!next?.room){stop();state=next;status('Комната закрыта или ты вышел. Создай новую в настройках Night.');$('watch').disabled=true;$('watch-split').disabled=true;$('connect').disabled=true;return;}
   if(state?.room&&state.room.id!==next.room.id){stop();cursor=0;}
   state=next;$('connect').disabled=false;$('watch').disabled=false;$('watch-split').disabled=false;$('invite').hidden=state.room.owner!==state.id;$('video-link').textContent=new URL(state.room.url).hostname;$('video-link').href=state.room.url;$('connection').textContent=`${state.room.members.length} в комнате`;
-  const receiving=state.room.mode==='cast'&&state.id!==state.room.owner;$('cast-player').hidden=!receiving;if(!receiving)cast.stop();else if(rtcConfig)cast.configure(state.room.owner,rtcConfig);
+  const receiving=state.room.mode==='cast'&&state.id!==state.room.owner;$('cast-player').hidden=!receiving;document.body.toggleAttribute('data-casting',receiving);if(!receiving)cast.stop();else if(rtcConfig)cast.configure(state.room.owner,rtcConfig);
   renderMembers();renderRequests();
   if(!autoConnectAttempted&&new URL(location.href).searchParams.get('connect')==='1'){autoConnectAttempted=true;setTimeout(startChat,0);}
   if(!active){status('Пауза, продолжение и перемотка общие. Видео можно открыть в отдельной вкладке, а эту оставить для общения.');return;}
@@ -161,7 +161,7 @@ export async function connectionReport(){
  }return results;
 }
 export async function broadcastReport(){return cast.stats();}
-$('cast-fullscreen').onclick=()=>$('cast-video').requestFullscreen().catch(error=>status(error.message));
+$('cast-fullscreen').onclick=()=>{$('cast-video').requestFullscreen().catch(error=>status(error.message));bridge('watch').catch(error=>status(error.message));};
 $('cast-volume').oninput=()=>$('cast-video').volume=Number($('cast-volume').value)/100;
 $('rtc-refresh').onclick=async()=>{try{const report=await connectionReport();$('cast-report').textContent=JSON.stringify(await cast.stats(),null,2);$('rtc-report').textContent=JSON.stringify(report,null,2);$('rtc-report').dataset.serial=String(Date.now());}catch(error){status(error.message);}};
 let bootstrapTimer,bootstrapAttempts=0,closed=false;

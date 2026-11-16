@@ -25,6 +25,7 @@ def run(binary,app_ini,output):
    call(host,'await N.enable();');call(guest,'await N.enable();');call(host,'await T.state();')
    storage=call(host,'const value=await IOUtils.readJSON(PathUtils.join(PathUtils.profileDir,"night-notices.json"));return {encrypted:!!value.box&&!value.box.includes(N.identity.privateKey.d),plaintext:JSON.stringify(value).includes(N.identity.privateKey.d)};')
    assert storage['encrypted'] and not storage['plaintext'],storage
+   assert call(host,'const key=N.identity.publicKey;N.identity=null;N.data=null;return (await N.ensureIdentity()).publicKey===key;')
    chrome(guest,'Services.prefs.setBoolPref("night.together.notices",false);')
    call(host,'await ChromeUtils.importESModule("resource:///modules/night/NightFriendNoticesView.sys.mjs").NightFriendNoticeViews.open(w,arguments[0]);',b)
    chrome(host,'d.getElementById("night-notice-text").value="Private hello from Noon";d.getElementById("night-notice-send").click();')

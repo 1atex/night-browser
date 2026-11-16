@@ -207,7 +207,7 @@ export const NightTogether = {
         const intent=session.intent; session.intent=null;session.pendingIntent=intent;
         try {
           const updated=await this.action({type:'room-control',room:room.id,revision:room.revision,...intent});
-          room=updated.room;session.roomSnapshot=room;session.snapshotAt=Date.now();session.serverTime=updated.serverTime;session.pendingIntent=null; session.revision=room.revision; session.sent=Date.now();this.trace("control-sent",{revision:room.revision});
+          room=updated.room;session.roomSnapshot=room;session.snapshotAt=Date.now();session.serverTime=updated.serverTime;session.pendingIntent=null; session.revision=room.revision; session.sent=Date.now();if(!session.viewer){const target=roomTarget(room,updated.serverTime);if(target){target.forceSeek=intent.command==='seek';await actor.sendQuery('NightWatch:Apply',target);}}this.trace("control-sent",{revision:room.revision});
         } catch(error) {if(error.status===409){session.intent ??= intent;this.trace("revision-conflict");}else throw error;}finally{session.pendingIntent=null;}
         this.setPhase("ready",`Синхронизация готова · ${room.members.length} в комнате`); return;
       }

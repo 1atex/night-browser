@@ -10,3 +10,5 @@
 #members>div{flex-wrap:wrap}#members>div>span{min-width:90px}.member-audio{display:flex;align-items:center;gap:10px;width:100%}.member-audio input{flex:1;min-width:80px;padding:0;accent-color:#c2c8d2}.member-audio button{padding:6px 9px;min-width:95px;font-size:11px}.member-audio output{min-width:35px;text-align:right;color:var(--muted);font-size:11px}#members [data-room-kick]{padding:6px 9px;font-size:11px;margin-left:auto}
 
 #cast-player[hidden]{display:none}#cast-video{width:100%;max-height:65vh;background:#08080a;border-radius:12px}#cast-player{margin:24px 0}#cast-player .actions{align-items:center}#cast-volume{width:110px;vertical-align:middle}
+
+body[data-casting] .room-main{padding-top:24px}body[data-casting] .room-main>.eyebrow,body[data-casting] .room-main>h1{display:none}#cast-player{margin:0 0 24px}

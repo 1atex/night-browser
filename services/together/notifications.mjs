@@ -1,3 +1,4 @@
+import {ECDH} from 'node:crypto';
 const validId=value=>typeof value==='string'&&/^[a-f0-9]{16}$/.test(value);
 const fail=(status,message)=>{throw Object.assign(Error(message),{status});};
 export function notificationAction(state,user,body,now){
@@ -5,6 +6,7 @@ export function notificationAction(state,user,body,now){
   if(body.type==='notice-key'){
     if(typeof body.publicKey!=='string'||!/^[A-Za-z0-9_-]{87}$/.test(body.publicKey))fail(400,'Неверный публичный ключ.');
     const key=Buffer.from(body.publicKey,'base64url');if(key.length!==65||key[0]!==4)fail(400,'Неверный публичный ключ.');
+    try{ECDH.convertKey(key,'prime256v1',undefined,undefined,'uncompressed');}catch{fail(400,'Неверная точка публичного ключа.');}
     user.noticeKey=body.publicKey;return;
   }
   if(body.type==='notice-send'){
