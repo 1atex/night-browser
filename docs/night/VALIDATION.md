@@ -2,6 +2,18 @@
 
 `npm test` checks unloading policy, request validation, bounded history, channel suspension/redirect behavior and module integration. These tests do not substitute for a browser runtime.
 
+## Published 0.18 verification
+
+Release [v0.18.0-preview.3](https://github.com/1atex/night-browser/releases/tag/v0.18.0-preview.3), source `e12d272d999bc3e4dec3cd0b47e744929c586b25`, BuildID `20261116045039`. Full Windows preview, Docker/nginx/TURN and publication passed in [run 43806502411](https://github.com/1atex/night-browser/actions/runs/43806502411). The suite includes 96 Node checks and native Windows scenarios; 71 published assets were downloaded. SHA-256, ZIP CRC, all 148 Night source files, prerendered Home assets and all packaged server files match the tag.
+
+- Portable ZIP: `2d6523c4abb3d7c4696b3928afdf912983577ee2d4c873e43dfaa6abfa26e8c1`.
+- Installer: `11ea4ebb9bcd220ab9406d905b6b458c5d1c31422ab79b4413e92cdc48fd4f57`.
+- Server ZIP: `31298a797a466c1fa760ed3a8c2fbf4bc8e27b35339a1f8458c4fbf529b43765`.
+
+Windows results confirm uploaded avatar persistence, recipient draft retention, new-profile defaults and Home link/gradient persistence, current-video title detection with one-step invitations, live split navigation and saved watch-tab closure. Every footer control including the menu shares one vertical center at 240/320/420 px, both densities and tools shown/hidden; the menu was clicked and navigation placement switched. The published `night-footer.png` was visually inspected along with Home and Together controls. Earlier tests checked only HTML button bounds and missed the separately positioned menu and anonymous text tracks that shifted glyphs; the new fixture covers the actual menu and requires empty text for icon-only controls.
+
+The deployment archive preserves the rootless Docker project/volume and loopback upstream. Publication does not deploy the owner's VPS. The OS photo picker, physical microphones, arbitrary internet NAT pairs, protected subscription playback and eight-client throughput are outside this evidence.
+
 ## Personal home 0.18
 
 `home_personalization.py` проверяет новый профиль без заданных сайтов и пространства разработки; добавление, изменение и удаление ссылки; запрет javascript URL; свои цвета и сохранение градиента после новой вкладки и перезапуска. `watch.py` проверяет создание комнаты через приглашение и присоединение одной кнопкой.
