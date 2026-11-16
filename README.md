@@ -7,7 +7,7 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 ## Что работает
 
 - Обновление установленной Windows-версии из настроек: загрузка, проверка SHA-256, перезапуск с сохранением профилей и страница изменений.
-- Night Together: ID, подтверждение дружбы, имена и аватары из набора, приглашения и комнаты по ссылке. Совместное HTML5-видео с общими play/pause, перемоткой и скоростью. Приглашения по ссылке с допуском владельцем, P2P-чат и голос WebRTC, видео рядом с комнатой. Привязка включается явно; TURN для сложных сетей настраивается отдельно. [Docker-сервер и установка](services/together/INSTALL.md).
+- Night Together: ID, подтверждение дружбы, имена и аватары из набора, приглашения и комнаты по ссылке. Совместное HTML5-видео с общими play/pause, перемоткой и скоростью. Приглашения по ссылке с допуском владельцем, P2P-чат и голос WebRTC, видео рядом с комнатой. Панель «Вместе» открывает комнату, приглашения и звук без настроек. Кнопка микрофона и `Ctrl+Alt+M`, индивидуальная локальная громкость, полупрозрачный полноэкранный оверлей с размытием и отдельным переключателем сплошного фона. Иконки и акценты различают основные действия и состояние микрофона. До восьми человек вместе с владельцем. Привязка включается явно; TURN для сложных сетей настраивается отдельно. [Docker-сервер и установка](services/together/INSTALL.md).
 - Приватное окно по `Ctrl+Shift+N` и `Ctrl+Shift+P`.
 - Локальные профили с отдельными паролями, cookies, расширениями и оформлением; переключатель внизу панели; настройка имени, цвета и значка.
 - Явное подключение Mozilla Sync в каждом профиле, выбор данных и синхронизация выбранных настроек Night. [Профили и ограничения Sync](docs/night/PROFILES.md).
@@ -40,9 +40,9 @@ Night использует Mozilla Firefox напрямую. Код оболоч
 
 ## Запуск и разработка
 
-[Установщик Night 0.15.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.15.0-preview.3/night-browser-0.15.0-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.15.0-preview.3/night-browser-0.15.0-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.15.0-preview.3)
+[Установщик Night 0.16.0 для Windows x64](https://github.com/1atex/night-browser/releases/download/v0.16.0-preview.3/night-browser-0.16.0-preview-windows-x64-setup.exe) · [Portable ZIP](https://github.com/1atex/night-browser/releases/download/v0.16.0-preview.3/night-browser-0.16.0-preview-windows-x64.zip) · [Релиз и контрольные суммы](https://github.com/1atex/night-browser/releases/tag/v0.16.0-preview.3)
 
-[Сервер Together для Docker](https://github.com/1atex/night-browser/releases/download/v0.15.0-preview.3/night-together-server-0.15.0.zip) · [Команды установки](services/together/INSTALL.md). Адрес browser.night-watchers.com встроен в клиент; сервис разворачивается владельцем VPS.
+[Сервер Together для Docker](https://github.com/1atex/night-browser/releases/download/v0.16.0-preview.3/night-together-server-0.16.0.zip) · [Команды установки](services/together/INSTALL.md). Адрес browser.night-watchers.com встроен в клиент; сервис разворачивается владельцем VPS.
 
 Для интеграции нужен [Island 0.4.0 на основе 7d9bc80](https://github.com/1atex/night-island/releases/tag/v0.4.0-browser-preview.1). Точная совместимая ревизия записана в `scripts/preview/island.json` и BUILD.json; сборка проверяет наличие этой основы в истории.
 

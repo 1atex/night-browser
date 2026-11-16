@@ -402,3 +402,23 @@ The server/site upgrade preserves the existing Compose project/data volume under
 | night-browser-0.15.0-preview-windows-x64.zip | `236642135da096bb52dda9c8125975a16ac9d1d660647a94303ef5b0c8f0930a` |
 | night-browser-0.15.0-preview-windows-x64-setup.exe | `099ccaf4738f8636288aa414e42a8be8a46e1432a54d28b9dd943d5f9ce04b0b` |
 | night-together-server-0.15.0.zip | `6c7efed8fd7c9702e1296011067fd47bf7cb9a6ca8a6bf96df0317d3b3f2af38` |
+
+## Published 0.16 result
+
+[Browser v0.16.0-preview.3](https://github.com/1atex/night-browser/releases/tag/v0.16.0-preview.3) uses `a5be5d14288dec5c17cbf6322d1283c308ef32f6`. All 85 Node checks and the complete native Windows suite passed in [tag run 43783765197](https://github.com/1atex/night-browser/actions/runs/43783765197); build and publication succeeded. [Night checks 43783765153](https://github.com/1atex/night-browser/actions/runs/43783765153) also passed Docker, host-nginx proxy and pinned Coturn startup/STUN checks. Island remains the same pinned 0.4.0.
+
+The public installer, portable ZIP and server ZIP matched SHA-256 after download. ZIP CRC, manifest, all 130 Night files and all 20 server files matched the tagged source with text line endings normalized. BuildID is `20261116010112`. The packaged start-page, native tab and internal-page patches were checked separately.
+
+The Windows watch regression reached the other player in 1.703 seconds while both pages remained busy on a deliberately held secondary resource. Restoring the old busy guard locally failed the same eight-second assertion before any watch actor attached. This establishes the full-page-wait defect; it does not prove the exact cause of the user's earlier transient session without its trace.
+
+The public social report confirms real bidirectional chat and RTP using fake microphones, quick microphone controls, participant receive volume, action accents/icon masks, the glass preference and trusted fullscreen pointer input/autohide. The delayed-script variant also passed on Windows and Linux. Eight is the configured room limit including the owner; the native suite uses two clients and is not an eight-client load test or WAN/TURN validation.
+
+Published [room controls](https://github.com/1atex/night-browser/releases/download/v0.16.0-preview.3/night-together-controls.png) and [fullscreen overlay](https://github.com/1atex/night-browser/releases/download/v0.16.0-preview.3/night-fullscreen-controls.png) were visually inspected. The Windows room capture includes the native popup; portions outside the runner screen are black. The striped address field is Marionette's indicator. A separate headful Linux display check inspected the panel layout; a supplemental fullscreen-pattern experiment on that display was inconclusive and is not counted as product validation.
+
+The earlier room-startup failure was independently confirmed when repeating NightRoom:Available restored participants/chat on both user PCs. Public HTML showed Rocket Loader rewriting the module script. Together 0.15.1 already published that isolated server fix; 0.16 includes it and the new browser controls. VPS deployment remains with the owner; release publication does not mean the running service was upgraded.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| night-browser-0.16.0-preview-windows-x64.zip | `21e40dd2d80f3493c0819edc53c4a3c399362b263bbc7edcc7235296ec9d6976` |
+| night-browser-0.16.0-preview-windows-x64-setup.exe | `5015d980c2dc7e9659e194a501f683428c0ad77a3754a00fea349cb60f7b436f` |
+| night-together-server-0.16.0.zip | `e46dfe4fc2e26b6fa61e8d1b41c6320ac0fbe7b1612073a4d7555da781061dd8` |
