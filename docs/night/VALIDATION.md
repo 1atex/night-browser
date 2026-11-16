@@ -2,6 +2,16 @@
 
 `npm test` checks unloading policy, request validation, bounded history, channel suspension/redirect behavior and module integration. These tests do not substitute for a browser runtime.
 
+## Server timeline and skip regression 0.18.1
+
+`authoritative-watch.test.mjs` checks a server clock independent of owner position reports, content-duration bounds, combined seek/play intent, one-time command acceptance, stale command rejection after a source change, ad hold/release, initial position capture and unchanged position when starting a cast. The Node suite contains 100 checks.
+
+`watch.py` now performs automatic `currentTime` jumps from each participant with media notifications deliberately delayed 1.6 seconds. The initiator must stay at the new position before its command reaches the parent, and both clients must converge without a rollback. The remaining scenario covers shared controls, ad hold/release, loading resources, source changes, server restart and private exclusion.
+
+Local native pass: `/workspace/scratch/night-0181-watch5`. As a control experiment, removing only the pending-local-seek guard from the candidate runtime made the same assertion fail: an 18-second jump was rolled back to 4.666247 seconds before delivery. The source was restored; this is a mutation experiment, not a claim that an unmodified older binary was tested with the new protocol. Two-client chat/voice passed separately. A Windows tagged run is required before publication.
+
+The actual anime site was not supplied. These tests use local HTML5 WebM and explicit ad markers; different cuts, iframe-only players and unmarked or server-inserted ad timelines are outside the fixture. Playback still uses authenticated HTTP requests. There is no gRPC/WebSocket migration or reverse-proxy change in this fix.
+
 ## Published 0.18 verification
 
 Release [v0.18.0-preview.3](https://github.com/1atex/night-browser/releases/tag/v0.18.0-preview.3), source `e12d272d999bc3e4dec3cd0b47e744929c586b25`, BuildID `20261116045039`. Full Windows preview, Docker/nginx/TURN and publication passed in [run 43806502411](https://github.com/1atex/night-browser/actions/runs/43806502411). The suite includes 96 Node checks and native Windows scenarios; 71 published assets were downloaded. SHA-256, ZIP CRC, all 148 Night source files, prerendered Home assets and all packaged server files match the tag.

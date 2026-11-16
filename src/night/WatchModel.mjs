@@ -18,7 +18,7 @@ export function roomTarget(room, serverTime, latency = 0) {
   if (!sample || !Number.isFinite(room.updatedAt) || !Number.isFinite(serverTime)) return null;
   const elapsed = sample.paused || sample.buffering ? 0 : Math.max(0, Math.min(15000, serverTime + Math.min(1000, Math.max(0, latency)) - room.updatedAt)) / 1000;
   if(room.readiness?.hold)return {...sample,position:room.readiness.hold.position,buffering:true};
-  return {...sample, position: Math.min(604800, sample.position + elapsed * sample.rate)};
+  return {...sample, position: Math.min(604800, sample.position + elapsed * sample.rate),controlRevision:room.controlRevision??0,sourceRevision:room.sourceRevision??0};
 }
 export function playbackCorrection(current,target){
   if(!mediaSample(current)||!mediaSample(target))return null;
@@ -31,4 +31,10 @@ export function rememberVideo(records,item){
   if(!watchURL(item?.url)||!Number.isFinite(item.position)||item.position<0)return Array.isArray(records)?records.slice(0,50):[];
   const entry={url:item.url,title:String(item.title||new URL(item.url).hostname).slice(0,160),position:Math.min(604800,item.position),duration:Number.isFinite(item.duration)&&item.duration>0?Math.min(604800,item.duration):null,at:Number.isSafeInteger(item.at)?item.at:Date.now()};
   return [entry,...(Array.isArray(records)?records:[]).filter(old=>watchURL(old?.url)&&watchURL(old.url)!==watchURL(entry.url))].slice(0,50);
+}
+
+export function watchIntent(previous, sample, value) {
+  const command=value.event==='seeked'?'seek':value.event==='ratechange'?'rate':sample.paused?'pause':'play';
+  return {...sample,command,seek:command==='seek'||previous?.seek===true,seekSerial:value.seekSerial??previous?.seekSerial??null,
+    commandId:previous?.commandId??value.commandId,baseControlRevision:previous?.baseControlRevision??value.baseControlRevision??0,sourceRevision:value.sourceRevision??0};
 }

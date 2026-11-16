@@ -93,6 +93,17 @@ def run(binary,app_ini,output):
         content(host,'document.querySelector("video").pause();')
         wait_for(lambda:player(guest)['paused'],timeout=10)
         wait_for(lambda:abs(player(host)['time']-player(guest)['time'])<.5)
+        for initiator,other in [(host,guest),(guest,host)]:
+            content(host,'document.querySelector("video").currentTime=3;')
+            wait_for(lambda:abs(player(host)['time']-3)<.3 and abs(player(guest)['time']-3)<.3,timeout=10)
+            content(host,'document.querySelector("video").play();');wait_for(lambda:not player(host)['paused'] and not player(guest)['paused'],timeout=10)
+            chrome(initiator,'const T=ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether;w.originalMedia=T.media;T.media=function(actor,value){w.setTimeout(()=>w.originalMedia.call(T,actor,value),1600);};')
+            content(initiator,'document.querySelector("video").currentTime=18;')
+            time.sleep(.9);assert player(initiator)['time']>=18,{'rolled_back_before_command':player(initiator)}
+            wait_for(lambda:player(other)['time']>=18 and abs(player(other)['time']-player(initiator)['time'])<1.4,timeout=10)
+            time.sleep(1);assert player(initiator)['time']>=18 and player(other)['time']>=18
+            chrome(initiator,'const T=ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether;T.media=w.originalMedia;')
+            content(host,'document.querySelector("video").pause();');wait_for(lambda:player(host)['paused'] and player(guest)['paused'],timeout=10)
         content(host,'document.querySelector("video").currentTime=14;document.querySelector("video").playbackRate=1.5;')
         wait_for(lambda:abs(player(guest)['time']-14)<.4 and abs(player(guest)['rate']-1.5)<.01,timeout=10)
         content(host,'document.querySelector("video").play();')
@@ -124,12 +135,12 @@ def run(binary,app_ini,output):
         wait_for(lambda:chrome(guest,'return [...Services.wm.getEnumerator("navigator:browser")].length===2&&!!w.gNightBrowser;'))
         private=async_chrome(guest,'try{await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watch(w);return false;}catch{return true;}')
         assert private
-        result={'ad_fixture_holds_and_resumes_both':True,'passed':True,'quick_panel_create_invite_join_watch':True,'friend_invite_creates_room_and_starts_watch':True,'current_video_detected_with_title':True,'controls_while_page_still_loading':True,'busy_control_seconds':round(busy_control_seconds,3),'actual_video_play_pause_seek_rate':True,'host_changes_video':True,'guest_follows_host':True,'guest_can_pause_play_seek':True,'drift_seconds':round(drift,3),'disconnect_pauses_without_reset':True,'server_restart_preserves_id_and_name':True,'tab_close_stops_sync':True,'private_excluded':True,'social_profile_visible_to_friend':True,'autoplay_note':'Fixture explicitly allows autoplay; real websites may require pressing Play once.'}
+        result={'automatic_skip_from_either_member':True,'delayed_skip_event_does_not_roll_back':True,'server_authoritative_timeline':True,'ad_fixture_holds_and_resumes_both':True,'passed':True,'quick_panel_create_invite_join_watch':True,'friend_invite_creates_room_and_starts_watch':True,'current_video_detected_with_title':True,'controls_while_page_still_loading':True,'busy_control_seconds':round(busy_control_seconds,3),'actual_video_play_pause_seek_rate':True,'host_changes_video':True,'guest_follows_host':True,'guest_can_pause_play_seek':True,'drift_seconds':round(drift,3),'disconnect_pauses_without_reset':True,'server_restart_preserves_id_and_name':True,'tab_close_stops_sync':True,'private_excluded':True,'social_profile_visible_to_friend':True,'autoplay_note':'Fixture explicitly allows autoplay; real websites may require pressing Play once.'}
         (output/'watch-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
     except Exception:
         for i,b in enumerate(drivers):
             try:
-                capture(b,f'watch-failure-{i}.png');(output/f'watch-failure-{i}.json').write_text(json.dumps(chrome(b,'const {NightTogether:T}=ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs");return {url:w.gBrowser.selectedBrowser.currentURI.spec,status:T.watchStatus,error:T.watchError,intent:T.watchSession?.intent,revision:T.watchSession?.revision,sample:T.watchSession?.sample,actor:!!T.watchSession?.actor,running:T.watchSession?.running};'),ensure_ascii=False))
+                capture(b,f'watch-failure-{i}.png');(output/f'watch-failure-{i}.json').write_text(json.dumps(chrome(b,'const {NightTogether:T}=ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs");return {url:w.gBrowser.selectedBrowser.currentURI.spec,status:T.watchStatus,error:T.watchError,intent:T.watchSession?.intent,revision:T.watchSession?.revision,sample:T.watchSession?.sample,actor:!!T.watchSession?.actor,running:T.watchSession?.running,events:T.watchEvents,room:T.watchSession?.roomSnapshot};'),ensure_ascii=False))
             except Exception:pass
         raise
     finally:

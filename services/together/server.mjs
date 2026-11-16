@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {timelinePosition, RoomCommands} from './timeline.mjs';
 import {RoomReadiness} from './readiness.mjs';
 import {notificationAction,publicNotices} from './notifications.mjs';
 import {publicWeb} from './web.mjs';
@@ -20,7 +21,7 @@ const safeURL = value => {
 export async function createService({path, now = Date.now, releases, iceServers, turnSecret = process.env.NIGHT_TURN_SECRET, turnURL = process.env.NIGHT_TURN_URL} = {}) {
   let state = {users: {}, rooms: {}};
   if (path) { try { state = JSON.parse(await readFile(path, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; } }
-  const rates = new Map(), signals = new Map(), seen=new Map(), readiness=new RoomReadiness(now);
+  const rates = new Map(), signals = new Map(), seen=new Map(), readiness=new RoomReadiness(now), commands=new RoomCommands();
   let signalSequence = 0;
   const web = publicWeb({releases});
   const rtc = user => {
@@ -46,12 +47,13 @@ export async function createService({path, now = Date.now, releases, iceServers,
     const ready=room?readiness.view(room):null;
     const publicRoom = room ? {...room, rate: room.rate ?? 1, buffering: room.buffering ?? false} : null;
     if (publicRoom) {
+      if (room.authority === "server" && !ready.hold) { publicRoom.position=timelinePosition(room,now()); publicRoom.updatedAt=now(); }
       delete publicRoom.inviteToken; delete publicRoom.inviteExpires;
       publicRoom.readiness=ready;publicRoom.invited=room.owner===user.id?user.friends.filter(id=>state.users[id]?.invites.includes(room.id)).map(id=>profile(state.users[id])):[];
       publicRoom.requests = room.owner === user.id ? (room.requests ?? []).filter(id=>state.users[id]).map(id=>profile(state.users[id])) : [];
       publicRoom.link = room.owner === user.id && room.inviteToken && room.inviteExpires > now() ? `https://browser.night-watchers.com/join/${room.inviteToken}` : null;
     }
-    return {protocol: 4,features:['readiness','cast','encrypted-notices','profile-avatars','video-invites'],notices:publicNotices(user,now()), pendingRooms:Object.values(state.rooms).filter(r=>r.requests?.includes(user.id)).map(r=>({id:r.id,owner:profile(state.users[r.owner])})), self: profile(user), people, id: user.id, friends: user.friends.map(id => profile(state.users[id])), incoming: user.incoming, outgoing: user.outgoing,
+    return {protocol: 4,features:['authoritative-playback','readiness','cast','encrypted-notices','profile-avatars','video-invites'],notices:publicNotices(user,now()), pendingRooms:Object.values(state.rooms).filter(r=>r.requests?.includes(user.id)).map(r=>({id:r.id,owner:profile(state.users[r.owner])})), self: profile(user), people, id: user.id, friends: user.friends.map(id => profile(state.users[id])), incoming: user.incoming, outgoing: user.outgoing,
       invitations, room: publicRoom, serverTime: now()};
   }
   function authenticated(request) {
@@ -94,11 +96,14 @@ export async function createService({path, now = Date.now, releases, iceServers,
       case 'room-ready': {
         const room=state.rooms[body.room];if(!room?.members.includes(user.id))fail(403,'Комната недоступна.');
         if(typeof body.ready!=='boolean'||typeof body.ad!=='boolean'||!['enabled','none','unknown'].includes(body.blocker))fail(400,'Неверное состояние готовности.');
+        if (room.owner===user.id && body.authority==='server' && room.authority!=='server') {
+          room.position=timelinePosition(room,now());room.updatedAt=now();room.authority='server';room.controlRevision=(room.controlRevision??0)+1;room.sourceRevision??=0;await save();
+        }
         readiness.set(room,user.id,body);return snapshot(user);
       }
       case 'room-cast': {
         const room=state.rooms[body.room];if(room?.owner!==user.id||typeof body.active!=='boolean')fail(403,'Трансляцией управляет владелец.');
-        room.mode=body.active?'cast':'local';room.revision++;room.updatedAt=now();break;
+        if(room.authority==='server')room.position=timelinePosition(room,now());room.mode=body.active?'cast':'local';room.revision++;room.updatedAt=now();break;
       }
       case 'profile-avatar': {
         if(body.avatar===null){user.avatar=null;break;}
@@ -169,7 +174,8 @@ export async function createService({path, now = Date.now, releases, iceServers,
       }
       case 'room-create': {
         const url = safeURL(body.url); leave(user);
-        const room = {id: id(), owner: user.id, members: [user.id], url, mode:'local',...videoInfo(body,url), position: 0, paused: true, revision: 0, controlRevision:0, updatedAt: now()};
+        const room = {id: id(), owner: user.id, members: [user.id], url, mode:'local',authority:body.authority==='server'?'server':'owner',sourceRevision:0,...videoInfo(body,url), position: 0, paused: true, revision: 0, controlRevision:0, updatedAt: now()};
+        if(room.authority==='server'&&Number.isFinite(body.position)&&body.position>=0&&body.position<=604800&&typeof body.paused==='boolean'&&Number.isFinite(body.rate)&&body.rate>=.25&&body.rate<=4){room.position=body.position;room.paused=body.paused;room.rate=body.rate;if(Number.isFinite(body.duration)&&body.duration>0&&body.duration<=604800)room.duration=body.duration;}
         state.rooms[room.id] = room; break;
       }
       case 'room-invite': {
@@ -188,7 +194,7 @@ export async function createService({path, now = Date.now, releases, iceServers,
       case 'room-source': {
         const room = state.rooms[body.room];
         if (room?.owner !== user.id) fail(403, 'Видео меняет создатель комнаты.');
-        const sourceURL=safeURL(body.url);readiness.remove(room);Object.assign(room, {mode:'local',url: sourceURL,...videoInfo(body,sourceURL), position: 0, paused: true, rate: 1, buffering: false, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id}); break;
+        const sourceURL=safeURL(body.url);readiness.remove(room);Object.assign(room, {mode:'local',url: sourceURL,...videoInfo(body,sourceURL), position: 0, duration:null,lastCommand:null,paused: true, rate: 1, buffering: false, revision: room.revision + 1, sourceRevision:(room.sourceRevision??0)+1,controlRevision:(room.controlRevision??0)+1, updatedAt: now(), controlledBy:user.id}); break;
       }
       case 'room-control':
       case 'room-state': {
@@ -196,13 +202,21 @@ export async function createService({path, now = Date.now, releases, iceServers,
         if (!room?.members.includes(user.id) || body.type === 'room-state' && room.owner !== user.id) fail(403, 'Нужно участвовать в комнате.');
         const waiting=readiness.view(room).hold;
         if(body.type==='room-state'&&waiting)return snapshot(user);
-        if (body.revision !== room.revision) fail(409, 'Состояние комнаты изменилось.');
+        const authoritative=room.authority==='server', control=body.type==='room-control';
+        if (authoritative && control && commands.check(room,user,body,now())) {await save();return snapshot(user);}
+        if ((!authoritative || !control || body.commandId===undefined) && body.revision !== room.revision) fail(409, 'Состояние комнаты изменилось.');
         if (!Number.isFinite(body.position) || body.position < 0 || body.position > 604800 || typeof body.paused !== 'boolean') fail(400, 'Некорректная позиция.');
         const rate = body.rate ?? 1;
         if (!Number.isFinite(rate) || rate < 0.25 || rate > 4 || (body.buffering !== undefined && typeof body.buffering !== 'boolean')) fail(400, 'Некорректная скорость.');
-        if(body.type==='room-state'&&Number.isFinite(body.duration)&&body.duration>0&&body.duration<=604800)room.duration=body.duration;
-        if(body.type==='room-control'){room.controlRevision=(room.controlRevision??0)+1;room.command=['play','pause','seek','rate'].includes(body.command)?body.command:'state';}
-        Object.assign(room, {position: body.position, paused: body.paused, rate, buffering: body.buffering === true, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id});if(body.type==='room-control')readiness.control(room); break;
+        const durationChanged=!control&&Number.isFinite(body.duration)&&body.duration>0&&body.duration<=604800&&body.duration!==room.duration;
+        if(durationChanged)room.duration=body.duration;
+        if (authoritative && !control) {if(durationChanged)await save();return snapshot(user);}
+        if (authoritative && waiting) fail(409,'Ждём окончания рекламы у участника.');
+        const command=['play','pause','seek','rate'].includes(body.command)?body.command:'state';
+        const position=authoritative && command!=='seek' && body.seek!==true ? timelinePosition(room,now()) : body.position;
+        if(control){room.controlRevision=(room.controlRevision??0)+1;room.command=body.seek===true?'seek':command;}
+        Object.assign(room, {position, paused: body.paused, rate, buffering: authoritative?false:body.buffering===true, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id});
+        if(control){readiness.control(room);if(authoritative)commands.accept(room,user,body,now());} break;
       }
       default: fail(400, 'Неизвестное действие.');
     }

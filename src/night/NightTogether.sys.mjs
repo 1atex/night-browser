@@ -4,7 +4,7 @@ import {NightTogetherSounds} from "resource:///modules/night/NightTogetherSounds
 import {setTimeout, clearTimeout} from "resource://gre/modules/Timer.sys.mjs";
 import {PrivateBrowsingUtils} from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
 import {roomCommand,stateSignature} from "resource:///modules/night/TogetherUIModel.mjs";
-import {watchURL, mediaSample, roomTarget} from "resource:///modules/night/WatchModel.mjs";
+import {watchURL, mediaSample, roomTarget, watchIntent} from "resource:///modules/night/WatchModel.mjs";
 
 const path = () => PathUtils.join(PathUtils.profileDir, "night-together.json");
 export const NightTogether = {
@@ -36,7 +36,7 @@ export const NightTogether = {
   cachedSignature:'',
   rememberState(state){this.stateAt=Date.now();this.invitationAlerts(state);this.cachedState=state;const signature=stateSignature(state);if(signature!==this.cachedSignature){this.cachedSignature=signature;Services.obs.notifyObservers(null,'night-together-state');}return state;},
   async state() { const credentials = await this.credentials(); if (!credentials) return null; this.endpoint=credentials.endpoint;return this.rememberState(await this.request(credentials.endpoint, "/v1/state", {credentials})); },
-  async action(body) { const credentials = await this.credentials(); if (!credentials) throw new Error("Сначала подключи сервер."); const state = await this.request(credentials.endpoint, "/v1/action", {credentials, body}); if (body.type === "room-leave") {this.command({type:"disconnect"});this.stopWatch();} return this.rememberState(state); },
+  async action(body) { const credentials = await this.credentials(); if (!credentials) throw new Error("Сначала подключи сервер."); if(body.type==="room-create"&&this.cachedState?.features?.includes("authoritative-playback"))body={...body,authority:"server"};const state = await this.request(credentials.endpoint, "/v1/action", {credentials, body}); if (body.type === "room-leave") {this.command({type:"disconnect"});this.stopWatch();} return this.rememberState(state); },
   async disconnect(){
     clearTimeout(this.presenceTimer);this.seenInvitations.clear();this.command({type:'disconnect'});this.roomActor?.didDestroy();this.setCommunication(null);this.rememberState(null);this.stopWatch();
     const credentials=await this.credentials();if(credentials){for(const type of ['room-leave','notice-disable'])this.request(credentials.endpoint,'/v1/action',{credentials,body:{type}}).catch(()=>{});}
@@ -61,7 +61,7 @@ export const NightTogether = {
     const sample={position:base.position,paused:base.paused,rate:base.rate,buffering:false};let command='play';
     if(value.type==='video-toggle'){sample.paused=!sample.paused;command=sample.paused?'pause':'play';}
     else{const position=value.type==='video-step'&&[-10,10].includes(value.seconds)?sample.position+value.seconds:value.type==='video-seek'?value.position:null;if(!Number.isFinite(position)||position<0&&value.type!=='video-step'||position>604800)return false;sample.position=Math.max(0,Math.min(session.sample?.duration??room.duration??604800,position));command='seek';}
-    session.intent={...sample,command};this.trace('overlay-control',{command});this.tick();return true;
+    session.intent={...sample,command,seek:command==='seek',commandId:Services.uuid.generateUUID().toString().replace(/[^a-f0-9]/g,''),baseControlRevision:room.controlRevision??0,sourceRevision:room.sourceRevision??0};this.trace('overlay-control',{command});this.tick();return true;
   },
   roomBrowsers: new WeakMap(),
   roomActor: null,
@@ -141,22 +141,33 @@ export const NightTogether = {
     const viewer=state.room.mode==='cast'&&state.room.owner!==state.id;
     const tab=viewer?await this.openRoom(window,{connect:true}):watchURL(selected.linkedBrowser.currentURI.spec)===watchURL(state.room.url)?selected:window.gBrowser.addTrustedTab(state.room.url, {relatedToCurrent:true});
     window.gBrowser.selectedTab = tab;
-    const session = {window, tab, viewer, room: state.room.id, source: state.room.url, actor: null, sample: null, dirty: true, sent: 0, timer: null, running: false};
+    const session = {window, tab, viewer, room: state.room.id, source: state.room.url, roomSnapshot:state.room, actor: null, sample: null, dirty: true, sent: 0, timer: null, running: false};
     session.closed = () => this.stopWatch();
     tab.addEventListener("TabClose", session.closed, {once: true});
     window.addEventListener("unload", session.closed, {once: true});
     this.watchSession = session;
+    const attach=()=>this.attachPlayer(session).catch(error=>this.trace('player-attach-retry',{error:String(error)}));
+    session.progress={QueryInterface:ChromeUtils.generateQI(['nsIWebProgressListener','nsISupportsWeakReference']),onLocationChange:attach,onStateChange:(_progress,_request,flags)=>{if(flags&Ci.nsIWebProgressListener.STATE_IS_DOCUMENT)attach();}};
+    session.tab.linkedBrowser.addProgressListener(session.progress,Ci.nsIWebProgress.NOTIFY_LOCATION|Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
     this.openRoom(window,{connect:true,background:true}).catch(error=>console.error("Night room connection",error));
     this.setPhase("loading","Открываем видео комнаты…");
     this.tick();
     return tab;
+  },
+  async attachPlayer(session, room=session.roomSnapshot) {
+    if(this.watchSession!==session||!room)return null;
+    const browser=session.tab.linkedBrowser,global=browser.browsingContext.currentWindowGlobal;
+    if(!global||!watchURL(global.documentURI.spec)||!session.viewer&&watchURL(global.documentURI.spec)!==watchURL(session.source))return null;
+    const actor=global.getActor('NightWatch');
+    if(actor!==session.actor){session.actor=actor;const sample=await actor.sendQuery('NightWatch:Start',{viewer:session.viewer,controlRevision:room.controlRevision??0,sourceRevision:room.sourceRevision??0});if(this.watchSession!==session||session.actor!==actor)return null;session.sample=mediaSample(sample);session.dirty=true;this.trace('player-attached');this.updateOverlay();}
+    return actor;
   },
   media(actor, value) {
     const session = this.watchSession;
     if (!session || session.actor !== actor) return;
     const sample = mediaSample(value?.sample);
     if (!sample) return;
-    session.sample = sample; session.dirty = true; if (value.control) {session.intent={...sample,command:value.event==='seeked'?'seek':value.event==='ratechange'?'rate':sample.paused?'pause':'play'};this.trace("control-queued");}
+    session.sample = sample; session.dirty = true; if (value.control) {session.intent=watchIntent(session.intent,sample,{...value,commandId:Services.uuid.generateUUID().toString().replace(/[^a-f0-9]/g,'')});this.trace("control-queued",{event:value.event,position:sample.position,paused:sample.paused,base:session.intent.baseControlRevision,source:session.intent.sourceRevision});}
     this.tick();
   },
   stopWatch(text = "") {
@@ -165,6 +176,7 @@ export const NightTogether = {
     if (session) {
       if(session.roomSnapshot&&session.sample)NightWatchHistory.record({url:session.source,title:session.roomSnapshot.title||session.tab.linkedBrowser.contentTitle,position:session.roomSnapshot?roomTarget(session.roomSnapshot,(session.serverTime??Date.now())+Math.max(0,Date.now()-(session.snapshotAt??Date.now())))?.position??session.sample.position:session.sample.position,duration:session.sample.duration,at:Date.now()}).then(()=>NightWatchHistory.flush());
       this.watchSession = null; clearTimeout(session.timer);
+      session.tab.linkedBrowser.removeProgressListener(session.progress);
       session.tab.removeEventListener("TabClose", session.closed);
       session.window.removeEventListener("unload", session.closed);
       try { session.actor?.sendAsyncMessage("NightWatch:Stop"); } catch {}
@@ -189,38 +201,42 @@ export const NightTogether = {
       if (room.url !== session.source) {
         await this.stopCast();
         try { session.actor?.sendAsyncMessage("NightWatch:Stop"); } catch {}
-        session.source = room.url;session.metadataAt=0;session.metadataSignature=null; session.actor = null; session.sample = null; session.intent=null; session.dirty = true;
+        session.roomSnapshot=room;session.source = room.url;session.metadataAt=0;session.metadataSignature=null; session.actor = null; session.sample = null; session.intent=null; session.dirty = true;
         session.tab.linkedBrowser.loadURI(Services.io.newURI(room.url), {triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});
         this.setPhase("loading","Загружаем новое видео…"); return;
       }
       const browser = session.tab.linkedBrowser;
       if (browser.currentURI.spec === 'about:blank' || !browser.browsingContext.currentWindowGlobal || !watchURL(browser.browsingContext.currentWindowGlobal.documentURI.spec)) { this.setPhase('loading','Загружаем видео…');return; }
       if (!session.viewer&&watchURL(browser.currentURI.spec) !== watchURL(room.url)) { this.stopWatch("Открыта другая страница. Вернись в комнату, чтобы продолжить."); return; }
-      const actor = browser.browsingContext.currentWindowGlobal.getActor('NightWatch');
-      if (actor !== session.actor) {
-        session.actor = actor; session.sample = mediaSample(await actor.sendQuery('NightWatch:Start',{viewer:session.viewer})); session.dirty = true;this.trace('player-attached');this.updateOverlay();
-      }
+      const actor=await this.attachPlayer(session,room);
+      if(!actor)return;
       if(room.owner===state.id&&!session.viewer&&(!session.metadataAt||Date.now()-session.metadataAt>10000)&&state.features?.includes('video-invites')){const info=await actor.sendQuery('NightWatch:Inspect');session.metadataAt=Date.now();const signature=JSON.stringify([info?.title,info?.poster]);if(info?.available&&watchURL(info.url)===watchURL(room.url)&&signature!==session.metadataSignature){const updated=await this.action({type:'room-metadata',room:room.id,title:info.title,poster:info.poster});room=updated.room;session.metadataSignature=signature;}}
       const playerStatus=await actor.sendQuery('NightWatch:Status');const local=mediaSample(playerStatus?.sample);if(local)session.sample=local;
       if(!session.viewer&&state.protocol>=4&&(Date.now()-(session.readinessAt??0)>3000||session.readinessAd!==playerStatus?.ad)){
-        const updated=await this.action({type:'room-ready',room:room.id,ready:playerStatus?.ready===true,ad:playerStatus?.ad===true,blocker:await NightWatchCompatibility.blocker()});room=updated.room;session.readinessAt=Date.now();session.readinessAd=playerStatus?.ad;
+        const updated=await this.action({type:'room-ready',room:room.id,ready:playerStatus?.ready===true,ad:playerStatus?.ad===true,blocker:await NightWatchCompatibility.blocker(),...(state.features?.includes('authoritative-playback')?{authority:'server'}:{})});room=updated.room;session.readinessAt=Date.now();session.readinessAd=playerStatus?.ad;
       }
       session.roomSnapshot=room;session.snapshotAt=Date.now();session.serverTime=state.serverTime;
-      if(!session.viewer&&playerStatus?.ad){session.wasAdvertisement=true;session.intent=null;this.setPhase('advertisement','У тебя реклама · ждём окончания вставки…');return;}
-      if(!session.viewer&&room.readiness?.hold){session.wasHeld=true;session.intent=null;const target=roomTarget(room,state.serverTime);await actor.sendQuery('NightWatch:Apply',target);this.setPhase('waiting-advertisement','У участника реклама · ждём вместе…');return;}
-      if(session.wasHeld||session.wasAdvertisement&&playerStatus?.ready){const target=roomTarget(room,state.serverTime);if(target){target.forceSeek=session.wasAdvertisement===true;await actor.sendQuery('NightWatch:Apply',target);}session.wasHeld=false;session.wasAdvertisement=false;}
+      if(!session.viewer&&playerStatus?.ad){session.wasAdvertisement=true;session.intent=null;await actor.sendQuery('NightWatch:DiscardSeek');this.setPhase('advertisement','У тебя реклама · ждём окончания вставки…');return;}
+      if(!session.viewer&&room.readiness?.hold){session.wasHeld=true;session.intent=null;await actor.sendQuery('NightWatch:DiscardSeek');const target=roomTarget(room,state.serverTime);await actor.sendQuery('NightWatch:Apply',target);this.setPhase('waiting-advertisement','У участника реклама · ждём вместе…');return;}
+      if(!session.intent&&(session.wasHeld||session.wasAdvertisement&&playerStatus?.ready)){const target=roomTarget(room,state.serverTime);if(target){target.forceSeek=session.wasAdvertisement===true;await actor.sendQuery('NightWatch:Apply',target);}session.wasHeld=false;session.wasAdvertisement=false;}
       if(Date.now()-(session.historyAt??0)>15000&&local){session.historyAt=Date.now();NightWatchHistory.record({url:room.url,title:room.title||browser.contentTitle,position:roomTarget(room,state.serverTime)?.position??local.position,duration:local.duration,at:Date.now()});}
       if (session.intent && state.protocol >= 3) {
         const intent=session.intent; session.intent=null;session.pendingIntent=intent;
         try {
           const updated=await this.action({type:'room-control',room:room.id,revision:room.revision,...intent});
-          room=updated.room;session.roomSnapshot=room;session.snapshotAt=Date.now();session.serverTime=updated.serverTime;session.pendingIntent=null; session.revision=room.revision; session.sent=Date.now();if(!session.viewer){const target=roomTarget(room,updated.serverTime);if(target){target.forceSeek=intent.command==='seek';await actor.sendQuery('NightWatch:Apply',target);}}this.trace("control-sent",{revision:room.revision});
-        } catch(error) {if(error.status===409){session.intent ??= intent;this.trace("revision-conflict");}else throw error;}finally{session.pendingIntent=null;}
+          room=updated.room;session.roomSnapshot=room;session.snapshotAt=Date.now();session.serverTime=updated.serverTime;session.pendingIntent=null; session.revision=room.revision;session.controlRevision=room.controlRevision;
+          if(session.intent&&session.intent.baseControlRevision===intent.baseControlRevision)session.intent.baseControlRevision=room.controlRevision;
+          session.sent=Date.now();if(!session.viewer&&!session.intent){const target=roomTarget(room,updated.serverTime);if(target){target.forceSeek=intent.command==='seek'||intent.seek===true;target.settleSeekSerial=intent.seekSerial;await actor.sendQuery('NightWatch:Apply',target);}}this.trace("control-sent",{revision:room.revision});
+        } catch(error) {if(error.status===409){
+            this.trace("revision-conflict");
+            if(room.authority==='server'){const fresh=await this.state();if(fresh?.room?.id===session.room&&!session.intent){const target=roomTarget(fresh.room,fresh.serverTime);if(target){target.settleSeekSerial=intent.seekSerial;await actor.sendQuery('NightWatch:Apply',target);}}}
+            else session.intent ??= intent;
+          }else {session.intent ??= intent;throw error;}}finally{session.pendingIntent=null;}
         this.setPhase("ready",`Синхронизация готова · ${room.members.length} в комнате`); return;
       }
       if(session.viewer){this.setPhase('cast-viewer','Смотришь трансляцию плеера · управление общее');return;}
       const owner = room.owner === state.id;
-      if (!owner || room.controlledBy && session.revision !== room.revision && room.controlledBy !== state.id) {
+      if (room.authority==='server' || !owner || room.controlledBy && session.revision !== room.revision && room.controlledBy !== state.id) {
         const target=roomTarget(room,state.serverTime,(end-begin)/2);if(target)target.forceSeek=room.command==='seek'&&session.controlRevision!==room.controlRevision;
         if (!target) throw new Error("Некорректное состояние воспроизведения.");
         const stale=state.serverTime-room.updatedAt>15000;

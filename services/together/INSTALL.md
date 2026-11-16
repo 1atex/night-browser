@@ -1,4 +1,4 @@
-# Night Together 0.18.0: Docker и существующий reverse proxy
+# Night Together 0.18.1: Docker и существующий reverse proxy
 
 Команды рассчитаны на пользователя noon, rootless Docker и каталог `/home/noon/night-together`. Входящий домен уже обслуживает nginx/Caddy на хосте; приложение слушает только `127.0.0.1:8787`. Для обновления работающего сервиса права администратора не нужны.
 
@@ -6,8 +6,8 @@
 
 ```sh
 cd /home/noon
-curl -fL https://github.com/1atex/night-browser/releases/download/v0.18.0-preview.3/night-together-server-0.18.0.zip -o night-together-server-0.18.0.zip
-unzip -o night-together-server-0.18.0.zip -d /home/noon/night-together
+curl -fL https://github.com/1atex/night-browser/releases/download/v0.18.1-preview.1/night-together-server-0.18.1.zip -o night-together-server-0.18.1.zip
+unzip -o night-together-server-0.18.1.zip -d /home/noon/night-together
 cd /home/noon/night-together/services/together
 docker compose -f compose.yaml -f compose.proxy.yaml up -d --build together
 curl -f http://127.0.0.1:8787/health
@@ -19,6 +19,12 @@ curl -f https://browser.night-watchers.com/health
 Оба запроса должны вернуть `{"ok":true}`. Если на ПК ещё версия ниже 0.15, обнови Night через Настройки → Обновления. Само обновление сервера не меняет ID и список друзей: имя Compose-проекта и volume `night-together_together_data` сохранены. Клиент 0.13 продолжает видеть друзей, но для синхронизации видео обоим нужен 0.15.
 
 Если сервер уже работает, его nginx, SSL и Cloudflare для этого обновления не перенастраиваются. Новая базовая compose-конфигурация публикует только loopback-порт; дополнительный Caddy находится в профиле `standalone` и по умолчанию не запускается. Старый compose.proxy.yaml остаётся совместимым; используй одинаковые `-f` аргументы при следующих операциях.
+
+## Синхронизация 0.18.1
+
+Обнови сервер и Night у обоих участников. В новых комнатах сервер задаёт общую позицию и скорость. Новый владелец переводит существующую комнату на этот режим при подключении плеера. Автоматическая перемотка, включая пропуск опенинга, отправляется как общая команда; обычные отчёты плеера больше не перезаписывают позицию. Повтор команды безопасен, а запоздавшие команды старой серии отклоняются. Распознанная рекламная вставка приостанавливает общую шкалу до возвращения к видео.
+
+Транспорт синхронизации пока остаётся HTTP. Для этого исправления не нужно менять nginx, Cloudflare, порты или WebRTC-голос. Сторонние плееры с собственной временной шкалой рекламы и разные монтажные версии эпизода требуют отдельной проверки по ссылке на сайт.
 
 ## Как смотреть
 

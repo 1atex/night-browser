@@ -31,7 +31,7 @@ export class NightTogetherView {
   }
   async #refresh(){if(this.#busy||!this.#alive)return;this.#busy=true;try{await NightTogether.state();this.#render();}catch(error){this.#message(error.message);}finally{this.#busy=false;}}
   async #act(body){await NightTogether.action(body);this.#render();}
-  #source(){const url=this.#input?.value.trim()||this.#url;if(!watchURL(url))throw Error('Открой вкладку с видео или вставь ссылку.');return {url,title:this.#video&&watchURL(this.#video.url)===watchURL(url)?this.#video.title:new URL(url).hostname,poster:this.#video&&watchURL(this.#video.url)===watchURL(url)?this.#video.poster:''};}
+  #source(){const url=this.#input?.value.trim()||this.#url;if(!watchURL(url))throw Error('Открой вкладку с видео или вставь ссылку.');return {url,...(this.#video&&watchURL(this.#video.url)===watchURL(url)&&this.#video.sample?this.#video.sample:{}),title:this.#video&&watchURL(this.#video.url)===watchURL(url)?this.#video.title:new URL(url).hostname,poster:this.#video&&watchURL(this.#video.url)===watchURL(url)?this.#video.poster:''};}
   async #ensureRoom(){if(NightTogether.cachedState?.room)return NightTogether.cachedState.room;return (await NightTogether.action({type:'room-create',...this.#source()})).room;}
   async #invite(id){
     const room=await this.#ensureRoom();await this.#act({type:'room-invite',room:room.id,id});
