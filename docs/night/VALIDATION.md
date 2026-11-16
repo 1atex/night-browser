@@ -6,7 +6,7 @@
 
 Local Node suite: 91 checks. Native two-client tests additionally exercise trusted fullscreen chat with keyboard events hidden from the source page; overlay play/seek; ad-marker hold/resume; P2P captureStream video/audio RTP and guest controls of the owner player. No physical microphone, protected subscription service, eight-client load or WAN/TURN is asserted.
 
-`tests/native/notices.py` checks actual OSKeyStore protection and two-client encrypted delivery, offline queue/ack, key-change blocking with draft retention, disable and key-box removal on Windows. The Linux cloud has no usable OS keystore: it checks failure without plaintext fallback; successful Windows delivery must be confirmed by CI before release.
+`tests/native/notices.py` checks actual OSKeyStore protection and two-client encrypted delivery, offline queue/ack, key-change blocking with draft retention, disable and key-box removal on Windows. The Linux cloud has no usable OS keystore: it checks failure without plaintext fallback; Windows delivery passed in the tagged 0.17 suite recorded below.
 
 `tests/native/import_browsers.py` uses synthetic Chrome/Edge/Brave profiles read by native Gecko migrators, verifies bookmarks and unchanged source hashes, settings selection and private exclusion. Native WebCrypto tests verify encrypted roundtrip and authenticated metadata. This fixture does not validate installed-browser discovery on every machine, app-bound password decryption or every listed browser.
 
@@ -430,3 +430,23 @@ The earlier room-startup failure was independently confirmed when repeating Nigh
 | night-browser-0.16.0-preview-windows-x64.zip | `21e40dd2d80f3493c0819edc53c4a3c399362b263bbc7edcc7235296ec9d6976` |
 | night-browser-0.16.0-preview-windows-x64-setup.exe | `5015d980c2dc7e9659e194a501f683428c0ad77a3754a00fea349cb60f7b436f` |
 | night-together-server-0.16.0.zip | `e46dfe4fc2e26b6fa61e8d1b41c6320ac0fbe7b1612073a4d7555da781061dd8` |
+
+## Published 0.17 result
+
+[Browser v0.17.0-preview.3](https://github.com/1atex/night-browser/releases/tag/v0.17.0-preview.3) uses `d15a00629424e54e40003b51ab05ee875b0119a9`. [Tag run 43796997027](https://github.com/1atex/night-browser/actions/runs/43796997027) passed the complete Windows suite, all 91 Node checks, Docker, nginx and Coturn, and publication. Server checks now gate publication. The Docker context includes every root module, and startup errors are printed by the test cleanup.
+
+All 63 public assets were downloaded. Installer/portable/server SHA-256, ZIP CRC, manifest, generated revision and all 143 packaged Night files plus 23 server files matched the tag (text line endings normalized). Browser BuildID: `20261116031443`. Packaged aliases and native patches were also checked.
+
+The Windows report confirms real OSKeyStore protection, encrypted delivery in both directions, offline queue and acknowledgement, changed-key blocking with draft retention, disabling the public key and removing the local key box on disconnect. The synthetic native Chrome/Edge/Brave import and native WebCrypto checks passed, with source hashes unchanged. These are not installed-browser discovery or app-bound password tests.
+
+The social report confirms trusted fullscreen chat input, bidirectional messages, absence of key events on the video page, Escape keeping fullscreen, and actual pointer play/seek in the overlay. Regular and delayed-script variants passed. The watch fixture confirmed ad-marker hold/resume and commands reaching the other player in 1.671 seconds while the unrelated HTTP resource kept both tabs busy.
+
+The broadcast report received video/audio RTP and decoded frames on Windows, then used guest pause/seek to control the source and verified explicit stop. The Windows ClearKey probe aborted and is recorded as unavailable; it is not a protected-service test. A separate local Linux run attached actual ClearKey MediaKeys and verified that broadcast start is refused without entering cast mode. No DRM service or bypass is asserted.
+
+Published room controls and fullscreen chat captures were inspected. A separate headful Linux check inspected the creation panel, room and notice controls and their capsule radii. The native Windows desktop capture is clipped to the runner display; black areas and the striped automation address are fixture artifacts. VPS deployment remains with the owner.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| night-browser-0.17.0-preview-windows-x64.zip | `5fa11b943aabebe720230bdca55bc414f3ef2ff8b08cdb4deb991b0b783c414b` |
+| night-browser-0.17.0-preview-windows-x64-setup.exe | `3d3c49200c2eaf05118735bee50e04b3b77c0f364521f83ba2ea113fd4b525e0` |
+| night-together-server-0.17.0.zip | `78a7f8de4653056080883ff0e4ef9bf619df745ed2b82f7abe9e68a3391f814d` |
