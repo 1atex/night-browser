@@ -63,6 +63,7 @@ def run(binary,app_ini,output):
         assert chrome(host,'return d.getElementById("night-together-create-url").value===arguments[0]&&d.querySelector(".together-video-card strong").textContent==="Shared video fixture"&&!d.querySelector(".together-friend-list").closest("details");',video)
         panel_click(host,'Позвать смотреть')
         wait_for(lambda:state(host)['room'] is not None and len(state(guest)['invitations'])==1)
+        assert state(host)['room']['authority']=='server'
         wait_for(lambda:chrome(host,'return !!ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watchSession;'))
         chrome(guest,'d.getElementById("night-together-watch").click();')
         wait_for(lambda:chrome(guest,'return [...d.querySelectorAll("#night-together-panel button")].some(b=>b.textContent==="Присоединиться");'))

@@ -5,6 +5,7 @@ from smoke import wait_for
 
 def run(binary,app_ini,output):
     output.mkdir(parents=True,exist_ok=True)
+    version=json.loads((Path(__file__).resolve().parents[2]/"package.json").read_text())["version"]
     module=(Path(__file__).resolve().parents[2]/'services/together/server.mjs').as_uri()
     server=subprocess.Popen(['node','--input-type=module','-e',f'import {{createService}} from {json.dumps(module)};const server=await createService();server.listen(0,"127.0.0.1",()=>console.log(server.address().port));'],stdout=subprocess.PIPE,text=True)
     port=int(server.stdout.readline());endpoint=f'http://127.0.0.1:{port}'
@@ -21,7 +22,7 @@ def run(binary,app_ini,output):
     try:
         b.start_session();b.set_window_rect(width=1280,height=900);wait_for(lambda:chrome('return !!w.gNightBrowser;'))
         b.set_context('content');b.navigate('about:preferences#updates');wait_for(lambda:content('return !!document.getElementById("night-update-check");'))
-        assert content('return document.body.textContent.includes("Night 0.18.0");')
+        assert content('return document.body.textContent.includes(arguments[0]);',"Night "+version)
         chrome('Services.prefs.setStringPref("night.updates.seen-version","0.12.0");ChromeUtils.importESModule("resource:///modules/night/NightUpdates.sys.mjs").NightUpdates.startup(w);')
         wait_for(lambda:chrome('return w.gBrowser.tabs.some(t=>t.linkedBrowser.currentURI.spec.endsWith("/night/changes.html"));'))
         count=chrome('return w.gBrowser.tabs.length;')
