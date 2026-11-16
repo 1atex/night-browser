@@ -16,7 +16,7 @@
 .night-together-body p { margin:0; line-height:1.5; color:var(--night-secondary); }
 .night-together-heading,.night-together-actions,.night-together-line { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
 .night-together-heading strong { flex:1; font-size:14px; }
-.night-together-body button,.night-together-body input:not([type=range]),.night-together-body select { border:1px solid var(--night-line); border-radius:var(--night-radius); background:var(--night-field); color:var(--night-text); font:inherit; padding:9px 10px; min-width:0; }
+.night-together-body button,.night-together-body input:not([type=range]),.night-together-body select { border:1px solid var(--night-line); border-radius:var(--night-pill); background:var(--night-field); color:var(--night-text); font:inherit; padding:9px 10px; min-width:0; }
 .night-together-body button { display:inline-flex; align-items:center; justify-content:center; gap:7px; cursor:pointer; }
 .night-together-body button[data-icon]::before { content:""; display:block; width:15px; height:15px; flex:0 0 15px; background:currentColor; mask:var(--together-icon) center/contain no-repeat; }
 .night-together-body button:hover { background:var(--night-hover); }
@@ -60,6 +60,7 @@
 #night-friend-notices header { display:flex; align-items:center; gap:12px; }
 #night-friend-notices header strong { flex:1; font-size:14px; }
 #night-friend-notices :is(button,input,select,textarea) { border:1px solid var(--night-line); border-radius:12px; padding:9px 11px; background:var(--night-field); color:var(--night-text); font:inherit; }
+#night-friend-notices :is(button,input,select) { border-radius:var(--night-pill); }
 #night-friend-notices button { cursor:pointer; }
 #night-friend-notices button:disabled { opacity:.45; }
 #night-friend-notices header button { border:0; background:transparent; }
