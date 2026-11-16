@@ -25,15 +25,20 @@ export const NightTogether = {
     if (await this.credentials()) throw new Error("Сначала отключи текущий ID.");
     const result = await this.request(endpoint, "/v1/register", {body: {}});
     if (!/^[a-f0-9]{16}$/.test(result.id) || !/^[a-f0-9]{64}$/.test(result.token)) throw new Error("Сервер вернул неверный ID.");
-    await IOUtils.writeJSON(path(), {endpoint: new URL(endpoint).origin, id: result.id, token: result.token}, {tmpPath: path() + ".tmp"});
+    await IOUtils.writeJSON(path(), {endpoint: new URL(endpoint).origin, id: result.id, token: result.token}, {tmpPath: path() + ".tmp"});this.presenceTick();
   },
+  windows:new Set(),presenceTimer:null,presenceBusy:false,seenInvitations:new Set(),stateAt:0,
+  start(window){if(PrivateBrowsingUtils.isWindowPrivate(window)||this.windows.has(window))return;this.windows.add(window);window.addEventListener('unload',()=>{this.windows.delete(window);if(!this.windows.size)clearTimeout(this.presenceTimer);},{once:true});if(this.windows.size===1)this.presenceTick();},
+  async presenceTick(){clearTimeout(this.presenceTimer);if(this.presenceBusy||!this.windows.size)return;this.presenceBusy=true;let connected=false;try{connected=!!await this.credentials();if(connected&&Date.now()-this.stateAt>10000)await this.state();}catch{}finally{this.presenceBusy=false;if(connected&&this.windows.size)this.presenceTimer=setTimeout(()=>this.presenceTick(),20000);}},
+  async inspect(window){if(PrivateBrowsingUtils.isWindowPrivate(window))return null;const browser=window.gBrowser.selectedBrowser;if(!watchURL(browser.currentURI.spec))return null;try{const url=new URL(browser.currentURI.spec);if(url.origin===new URL(this.endpoint??Services.prefs.getStringPref('night.together.server','https://browser.night-watchers.com')).origin&&url.pathname==='/room')return null;}catch{return null;}try{const value=await browser.browsingContext.currentWindowGlobal?.getActor('NightWatch').sendQuery('NightWatch:Inspect');return value?.available&&watchURL(value.url)===watchURL(browser.currentURI.spec)?value:null;}catch{return null;}},
+  invitationAlerts(state){for(const invite of state?.invitations??[]){if(this.seenInvitations.has(invite.id))continue;this.seenInvitations.add(invite.id);NightTogetherSounds.play('notice');if([...this.windows].some(w=>w.fullScreen))continue;const window=[...this.windows].find(w=>!w.closed&&!w.fullScreen);if(!window)continue;try{const alert=Cc['@mozilla.org/alert-notification;1'].createInstance(Ci.nsIAlertNotification);alert.init('night-invite-'+invite.id,'','Приглашение от '+(state.people?.[invite.owner]?.name??'друга'),invite.title||'Совместный просмотр',true,invite.id,'','','',Services.scriptSecurityManager.getSystemPrincipal(),false,false,true);Cc['@mozilla.org/alerts-service;1'].getService(Ci.nsIAlertsService).showAlert(alert,{observe:(_s,topic)=>{if(topic==='alertclickcallback'&&!window.closed){window.restore();window.focus();window.document.getElementById('night-together-watch')?.click();}}});}catch{}}},
   cachedState:null,
   cachedSignature:'',
-  rememberState(state){this.cachedState=state;const signature=stateSignature(state);if(signature!==this.cachedSignature){this.cachedSignature=signature;Services.obs.notifyObservers(null,'night-together-state');}return state;},
-  async state() { const credentials = await this.credentials(); if (!credentials) return null; return this.rememberState(await this.request(credentials.endpoint, "/v1/state", {credentials})); },
+  rememberState(state){this.stateAt=Date.now();this.invitationAlerts(state);this.cachedState=state;const signature=stateSignature(state);if(signature!==this.cachedSignature){this.cachedSignature=signature;Services.obs.notifyObservers(null,'night-together-state');}return state;},
+  async state() { const credentials = await this.credentials(); if (!credentials) return null; this.endpoint=credentials.endpoint;return this.rememberState(await this.request(credentials.endpoint, "/v1/state", {credentials})); },
   async action(body) { const credentials = await this.credentials(); if (!credentials) throw new Error("Сначала подключи сервер."); const state = await this.request(credentials.endpoint, "/v1/action", {credentials, body}); if (body.type === "room-leave") {this.command({type:"disconnect"});this.stopWatch();} return this.rememberState(state); },
   async disconnect(){
-    this.command({type:'disconnect'});this.roomActor?.didDestroy();this.setCommunication(null);this.rememberState(null);this.stopWatch();
+    clearTimeout(this.presenceTimer);this.seenInvitations.clear();this.command({type:'disconnect'});this.roomActor?.didDestroy();this.setCommunication(null);this.rememberState(null);this.stopWatch();
     const credentials=await this.credentials();if(credentials){for(const type of ['room-leave','notice-disable'])this.request(credentials.endpoint,'/v1/action',{credentials,body:{type}}).catch(()=>{});}
     await IOUtils.remove(path(),{ignoreAbsent:true});await ChromeUtils.importESModule('resource:///modules/night/NightFriendNotices.sys.mjs').NightFriendNotices.forget();
   },
@@ -62,6 +67,7 @@ export const NightTogether = {
   roomActor: null,
   async openRoom(window,{connect=true,background=false}={}) {
     const credentials=await this.credentials();if(!credentials){window.openPreferences("together");return null;}
+    this.endpoint=credentials.endpoint;
     const endpoint=new URL(credentials.endpoint);
     for(const owner of [window,...Services.wm.getEnumerator('navigator:browser')]){
       if(!owner.gBrowser||PrivateBrowsingUtils.isWindowPrivate(owner))continue;
@@ -157,7 +163,7 @@ export const NightTogether = {
     this.stopCast();
     const session = this.watchSession;
     if (session) {
-      if(session.roomSnapshot&&session.sample)NightWatchHistory.record({url:session.source,title:session.tab.linkedBrowser.contentTitle,position:session.roomSnapshot?roomTarget(session.roomSnapshot,(session.serverTime??Date.now())+Math.max(0,Date.now()-(session.snapshotAt??Date.now())))?.position??session.sample.position:session.sample.position,duration:session.sample.duration,at:Date.now()}).then(()=>NightWatchHistory.flush());
+      if(session.roomSnapshot&&session.sample)NightWatchHistory.record({url:session.source,title:session.roomSnapshot.title||session.tab.linkedBrowser.contentTitle,position:session.roomSnapshot?roomTarget(session.roomSnapshot,(session.serverTime??Date.now())+Math.max(0,Date.now()-(session.snapshotAt??Date.now())))?.position??session.sample.position:session.sample.position,duration:session.sample.duration,at:Date.now()}).then(()=>NightWatchHistory.flush());
       this.watchSession = null; clearTimeout(session.timer);
       session.tab.removeEventListener("TabClose", session.closed);
       session.window.removeEventListener("unload", session.closed);
@@ -183,7 +189,7 @@ export const NightTogether = {
       if (room.url !== session.source) {
         await this.stopCast();
         try { session.actor?.sendAsyncMessage("NightWatch:Stop"); } catch {}
-        session.source = room.url; session.actor = null; session.sample = null; session.intent=null; session.dirty = true;
+        session.source = room.url;session.metadataAt=0;session.metadataSignature=null; session.actor = null; session.sample = null; session.intent=null; session.dirty = true;
         session.tab.linkedBrowser.loadURI(Services.io.newURI(room.url), {triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});
         this.setPhase("loading","Загружаем новое видео…"); return;
       }
@@ -194,6 +200,7 @@ export const NightTogether = {
       if (actor !== session.actor) {
         session.actor = actor; session.sample = mediaSample(await actor.sendQuery('NightWatch:Start',{viewer:session.viewer})); session.dirty = true;this.trace('player-attached');this.updateOverlay();
       }
+      if(room.owner===state.id&&!session.viewer&&(!session.metadataAt||Date.now()-session.metadataAt>10000)&&state.features?.includes('video-invites')){const info=await actor.sendQuery('NightWatch:Inspect');session.metadataAt=Date.now();const signature=JSON.stringify([info?.title,info?.poster]);if(info?.available&&watchURL(info.url)===watchURL(room.url)&&signature!==session.metadataSignature){const updated=await this.action({type:'room-metadata',room:room.id,title:info.title,poster:info.poster});room=updated.room;session.metadataSignature=signature;}}
       const playerStatus=await actor.sendQuery('NightWatch:Status');const local=mediaSample(playerStatus?.sample);if(local)session.sample=local;
       if(!session.viewer&&state.protocol>=4&&(Date.now()-(session.readinessAt??0)>3000||session.readinessAd!==playerStatus?.ad)){
         const updated=await this.action({type:'room-ready',room:room.id,ready:playerStatus?.ready===true,ad:playerStatus?.ad===true,blocker:await NightWatchCompatibility.blocker()});room=updated.room;session.readinessAt=Date.now();session.readinessAd=playerStatus?.ad;
@@ -202,7 +209,7 @@ export const NightTogether = {
       if(!session.viewer&&playerStatus?.ad){session.wasAdvertisement=true;session.intent=null;this.setPhase('advertisement','У тебя реклама · ждём окончания вставки…');return;}
       if(!session.viewer&&room.readiness?.hold){session.wasHeld=true;session.intent=null;const target=roomTarget(room,state.serverTime);await actor.sendQuery('NightWatch:Apply',target);this.setPhase('waiting-advertisement','У участника реклама · ждём вместе…');return;}
       if(session.wasHeld||session.wasAdvertisement&&playerStatus?.ready){const target=roomTarget(room,state.serverTime);if(target){target.forceSeek=session.wasAdvertisement===true;await actor.sendQuery('NightWatch:Apply',target);}session.wasHeld=false;session.wasAdvertisement=false;}
-      if(Date.now()-(session.historyAt??0)>15000&&local){session.historyAt=Date.now();NightWatchHistory.record({url:room.url,title:browser.contentTitle,position:roomTarget(room,state.serverTime)?.position??local.position,duration:local.duration,at:Date.now()});}
+      if(Date.now()-(session.historyAt??0)>15000&&local){session.historyAt=Date.now();NightWatchHistory.record({url:room.url,title:room.title||browser.contentTitle,position:roomTarget(room,state.serverTime)?.position??local.position,duration:local.duration,at:Date.now()});}
       if (session.intent && state.protocol >= 3) {
         const intent=session.intent; session.intent=null;session.pendingIntent=intent;
         try {

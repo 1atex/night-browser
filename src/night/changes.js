@@ -1,0 +1,6 @@
+window.addEventListener('DOMContentLoaded',()=>{
+ const {releases}=ChromeUtils.importESModule('resource:///modules/night/ReleaseNotes.mjs'),{version,preview}=ChromeUtils.importESModule('resource:///modules/night/NightVersion.sys.mjs');
+ const el=(tag,text,attributes={})=>{const node=document.createElement(tag);if(text)node.textContent=text;for(const [name,value]of Object.entries(attributes))node.setAttribute(name,value);return node;};
+ document.getElementById('changes-current').textContent=`Установлена Night ${version} · Preview ${preview}`;
+ for(const release of releases){const article=el('article','',{class:'release','data-version':release.version}),head=el('div','',{class:'release-heading'});head.append(el('h2','Night '+release.version));if(release.version===version)head.append(el('span','Установлена',{class:'release-current'}));head.append(el('time',new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(release.date)),{datetime:release.date}));article.append(head,el('p',release.summary,{class:'release-summary'}));for(const group of release.groups){const list=el('ul');for(const item of group.items)list.append(el('li',item));article.append(el('h3',group.title),list);}document.getElementById('release-history').append(article);}
+},{once:true});

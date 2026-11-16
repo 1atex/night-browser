@@ -49,3 +49,14 @@ test('server relays only bounded encrypted notices between confirmed friends and
   await f.act(b,{type:'notice-disable'});assert.equal((await f.request('/v1/state',b)).body.self.noticeKey,null);
  }finally{await f.close();}
 });
+test('video invitations carry explicit source metadata only to invited friends and presence expires',async()=>{
+ let time=1000;const f=await fixture(()=>time);
+ try{const a=await f.user(),b=await f.user(),c=await f.user();await f.act(a,{type:'friend-request',id:b.id});await f.act(b,{type:'friend-accept',id:a.id});
+ const room=(await f.act(a,{type:'room-create',url:'https://www.youtube.com/watch?v=abcdefghijk',title:'A selected video',poster:'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg'})).body.room;
+ await f.act(a,{type:'room-invite',room:room.id,id:b.id});const guest=(await f.request('/v1/state',b)).body;assert.equal(guest.invitations[0].title,'A selected video');assert.match(guest.invitations[0].poster,/i\.ytimg/);assert.equal((await f.request('/v1/state',c)).body.invitations.length,0);
+ assert.equal((await f.request('/v1/state',a)).body.room.invited[0].id,b.id);assert.equal((await f.request('/v1/state',a)).body.friends[0].online,true);time+=71000;assert.equal((await f.request('/v1/state',a)).body.friends[0].online,false);
+ await f.request('/v1/state',b);assert.equal((await f.request('/v1/state',a)).body.friends[0].online,true);
+ assert.equal((await f.act(b,{type:'room-metadata',room:room.id,title:'No'})).status,403);
+ await f.act(a,{type:'room-metadata',room:room.id,title:'Updated video',poster:'https://127.0.0.1/private.png'});assert.equal((await f.request('/v1/state',a)).body.room.poster,'');
+ }finally{await f.close();}
+});

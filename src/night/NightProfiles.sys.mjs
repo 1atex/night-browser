@@ -1,3 +1,4 @@
+import {validAvatar} from "resource:///modules/night/AvatarModel.mjs";
 import {PROFILE_ID, profileName, profileMetadata, PROFILE_COLORS, PROFILE_ICONS} from "resource:///modules/night/ProfileModel.mjs";
 import {PrivateBrowsingUtils} from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
 
@@ -58,6 +59,7 @@ export const NightProfiles = {
     if (changes.name !== undefined) profileName(changes.name);
     if (changes.color !== undefined && !Object.hasOwn(PROFILE_COLORS, changes.color)) throw new Error("Неизвестный цвет.");
     if (changes.icon !== undefined && !PROFILE_ICONS.includes(changes.icon)) throw new Error("Неизвестный значок.");
+    if(changes.avatar!==undefined&&changes.avatar!==null&&!validAvatar(changes.avatar))throw Error("Неверное изображение аватара.");
     const root = this.rootFor(id), path = PathUtils.join(root, "night-profile.json");
     await IOUtils.writeJSON(path, profileMetadata({...current, ...changes}, id), {tmpPath: path + "." + Services.appinfo.processID + ".tmp"});
     Services.obs.notifyObservers(null, "night-profiles-changed");

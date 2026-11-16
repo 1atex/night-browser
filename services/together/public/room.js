@@ -76,7 +76,7 @@ function renderMembers(){
    controls.append(mute,volume,level);root.append(name,info,controls,kick);root.dataset.id=id;row={root,name,info,controls,volume,level,mute,kick};memberRows.set(id,row);$('members').append(root);
   }
   const self=id===state.id,peer=peers.get(id),level=levels.get(id),name=self?state.self.name:state.people[id]?.name??'Участник';
-  row.root.dataset.state=self?'self':peer?.pc.connectionState??'waiting';row.name.textContent=name+(self?' · ты':'');
+  row.root.dataset.state=self?'self':peer?.pc.connectionState??'waiting';row.name.textContent=name+(self?' · ты':'');const avatar=(self?state.self:state.people[id])?.avatar;if(/^\/avatars\/[a-f0-9]{16}\/[a-f0-9]{64}\.png$/.test(avatar??'')){const image=document.createElement('img');image.src=avatar;image.alt='';image.className='member-avatar';row.name.prepend(image);}
   row.info.textContent=self?'В комнате':peer?.pc.connectionState==='connected'?(peer.channel?.readyState==='open'?'Чат подключён':'Соединён'):peer?.pc.connectionState==='failed'?'Нет соединения':active?'Подключение…':'В комнате';
   row.controls.hidden=self;row.volume.setAttribute('aria-label','Громкость: '+name);if(document.activeElement!==row.volume)row.volume.value=String(Math.round(level*100));row.level.textContent=Math.round(level*100)+'%';row.mute.textContent=level===0?'Включить звук':'Без звука';row.mute.setAttribute('aria-pressed',String(level===0));row.kick.hidden=state.room.owner!==state.id||self;if(row.kick.hidden)delete row.kick.dataset.roomKick;else row.kick.dataset.roomKick=id;
  }

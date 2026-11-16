@@ -71,6 +71,7 @@ class NightWindow {
     NightWindows.init();
     ChromeUtils.importESModule("resource:///modules/night/NightUpdates.sys.mjs").NightUpdates.startup(window).catch(error => console.error("Night update status", error));
     NightIsland.init();
+    ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.start(window);
     ChromeUtils.importESModule("resource:///modules/night/NightFriendNotices.sys.mjs").NightFriendNotices.start(window);
     ChromeUtils.importESModule("resource:///modules/night/NightCastIndicator.sys.mjs").NightCastIndicators.start(window);
     window.gBrowser.tabContainer.addEventListener("TabSelect", this);

@@ -1,3 +1,4 @@
+import {NightTogether} from 'resource:///modules/night/NightTogether.sys.mjs';
 import { NightWorkspaces } from "resource:///modules/night/NightWorkspaces.sys.mjs";
 import {NightIslandView} from "resource:///modules/night/NightIslandView.sys.mjs";
 import { NightToolbar } from "resource:///modules/night/NightToolbar.sys.mjs";
@@ -373,6 +374,9 @@ export class NightShell {
   }
 
   async closeTab(tab, remove = false) {
+    if(NightTogether.watchSession?.tab===tab)NightTogether.stopWatch();
+    if(NightTogether.roomBrowsers.has(tab.linkedBrowser)){NightTogether.command({type:'disconnect'});NightTogether.roomActor?.didDestroy();}
+    tab.splitview?.unsplitTabs();
     if (!remove && this.#isSaved(tab)) {
       this.#status.removeAttribute("data-message");
       try {
@@ -434,8 +438,14 @@ export class NightShell {
     );
   }
 
+  #emojiPicker(anchor){
+    this.#showMenu(anchor,[]);const grid=this.#element('div','',{class:'night-emoji-picker',role:'group','aria-label':'Эмодзи пространства'});
+    for(const emoji of ['','🌙','💻','🧪','🎮','🎧','📚','💼','🏠','🦊','🐇','⚡','🎬','🛰️','🛠️','✨'])grid.append(this.#button(emoji||'×',emoji||'Без эмодзи',()=>{this.workspaces.setEmoji(emoji);this.#menu?.remove();this.#menu=null;}));this.#menu.append(grid);
+  }
+
   #workspaceMenu(anchor) {
     this.#showMenu(anchor, [
+      ["Выбрать эмодзи",()=>this.#emojiPicker(anchor)],
       ["Новая папка", () => this.#prompt("Название папки", "", name => this.workspaces.createFolder(name))],
       [
         "Переименовать",
@@ -692,7 +702,7 @@ export class NightShell {
             : "";
     setText(state, stateLabel);
     const saved = this.#isSaved(tab);
-    const hidden = tab.pinned || (saved && tab.hasAttribute("pending"));
+    const hidden = saved && tab.hasAttribute("pending");
     if (close.hidden !== hidden) close.hidden = hidden;
     const closeLabel = saved ? "Отправить в сон" : "Закрыть вкладку";
     setAttribute(close, "title", closeLabel);
@@ -709,7 +719,7 @@ export class NightShell {
     ) {
       this.#selector.replaceChildren(
         ...this.workspaces.items.map((item) =>
-          this.#element("option", item.name, { value: item.id }),
+          this.#element("option", (item.emoji?item.emoji+"  ":"")+item.name, { value: item.id }),
         ),
       );
       this.#selector.dataset.items = JSON.stringify(this.workspaces.items);
@@ -880,6 +890,7 @@ export class NightShell {
     if (this.#frame === null)
       this.#frame = this.#window.requestAnimationFrame(() => {
         this.#frame = null;
+        const browser=this.#window.gBrowser;if(!browser.selectedTab.splitview&&browser.tabpanels.hasAttribute("splitview"))browser.tabpanels.splitViewPanels=[];
         if (this.#structureDirty) this.render();
         else {
           for (const tab of this.#dirtyTabs) {

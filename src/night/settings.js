@@ -6,6 +6,8 @@ window.addEventListener(
     );
     const {NightIsland} = ChromeUtils.importESModule("resource:///modules/night/NightIsland.sys.mjs");
     const {applyIslandAppearance} = ChromeUtils.importESModule("resource:///modules/night/IslandAppearance.mjs");
+    const {NightAvatar}=ChromeUtils.importESModule("resource:///modules/night/NightAvatar.sys.mjs");
+    const {friendAvatarURL}=ChromeUtils.importESModule("resource:///modules/night/AvatarModel.mjs");
     const XHTML = "http://www.w3.org/1999/xhtml";
     const browserWindow = window.browsingContext.topChromeWindow;
     const updateTheme = () => {
@@ -868,11 +870,13 @@ window.addEventListener(
           for (const key of Object.keys(PROFILE_COLORS)) color.append(element("option", titles[key], {value: key}));
           for (const key of PROFILE_ICONS) icon.append(element("option", key === "initial" ? "Первая буква" : key, {value: key}));
           color.value = item.color; icon.value = item.icon;
-          const update = () => { preview.textContent = profileBadge({name: name.value || "П", icon: icon.value}); preview.style.setProperty("--profile-color", PROFILE_COLORS[color.value]); };
+          let avatar=item.avatar??null;
+          const update = () => { NightAvatar.render(preview,avatar,profileBadge({name:name.value||"П",icon:icon.value})); preview.style.setProperty("--profile-color", PROFILE_COLORS[color.value]); };
           for (const input of [name, color, icon]) input.addEventListener("input", update);
           update();
-          const save = button("Сохранить профиль", async () => { await NightProfiles.customize(item.id, {name: name.value, color: color.value, icon: icon.value}); status("Профиль сохранён"); await render(); });
-          editor.append(preview, name, color, icon, save); profiles.append(editor);
+          const save = button("Сохранить профиль", async () => { await NightProfiles.customize(item.id, {name: name.value, color: color.value, icon: icon.value,avatar}); status("Профиль сохранён"); await render(); });
+          const upload=button("Загрузить фото",async()=>{const value=await NightAvatar.pick(browserWindow);if(value){avatar=value;update();}});upload.dataset.avatarUpload=item.id;const clear=button("Убрать фото",()=>{avatar=null;update();});
+          editor.append(preview, name, color, icon,upload,clear, save); profiles.append(editor);
         }
       }
       if (NightProfiles.context.managed) {
@@ -930,28 +934,15 @@ window.addEventListener(
     }
 
     function updates() {
-      const {NightUpdates} = ChromeUtils.importESModule("resource:///modules/night/NightUpdates.sys.mjs");
-      const {version} = ChromeUtils.importESModule("resource:///modules/night/NightVersion.sys.mjs");
-      const section = card(`Night ${version}`, "Проверка выполняется по нажатию. Файлы загружаются с официальных релизов Night и проверяются по SHA-256.");
-      const label = element("p", "", {id: "night-update-status", role: "status"});
-      const install = button("Установить и перезапустить", async () => {
-        if (!Services.prompt.confirm(browserWindow, "Обновление Night", "Будут закрыты окна всех профилей Night. Заверши работу с несохранёнными формами. Продолжить?")) return;
-        install.disabled = true; label.textContent = "Загружаем и проверяем обновление…";
-        try { await NightUpdates.install(browserWindow); } finally { install.disabled = false; }
-      });
-      install.id = "night-update-install"; install.hidden = true;
-      const check = button("Проверить обновления", async () => {
-        check.disabled = true; label.textContent = "Проверяем…";
-        try {
-          const candidate = await NightUpdates.check();
-          label.textContent = candidate ? `Доступна версия ${candidate.version}` : "Установлена последняя доступная версия.";
-          install.hidden = !candidate || !NightUpdates.supported;
-        } catch (error) { label.textContent = error.message; }
-        finally { check.disabled = false; }
-      });
-      check.id = "night-update-check";
-      section.append(label, check, install, button("Что нового", () => browserWindow.openTrustedLinkIn("chrome://browser/content/night/changes.html", "tab")));
-      if (!NightUpdates.supported) section.append(element("p", "Установка обновлений из браузера доступна в установленной версии Windows. Для portable пока нужно заменить файлы приложения вручную.", {class: "card-caption"}));
+      const {NightUpdates}=ChromeUtils.importESModule("resource:///modules/night/NightUpdates.sys.mjs"),{version,preview}=ChromeUtils.importESModule("resource:///modules/night/NightVersion.sys.mjs");
+      const section=card("Обновление браузера");section.classList.add('update-card');
+      const identity=element('div','',{class:'update-identity'});identity.append(element('img','',{src:'chrome://browser/content/night/branding/icon128.png',width:'48',height:'48',alt:''}),element('strong',`Night ${version}`),element('span',`Preview ${preview}`,{class:'update-channel'}));
+      const label=element('p','',{id:'night-update-status',role:'status'}),progress=element('progress','',{id:'night-update-progress',max:'100',hidden:''}),details=element('p','',{class:'card-caption',id:'night-update-details'}),actions=element('div','',{class:'button-row'});
+      const install=button('Установить и перезапустить',async()=>{if(!Services.prompt.confirm(browserWindow,'Обновление Night','Будут закрыты окна всех профилей Night. Заверши работу с несохранёнными формами. Продолжить?'))return;try{await NightUpdates.install(browserWindow);}catch(error){status(error.message);}},'button primary');install.id='night-update-install';
+      const check=button('Проверить обновления',async()=>{try{await NightUpdates.check();}catch{}});check.id='night-update-check';
+      const display=()=>{const value=NightUpdates.state;check.disabled=NightUpdates.busy;install.hidden=!NightUpdates.candidate||!NightUpdates.supported;install.disabled=NightUpdates.busy;const labels={idle:'Обновления проверяются по нажатию.',checking:'Проверка новых версий…',available:`Доступна Night ${NightUpdates.candidate?.version??''}`,current:'Установлена последняя доступная версия.',downloading:'Загрузка обновления…',verifying:'Проверка файла по SHA-256…',installing:'Запуск установки…',error:value.error};label.textContent=labels[value.phase]??'';progress.hidden=value.phase!=='downloading';if(value.total>0){progress.value=value.received/value.total*100;details.textContent=`${(value.received/1048576).toFixed(1)} из ${(value.total/1048576).toFixed(1)} МБ`;}else{progress.removeAttribute('value');details.textContent=NightUpdates.supported?'Официальные релизы Night · проверка SHA-256':'Portable обновляется заменой файлов приложения. Профиль сохраняется.';}};
+      actions.append(check,install);section.append(identity,label,progress,details,actions);display();Services.obs.addObserver(display,'night-update-state');sectionCleanup=()=>Services.obs.removeObserver(display,'night-update-state');
+      const history=card('История версий','Изменения установленной и предыдущих версий браузера.');history.append(button('Открыть историю обновлений',()=>browserWindow.openTrustedLinkIn('chrome://browser/content/night/changes.html','tab')));
     }
 
     async function together() {
@@ -991,10 +982,13 @@ window.addEventListener(
       for (const [value, title] of [["moon", "Лунный"], ["violet", "Сиреневый"], ["sky", "Голубой"], ["jade", "Мятный"], ["amber", "Янтарный"], ["rose", "Розовый"]]) color.append(element("option", title, {value}));
       for (const value of PROFILE_ICONS) icon.append(element("option", value === "initial" ? "Первая буква" : value, {value}));
       const preview = element("span", "", {class: "profile-badge", "aria-hidden": "true"});
-      const updatePreview = () => { preview.textContent = profileBadge({name: name.value || "П", icon: icon.value}); preview.style.setProperty("--profile-color", PROFILE_COLORS[color.value] ?? PROFILE_COLORS.moon); };
+      let friendPhoto=null;
+      const updatePreview = () => { NightAvatar.render(preview,friendPhoto,profileBadge({name:name.value||"П",icon:icon.value})); preview.style.setProperty("--profile-color", PROFILE_COLORS[color.value] ?? PROFILE_COLORS.moon); };
       for (const input of [name, color, icon]) input.addEventListener("input", updatePreview);
       const savePersonal = button("Сохранить имя и аватар", async () => { await action({type: "profile-update", name: name.value, color: color.value, icon: icon.value}); status("Профиль для друзей сохранён"); });
-      personal.append(preview, name, color, icon, savePersonal);
+      const uploadPhoto=button("Загрузить фото",async()=>{if(!NightTogether.cachedState?.features?.includes("profile-avatars"))throw Error("Обнови Docker-сервис Together для загрузки фото.");const photo=await NightAvatar.pick(browserWindow);if(!photo)return;await action({type:'profile-avatar',avatar:photo});friendPhoto=photo;updatePreview();status('Аватар обновлён');});uploadPhoto.id='together-avatar-upload';
+      const removePhoto=button("Убрать фото",async()=>{await action({type:'profile-avatar',avatar:null});friendPhoto=null;updatePreview();});removePhoto.id='together-avatar-remove';
+      personal.append(preview, name, color, icon,uploadPhoto,removePhoto, savePersonal);
       let profileLoaded = false;
       const list = element("div"), room = card("Комната", "В комнату передаётся только явно выбранная ссылка и команды времени. Видео каждый участник открывает со своим доступом к сайту.");
       section.append(list);
@@ -1015,14 +1009,14 @@ window.addEventListener(
           if (!section.isConnected) return;
           for (const control of [name, color, icon, savePersonal]) control.disabled = (state.protocol ?? 1) < 2;
           if ((state.protocol ?? 1) < 2) status("Обнови сервер Together для аватаров и синхронизации видео. ID и друзья сохранятся.");
-          if (!profileLoaded && state.self) { name.value = state.self.name; color.value = state.self.color; icon.value = state.self.icon; updatePreview(); profileLoaded = true; }
+          if (!profileLoaded && state.self) { name.value = state.self.name; color.value = state.self.color; icon.value = state.self.icon;friendPhoto=friendAvatarURL((await NightTogether.credentials()).endpoint,state.self.avatar); updatePreview(); profileLoaded = true; }
           const roomShape = state.room ? {...state.room, position: 0, revision: 0, updatedAt: 0, paused: false, rate: 1, buffering: false, controlledBy: ""} : null;
           const nextSnapshot = JSON.stringify({...state, room: roomShape, serverTime: 0, watching: !!NightTogether.watchSession});
           if (nextSnapshot === snapshot) return;
           snapshot = nextSnapshot;
           list.replaceChildren(); roomBody.replaceChildren();
           const label = id => state.people?.[id]?.name || id;
-          const badge = item => { const value = element("span", profileBadge(item), {class: "profile-badge", "aria-hidden": "true"}); value.style.setProperty("--profile-color", PROFILE_COLORS[item.color] ?? PROFILE_COLORS.moon); return value; };
+          const badge = item => { const value = element("span", profileBadge(item), {class: "profile-badge", "aria-hidden": "true"});NightAvatar.render(value,friendAvatarURL(NightTogether.endpoint??Services.prefs.getStringPref("night.together.server","https://browser.night-watchers.com"),item.avatar),profileBadge(item)); value.style.setProperty("--profile-color", PROFILE_COLORS[item.color] ?? PROFILE_COLORS.moon); return value; };
           for (const id of state.incoming) row(list, "Запрос от " + label(id), id, (() => { const actions = element("div", "", {class: "profile-actions"}); actions.append(button("Принять", () => action({type: "friend-accept", id})), button("Отклонить", () => action({type: "friend-decline", id}))); return actions; })());
           for (const id of state.outgoing) row(list, label(id), "Ожидаем подтверждения · " + id, button("Отменить", () => action({type: "friend-decline", id})));
           for (const item of state.friends) {

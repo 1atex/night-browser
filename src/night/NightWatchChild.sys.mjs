@@ -41,6 +41,11 @@ export class NightWatchChild extends JSWindowActorChild {
   }
   #expect(name, matches) { this.#expected.set(name,{until:Date.now()+2000,matches}); }
   async receiveMessage({name, data}) {
+    if(name==='NightWatch:Inspect'){
+      const videos=[...this.document.querySelectorAll('video')].filter(video=>video.clientWidth>=150&&video.clientHeight>=80),video=videos.sort((a,b)=>b.clientWidth*b.clientHeight-a.clientWidth*a.clientHeight)[0];
+      if(!video)return {available:false};const url=this.document.documentURI;let poster='';try{const source=new URL(url),id=source.hostname==='youtu.be'?source.pathname.slice(1):['youtube.com','www.youtube.com','m.youtube.com'].includes(source.hostname)?source.searchParams.get('v'):null;if(id&&/^[A-Za-z0-9_-]{6,64}$/.test(id))poster='https://i.ytimg.com/vi/'+id+'/mqdefault.jpg';else{const image=new URL(video.poster);if(image.protocol==='https:'&&image.origin===source.origin)poster=image.href;}}catch{}
+      return {available:true,url,title:this.document.title.replace(/\s*[-—]\s*YouTube\s*$/,'').slice(0,160),poster};
+    }
     if (name === 'NightWatch:Stop') { this.didDestroy(); return null; }
     if (name === 'NightWatch:Start' && !this.#active) {
       this.#active = true;this.#viewer=data?.viewer===true;

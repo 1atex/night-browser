@@ -2,7 +2,7 @@ import http from 'node:http';
 import {RoomReadiness} from './readiness.mjs';
 import {notificationAction,publicNotices} from './notifications.mjs';
 import {publicWeb} from './web.mjs';
-import {randomBytes, timingSafeEqual, createHmac} from 'node:crypto';
+import {randomBytes, timingSafeEqual, createHmac, createHash} from 'node:crypto';
 import {readFile, writeFile, rename, mkdir} from 'node:fs/promises';
 import {dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -20,7 +20,7 @@ const safeURL = value => {
 export async function createService({path, now = Date.now, releases, iceServers, turnSecret = process.env.NIGHT_TURN_SECRET, turnURL = process.env.NIGHT_TURN_URL} = {}) {
   let state = {users: {}, rooms: {}};
   if (path) { try { state = JSON.parse(await readFile(path, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; } }
-  const rates = new Map(), signals = new Map(), readiness=new RoomReadiness(now);
+  const rates = new Map(), signals = new Map(), seen=new Map(), readiness=new RoomReadiness(now);
   let signalSequence = 0;
   const web = publicWeb({releases});
   const rtc = user => {
@@ -31,29 +31,34 @@ export async function createService({path, now = Date.now, releases, iceServers,
   };
   let queue = Promise.resolve();
   const save = async () => { if (path) { await mkdir(dirname(path), {recursive: true}); await writeFile(path + '.tmp', JSON.stringify(state), {mode: 0o600}); await rename(path + '.tmp', path); } };
-  function profile(user) { return {id: user.id, name: user.name || 'Участник ' + user.id.slice(-4), color: colors.includes(user.color) ? user.color : 'moon', icon: icons.includes(user.icon) ? user.icon : 'initial',noticeKey:user.noticeKey??null}; }
+  function videoInfo(body,url){
+    const title=typeof body.title==='string'?body.title.replace(/[\x00-\x1f\x7f]/g,' ').trim().slice(0,160):new URL(url).hostname;let poster='';
+    try{const image=new URL(body.poster),source=new URL(url);if(image.protocol==='https:'&&!image.username&&!image.password&&image.href.length<=2048&&(image.origin===source.origin||image.hostname==='i.ytimg.com'&&['youtube.com','www.youtube.com','youtu.be'].includes(source.hostname)))poster=image.href;}catch{}
+    return {title:title||new URL(url).hostname,poster};
+  }
+  function profile(user) { return {id: user.id, name: user.name || 'Участник ' + user.id.slice(-4), color: colors.includes(user.color) ? user.color : 'moon', icon: icons.includes(user.icon) ? user.icon : 'initial',online:seen.has(user.id)&&now()-seen.get(user.id)<70000,avatar:user.avatar?.digest?'/avatars/'+user.id+'/'+user.avatar.digest+'.png':null,noticeKey:user.noticeKey??null}; }
   function snapshot(user) {
     const room = Object.values(state.rooms).find(item => item.members.includes(user.id));
     const visible = new Set([...user.friends, ...user.incoming, ...user.outgoing, ...(room?.members ?? [])]);
-    const invitations = user.invites.filter(id => state.rooms[id]).map(id => ({id, owner: state.rooms[id].owner}));
+    const invitations = user.invites.filter(id => state.rooms[id]).map(id => ({id, owner: state.rooms[id].owner,title:state.rooms[id].title||new URL(state.rooms[id].url).hostname,poster:state.rooms[id].poster||''}));
     for (const item of invitations) visible.add(item.owner);
     const people = Object.fromEntries([...visible].filter(id => state.users[id]).map(id => [id, profile(state.users[id])]));
     const ready=room?readiness.view(room):null;
     const publicRoom = room ? {...room, rate: room.rate ?? 1, buffering: room.buffering ?? false} : null;
     if (publicRoom) {
       delete publicRoom.inviteToken; delete publicRoom.inviteExpires;
-      publicRoom.readiness=ready;
+      publicRoom.readiness=ready;publicRoom.invited=room.owner===user.id?user.friends.filter(id=>state.users[id]?.invites.includes(room.id)).map(id=>profile(state.users[id])):[];
       publicRoom.requests = room.owner === user.id ? (room.requests ?? []).filter(id=>state.users[id]).map(id=>profile(state.users[id])) : [];
       publicRoom.link = room.owner === user.id && room.inviteToken && room.inviteExpires > now() ? `https://browser.night-watchers.com/join/${room.inviteToken}` : null;
     }
-    return {protocol: 4,features:['readiness','cast','encrypted-notices'],notices:publicNotices(user,now()), pendingRooms:Object.values(state.rooms).filter(r=>r.requests?.includes(user.id)).map(r=>({id:r.id,owner:profile(state.users[r.owner])})), self: profile(user), people, id: user.id, friends: user.friends.map(id => profile(state.users[id])), incoming: user.incoming, outgoing: user.outgoing,
+    return {protocol: 4,features:['readiness','cast','encrypted-notices','profile-avatars','video-invites'],notices:publicNotices(user,now()), pendingRooms:Object.values(state.rooms).filter(r=>r.requests?.includes(user.id)).map(r=>({id:r.id,owner:profile(state.users[r.owner])})), self: profile(user), people, id: user.id, friends: user.friends.map(id => profile(state.users[id])), incoming: user.incoming, outgoing: user.outgoing,
       invitations, room: publicRoom, serverTime: now()};
   }
   function authenticated(request) {
     const match = /^Bearer ([a-f0-9]{16}):([a-f0-9]{64})$/.exec(request.headers.authorization ?? '');
     const user = match && state.users[match[1]];
     if (!user || !timingSafeEqual(Buffer.from(user.token), Buffer.from(match[2]))) fail(401, 'Не удалось подтвердить ID.');
-    return user;
+    seen.set(user.id,now());return user;
   }
   function leave(user) {
     for (const [key, room] of Object.entries(state.rooms)) if (room.members.includes(user.id)) {
@@ -94,6 +99,13 @@ export async function createService({path, now = Date.now, releases, iceServers,
       case 'room-cast': {
         const room=state.rooms[body.room];if(room?.owner!==user.id||typeof body.active!=='boolean')fail(403,'Трансляцией управляет владелец.');
         room.mode=body.active?'cast':'local';room.revision++;room.updatedAt=now();break;
+      }
+      case 'profile-avatar': {
+        if(body.avatar===null){user.avatar=null;break;}
+        const value=body.avatar;if(typeof value!=='string'||value.length>16384||!/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(value))fail(400,'Неверное изображение.');
+        const data=Buffer.from(value.slice(22),'base64');if(data.length<32||data.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||data.subarray(12,16).toString()!=='IHDR'||data.readUInt32BE(16)<1||data.readUInt32BE(16)>96||data.readUInt32BE(20)<1||data.readUInt32BE(20)>96)fail(400,'Аватар должен быть PNG размером до 96 × 96.');
+        let total=0;for(const peer of Object.values(state.users))if(peer!==user)total+=peer.avatar?.data?.length??0;if(total+value.length>16777216)fail(429,'Хранилище аватаров временно заполнено.');
+        user.avatar={digest:createHash('sha256').update(data).digest('hex'),data:data.toString('base64')};break;
       }
       case 'profile-update': {
         if (typeof body.name !== 'string' || !body.name.trim() || body.name.trim().length > 40 || /[\x00-\x1f\x7f]/.test(body.name) || !colors.includes(body.color) || !icons.includes(body.icon)) fail(400, 'Имя: 1–40 символов; выбери цвет и значок из списка.');
@@ -157,7 +169,7 @@ export async function createService({path, now = Date.now, releases, iceServers,
       }
       case 'room-create': {
         const url = safeURL(body.url); leave(user);
-        const room = {id: id(), owner: user.id, members: [user.id], url, mode:'local', position: 0, paused: true, revision: 0, controlRevision:0, updatedAt: now()};
+        const room = {id: id(), owner: user.id, members: [user.id], url, mode:'local',...videoInfo(body,url), position: 0, paused: true, revision: 0, controlRevision:0, updatedAt: now()};
         state.rooms[room.id] = room; break;
       }
       case 'room-invite': {
@@ -172,10 +184,11 @@ export async function createService({path, now = Date.now, releases, iceServers,
         leave(user); room.members.push(user.id); user.invites = user.invites.filter(id => id !== room.id); break;
       }
       case 'room-leave': leave(user); break;
+      case 'room-metadata': {const room=state.rooms[body.room];if(room?.owner!==user.id)fail(403,'Видео меняет создатель комнаты.');Object.assign(room,videoInfo(body,room.url));break;}
       case 'room-source': {
         const room = state.rooms[body.room];
         if (room?.owner !== user.id) fail(403, 'Видео меняет создатель комнаты.');
-        const sourceURL=safeURL(body.url);readiness.remove(room);Object.assign(room, {mode:'local',url: sourceURL, position: 0, paused: true, rate: 1, buffering: false, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id}); break;
+        const sourceURL=safeURL(body.url);readiness.remove(room);Object.assign(room, {mode:'local',url: sourceURL,...videoInfo(body,sourceURL), position: 0, paused: true, rate: 1, buffering: false, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id}); break;
       }
       case 'room-control':
       case 'room-state': {
@@ -203,6 +216,8 @@ export async function createService({path, now = Date.now, releases, iceServers,
       const rate = rates.get(address); 
       if (!rate || time - rate.time > 60000) rates.set(address,{time,count:1,registrations:request.url === '/v1/register' ? 1 : 0});
       else { rate.count++; if (request.url === '/v1/register') rate.registrations++; if (rate.count > 6000 || rate.registrations > 5) fail(429,'Слишком много запросов.'); }
+      const avatar=/^\/avatars\/([a-f0-9]{16})\/([a-f0-9]{64})\.png$/.exec(request.url);
+      if(avatar&&['GET','HEAD'].includes(request.method)){const value=state.users[avatar[1]]?.avatar;if(!value||value.digest!==avatar[2])fail(404,'Аватар не найден.');const data=Buffer.from(value.data,'base64');response.writeHead(200,{'Content-Type':'image/png','Content-Length':data.length,'Cache-Control':'private, max-age=86400','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'"});response.end(request.method==='HEAD'?undefined:data);return;}
       if (await web(request,response)) return;
       let size=0; const chunks=[];
       for await (const chunk of request) { size+=chunk.length; if(size>73728) fail(413,'Слишком большой запрос.'); chunks.push(chunk); }

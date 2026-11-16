@@ -28,7 +28,7 @@ export class NightWorkspaces {
       if (!Array.isArray(state.items) || !state.items.length || state.items.length > 1000) return;
       if (state.items.some(item => typeof item.id !== "string" || typeof item.name !== "string" || !item.name.trim())) return;
       if (new Set(state.items.map(item => item.id)).size !== state.items.length) return;
-      this.items = state.items.map(item => ({ id: item.id, name: item.name.slice(0, 40), collapsed: item.collapsed === true }));
+      this.items = state.items.map(item => ({ id: item.id, name: item.name.slice(0, 40), emoji:typeof item.emoji==="string"?item.emoji.slice(0,16):"", collapsed: item.collapsed === true }));
       this.folders = normalizeFolders(state.folders, this.items.map(item => item.id));
       this.active = this.items.some(item => item.id === state.active) ? state.active : this.items[0].id;
     } catch {}
@@ -75,6 +75,8 @@ export class NightWorkspaces {
     this.items.find(item => item.id === this.active).name = name;
     this.#save();
   }
+
+  setEmoji(emoji){if(typeof emoji!=="string"||emoji.length>16||/[\x00-\x1f\x7f<>]/.test(emoji))throw Error("Выбери короткий эмодзи.");this.items.find(item=>item.id===this.active).emoji=emoji;this.#save();}
 
   get collapsed() { return this.items.find(item => item.id === this.active)?.collapsed === true; }
 

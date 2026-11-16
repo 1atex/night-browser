@@ -1,3 +1,4 @@
+import {NightAvatar} from 'resource:///modules/night/NightAvatar.sys.mjs';
 import {NightProfiles} from "resource:///modules/night/NightProfiles.sys.mjs";
 import {PrivateBrowsingUtils} from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
 
@@ -35,7 +36,7 @@ export class NightProfilesView {
     const isPrivate = PrivateBrowsingUtils.isWindowPrivate(this.#window);
     const current = (await NightProfiles.list().catch(() => [])).find(item => item.current);
     if (!this.#alive) return;
-    this.#button.textContent = isPrivate ? "" : profileBadge(current ?? {name: "П"});
+    NightAvatar.render(this.#button,isPrivate?null:current?.avatar,isPrivate?"":profileBadge(current??{name:"П"}));
     this.#button.style.setProperty("--profile-color", PROFILE_COLORS[current?.color] ?? PROFILE_COLORS.moon);
     this.#button.toggleAttribute("data-private", isPrivate);
     this.#button.title = isPrivate ? "Приватное окно · Ctrl+Shift+N" : `${current?.name ?? "Профиль"} · Профили и синхронизация`;
@@ -58,6 +59,7 @@ export class NightProfilesView {
     if (!isPrivate) for (const profile of profiles) {
       const button = this.#element("button", profile.name + (profile.current ? " · сейчас" : ""), {type: "button", "data-profile-id": profile.id, "aria-current": String(profile.current)});
       const badge = this.#element("span", profileBadge(profile), {class: "profile-badge", "aria-hidden": "true"});
+      NightAvatar.render(badge,profile.avatar,profileBadge(profile));
       badge.style.setProperty("--profile-color", PROFILE_COLORS[profile.color] ?? PROFILE_COLORS.moon);
       button.prepend(badge);
       button.addEventListener("click", async () => {

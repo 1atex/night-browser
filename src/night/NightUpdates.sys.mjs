@@ -12,17 +12,18 @@ async function request(url) {
 }
 export const NightUpdates = {
   busy: false,
+  state:{phase:"idle",received:0,total:0,error:""},
+  update(value){this.state={...this.state,...value};Services.obs.notifyObservers(null,"night-update-state");},
   candidate: null,
   get supported() { return Services.appinfo.OS === "WINNT" && file(PathUtils.join(NightProfiles.context.application, "installed.marker")).exists(); },
   async check() {
     if (this.busy) throw new Error("Обновление уже выполняется.");
-    this.candidate = releaseUpdate(JSON.parse(await request("https://api.github.com/repos/1atex/night-browser/releases?per_page=20")), version, preview);
-    return this.candidate;
+    this.busy=true;this.candidate=null;this.update({phase:"checking",error:""});try{this.candidate=releaseUpdate(JSON.parse(await request("https://api.github.com/repos/1atex/night-browser/releases?per_page=20")),version,preview);this.update({phase:this.candidate?"available":"current"});return this.candidate;}catch(error){this.update({phase:"error",error:error.message});throw error;}finally{this.busy=false;Services.obs.notifyObservers(null,"night-update-state");}
   },
   async install(window) {
     if (!this.supported || PrivateBrowsingUtils.isWindowPrivate(window)) throw new Error("Обнови Night из обычного окна установленной версии.");
     if (this.busy || !this.candidate) throw new Error("Сначала проверь обновления.");
-    this.busy = true;
+    this.busy = true;this.update({phase:"downloading",received:0,total:0,error:""});
     let directory, launched = false;
     try {
       const candidate = this.candidate;
@@ -32,7 +33,9 @@ export const NightUpdates = {
       const setup = PathUtils.join(directory, "setup.exe");
       const {Downloads} = ChromeUtils.importESModule("resource://gre/modules/Downloads.sys.mjs");
       const download = await Downloads.createDownload({source: candidate.url, target: setup});
-      await download.start();
+      download.onchange=()=>this.update({received:download.currentBytes,total:download.totalBytes});
+      try{await download.start();}finally{download.onchange=null;}
+      this.update({phase:"verifying"});
       const hash = Cc["@mozilla.org/security/hash;1"].createInstance(Ci.nsICryptoHash);
       const stream = Cc["@mozilla.org/network/file-input-stream;1"].createInstance(Ci.nsIFileInputStream);
       stream.init(file(setup), 1, 0, 0);
@@ -48,9 +51,9 @@ export const NightUpdates = {
       await IOUtils.writeJSON(plan, {root: context.application, setup, sha256: expected, profile: context.id ?? "default", version: candidate.version});
       const process = Cc["@mozilla.org/process/util;1"].createInstance(Ci.nsIProcess); process.init(file(helper));
       process.runwAsync(["--run-update", plan], 2);
-      launched = true;
+      launched = true;this.update({phase:"installing"});
       Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
-    } finally { this.busy = false; if (!launched && directory) await IOUtils.remove(directory, {recursive: true, ignoreAbsent: true}).catch(() => {}); }
+    } catch(error){this.update({phase:"error",error:error.message});throw error;} finally { this.busy = false;Services.obs.notifyObservers(null,"night-update-state"); if (!launched && directory) await IOUtils.remove(directory, {recursive: true, ignoreAbsent: true}).catch(() => {}); }
   },
   startupTask: null,
   startup(window) {

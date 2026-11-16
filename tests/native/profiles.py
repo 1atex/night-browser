@@ -65,7 +65,7 @@ def run(package,output):
             assert chrome(b,'return Services.prefs.getStringPref("night.ui.palette");')=='midnight'
             b.set_context('content');b.navigate('about:preferences#accounts')
             wait_for(lambda:content(b,'return !!document.querySelector(`[data-profile-editor="${arguments[0]}"]`);',id))
-            content(b,'const editor=document.querySelector(`[data-profile-editor="${arguments[0]}"]`);[...editor.previousElementSibling.querySelectorAll("button")].find(b=>b.textContent==="Настроить").click();editor.querySelector("input").value="Рабочий";editor.querySelectorAll("select")[0].value="sky";editor.querySelectorAll("select")[1].value="☾";editor.querySelector("button").click();',id)
+            content(b,'const editor=document.querySelector(`[data-profile-editor="${arguments[0]}"]`);[...editor.previousElementSibling.querySelectorAll("button")].find(b=>b.textContent==="Настроить").click();editor.querySelector("input").value="Рабочий";editor.querySelectorAll("select")[0].value="sky";editor.querySelectorAll("select")[1].value="☾";[...editor.querySelectorAll("button")].find(b=>b.textContent==="Сохранить профиль").click();',id)
             wait_for(lambda:chrome(b,'return d.getElementById("night-profile-button").textContent==="☾";'))
             b.set_context('content');b.navigate(url+'/work')
             assert content(b,'return document.cookie;')==''
@@ -79,6 +79,8 @@ def run(package,output):
             async_chrome(b,'await ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs").NightProfiles.open("default",Services.wm.getMostRecentWindow("navigator:browser"));')
             custom=async_chrome(b,'return (await ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs").NightProfiles.list()).find(p=>p.id===arguments[0]);',id)
             assert custom['color']=='sky' and custom['icon']=='☾' and custom['name']=='Рабочий проект',custom
+            photo=async_chrome(b,'const w=Services.wm.getMostRecentWindow("navigator:browser"),A=ChromeUtils.importESModule("resource:///modules/night/NightAvatar.sys.mjs").NightAvatar,response=await fetch("chrome://browser/content/night/branding/icon128.png"),avatar=await A.encode(w,new Uint8Array(await response.arrayBuffer()));await ChromeUtils.importESModule("resource:///modules/night/NightProfiles.sys.mjs").NightProfiles.customize(arguments[0],{avatar});return avatar;',id)
+            wait_for(lambda:chrome(b,'return d.getElementById("night-profile-button").querySelector("img")?.complete;'))
             assert (root/'night-active-profile').read_text()=='default'
             assert chrome(a,'return [...Services.wm.getEnumerator("navigator:browser")].length;')==1
             assert content(a,'return document.cookie;')=='account=personal'
@@ -96,8 +98,9 @@ def run(package,output):
             b.set_context('content');b.navigate(url+'/restored')
             assert content(b,'return document.cookie;')=='account=work'
             assert content(b,"return localStorage.getItem('account');")=='work'
+            assert chrome(b,'return d.getElementById("night-profile-button").querySelector("img")?.src;')==photo
             stop(b)
-            result={'passed':True,'existing_default_preserved':True,'passwords_bookmarks_cookies_storage_extensions_isolated':True,'separate_palette':True,'switch_reuses_window':True,'external_url_uses_selected_profile':True,'last_profile_restored':True,'invalid_profiles_rejected':True}
+            result={'passed':True,'uploaded_avatar_persists':True,'existing_default_preserved':True,'passwords_bookmarks_cookies_storage_extensions_isolated':True,'separate_palette':True,'switch_reuses_window':True,'external_url_uses_selected_profile':True,'last_profile_restored':True,'invalid_profiles_rejected':True}
             (output/'profiles-result.json').write_text(json.dumps(result,indent=2));print('PASS: Windows profiles isolate data, reuse windows and restore the last profile',flush=True)
         finally:
             for b,_ in instances[:]:

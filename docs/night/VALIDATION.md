@@ -2,6 +2,12 @@
 
 `npm test` checks unloading policy, request validation, bounded history, channel suspension/redirect behavior and module integration. These tests do not substitute for a browser runtime.
 
+## 0.18 checks
+
+`tests/native/split_navigation.py` tests a sleeping ordinary tab outside a split pair, verifies full-width rendering and removal of the split-layout flag, then reactivates the existing pair. The live social test repeats leaving/closing/returning while RTC remains active, then closes a saved watch tab. The earlier native suspend preserved the tabpanels splitview flag; the Night handler clears it only for a selected ordinary tab, using the native setter without deleting the pair.
+
+`tests/native/ux_details.py` exercises native raster cropping and authenticated avatar upload, rejects SVG, chooses a notification recipient with trusted keyboard input while preserving the popup/draft, checks footer alignment and stored workspace emoji, and inspects version history, progress and responsive website counters. The progress screenshot uses an explicit 5/10 MiB state fixture, not a real installer download. Windows profile tests additionally save an actual encoded avatar and check it after process restart. The OS file picker itself uses the standard browser picker and is outside this automation.
+
 ## Together and import 0.17 checks
 
 Local Node suite: 91 checks. Native two-client tests additionally exercise trusted fullscreen chat with keyboard events hidden from the source page; overlay play/seek; ad-marker hold/resume; P2P captureStream video/audio RTP and guest controls of the owner player. No physical microphone, protected subscription service, eight-client load or WAN/TURN is asserted.

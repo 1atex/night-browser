@@ -1,4 +1,4 @@
-# Night Together 0.17.0: Docker и существующий reverse proxy
+# Night Together 0.18.0: Docker и существующий reverse proxy
 
 Команды рассчитаны на пользователя noon, rootless Docker и каталог `/home/noon/night-together`. Входящий домен уже обслуживает nginx/Caddy на хосте; приложение слушает только `127.0.0.1:8787`. Для обновления работающего сервиса права администратора не нужны.
 
@@ -6,8 +6,8 @@
 
 ```sh
 cd /home/noon
-curl -fL https://github.com/1atex/night-browser/releases/download/v0.17.0-preview.3/night-together-server-0.17.0.zip -o night-together-server-0.17.0.zip
-unzip -o night-together-server-0.17.0.zip -d /home/noon/night-together
+curl -fL https://github.com/1atex/night-browser/releases/download/v0.18.0-preview.1/night-together-server-0.18.0.zip -o night-together-server-0.18.0.zip
+unzip -o night-together-server-0.18.0.zip -d /home/noon/night-together
 cd /home/noon/night-together/services/together
 docker compose -f compose.yaml -f compose.proxy.yaml up -d --build together
 curl -f http://127.0.0.1:8787/health

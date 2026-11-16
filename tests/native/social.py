@@ -87,6 +87,12 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
    host_stats=stats(host);guest_stats=stats(guest)
    capture(host,'night-room.png')
    click(host,'watch-split');wait_for(lambda:chrome(host,'return w.gBrowser.activeSplitView?.tabs.length===2;'))
+   chrome(host,'w.gNightBrowser.shell.workspaces.newTab(arguments[0]+"/");',endpoint)
+   wait_for(lambda:chrome(host,'return !w.gBrowser.activeSplitView&&!w.gBrowser.tabpanels.hasAttribute("splitview")&&w.gBrowser.selectedBrowser.getBoundingClientRect().width>800;'))
+   wait_for(lambda:content(host,'return !!document.querySelector(".browser-preview");'))
+   assert chrome(host,'return !!ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watchSession;')
+   async_chrome(host,'await w.gNightBrowser.shell.closeTab(w.gBrowser.selectedTab);')
+   wait_for(lambda:chrome(host,'return w.gBrowser.activeSplitView?.tabs.length===2;'))
    async_chrome(host,'await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.openRoom(w);')
    wait_for(lambda:content(host,'return !!document.getElementById("message-form");'))
    chrome(host,'w.gBrowser.selectedTab.splitview?.unsplitTabs();w.gBrowser.selectedTab=ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watchSession.tab;')
@@ -161,12 +167,14 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
    assert chrome(guest,'const dock=d.getElementById("night-together-dock");return dock.hidden&&w.getComputedStyle(dock).display==="none";')
    navigate(guest,'/room');wait_for(lambda:'обычном окне' in text(guest,'room-status'))
    chrome(host,'w.gBrowser.selectedTab.splitview?.unsplitTabs();')
+   async_chrome(host,'const T=ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether,tab=T.watchSession.tab;w.gNightBrowser.shell.workspaces.setPinned(tab,"workspace");await w.gNightBrowser.shell.closeTab(tab);return true;')
+   assert chrome(host,'return !ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watchSession;')
    navigate(host,'/');wait_for(lambda:content(host,'return !!document.querySelector(".browser-preview");'))
    wait_for(lambda:text(host,'downloads')=='42');capture(host,'night-website.png')
    host.set_window_rect(width=660,height=900)
    assert content(host,'return document.documentElement.scrollWidth<=document.documentElement.clientWidth+2;')
    host.set_window_rect(width=1280,height=900)
-   result={'passed':True,'fullscreen_shared_play_and_seek':True,'fullscreen_chat_bidirectional':True,'chat_keys_hidden_from_video_page':True,'button_accents_and_icons':True,'glass_toggle':True,'quick_microphone_and_shortcut':True,'participant_volume_web_and_browser':True,'fullscreen_controls_autohide':True,'delayed_scripts':delayed_scripts,'leave_during_microphone_request_keeps_capture_off':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
+   result={'passed':True,'split_navigation_during_live_room':True,'saved_watch_close_stops_sync':True,'fullscreen_shared_play_and_seek':True,'fullscreen_chat_bidirectional':True,'chat_keys_hidden_from_video_page':True,'button_accents_and_icons':True,'glass_toggle':True,'quick_microphone_and_shortcut':True,'participant_volume_web_and_browser':True,'fullscreen_controls_autohide':True,'delayed_scripts':delayed_scripts,'leave_during_microphone_request_keeps_capture_off':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
    (output/'social-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
   except Exception:
    for i,b in enumerate(drivers):

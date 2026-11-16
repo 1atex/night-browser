@@ -58,13 +58,13 @@ def run(binary,app_ini,output):
         def panel_click(driver,label):chrome(driver,'const button=[...d.querySelectorAll("#night-together-panel button")].find(b=>b.textContent===arguments[0]);if(!button)throw Error(arguments[0]);button.click();',label)
         chrome(host,'d.getElementById("night-together-watch").click();')
         wait_for(lambda:chrome(host,'return !!d.getElementById("night-together-create-url");'))
-        chrome(host,'d.getElementById("night-together-create-url").value=arguments[0];',video);panel_click(host,'Создать комнату')
-        wait_for(lambda:state(host)['room'] is not None);wait_for(lambda:chrome(host,'return !!d.getElementById("night-together-invite");'));panel_click(host,'Пригласить')
+        chrome(host,'d.getElementById("night-together-create-url").value=arguments[0];',video);panel_click(host,'Позвать смотреть')
+        wait_for(lambda:state(host)['room'] is not None and len(state(guest)['invitations'])==1)
+        wait_for(lambda:chrome(host,'return !!ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watchSession;'))
         chrome(guest,'d.getElementById("night-together-watch").click();')
-        wait_for(lambda:chrome(guest,'return [...d.querySelectorAll("#night-together-panel button")].some(b=>b.textContent==="Войти");'))
-        panel_click(guest,'Войти');wait_for(lambda:state(guest)['room'] is not None)
-        wait_for(lambda:chrome(guest,'return !!d.getElementById("night-together-start");'))
-        panel_click(host,'Смотреть');panel_click(guest,'Смотреть')
+        wait_for(lambda:chrome(guest,'return [...d.querySelectorAll("#night-together-panel button")].some(b=>b.textContent==="Присоединиться");'))
+        panel_click(guest,'Присоединиться');wait_for(lambda:state(guest)['room'] is not None)
+        chrome(host,'d.getElementById("night-together-panel").hidePopup();')
         wait_for(lambda:player(host) and player(host)['ready']>=3,timeout=30)
         wait_for(lambda:player(guest) and player(guest)['ready']>=3,timeout=30)
         tabs=chrome(host,'return w.gBrowser.tabs.length;')
@@ -120,7 +120,7 @@ def run(binary,app_ini,output):
         wait_for(lambda:chrome(guest,'return [...Services.wm.getEnumerator("navigator:browser")].length===2&&!!w.gNightBrowser;'))
         private=async_chrome(guest,'try{await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watch(w);return false;}catch{return true;}')
         assert private
-        result={'ad_fixture_holds_and_resumes_both':True,'passed':True,'quick_panel_create_invite_join_watch':True,'controls_while_page_still_loading':True,'busy_control_seconds':round(busy_control_seconds,3),'actual_video_play_pause_seek_rate':True,'host_changes_video':True,'guest_follows_host':True,'guest_can_pause_play_seek':True,'drift_seconds':round(drift,3),'disconnect_pauses_without_reset':True,'server_restart_preserves_id_and_name':True,'tab_close_stops_sync':True,'private_excluded':True,'social_profile_visible_to_friend':True,'autoplay_note':'Fixture explicitly allows autoplay; real websites may require pressing Play once.'}
+        result={'ad_fixture_holds_and_resumes_both':True,'passed':True,'quick_panel_create_invite_join_watch':True,'friend_invite_creates_room_and_starts_watch':True,'controls_while_page_still_loading':True,'busy_control_seconds':round(busy_control_seconds,3),'actual_video_play_pause_seek_rate':True,'host_changes_video':True,'guest_follows_host':True,'guest_can_pause_play_seek':True,'drift_seconds':round(drift,3),'disconnect_pauses_without_reset':True,'server_restart_preserves_id_and_name':True,'tab_close_stops_sync':True,'private_excluded':True,'social_profile_visible_to_friend':True,'autoplay_note':'Fixture explicitly allows autoplay; real websites may require pressing Play once.'}
         (output/'watch-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
     except Exception:
         for i,b in enumerate(drivers):

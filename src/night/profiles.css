@@ -1,4 +1,4 @@
-#night-sidebar #night-profile-button { font: 600 12px var(--night-font); font-size: 12px !important; color: var(--night-text) !important; background: var(--night-field); border: 1px solid var(--night-line); border-radius: 50%; width: 28px; height: 28px; padding: 0; align-self: center; margin-right: 4px; }
+#night-sidebar #night-profile-button { font: 600 12px var(--night-font); font-size: 12px !important; color: var(--night-text) !important; background: var(--night-field); border: 1px solid var(--night-line); border-radius: 50%; box-sizing:border-box; width:28px; height:28px; padding:0; align-self:center; justify-self:center; margin:0; }
 #night-profile-button::before { display: none; }
 #night-sidebar #night-profile-button[data-private] { background: var(--night-selected) url("chrome://browser/content/night/icons/private.svg") center / 17px no-repeat; }
 .night-profiles-body { width: 280px; padding: 12px; display: flex; flex-direction: column; gap: 5px; color: var(--night-text); font: 13px var(--night-font); }
@@ -15,3 +15,5 @@
 .profile-badge { display: inline-grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px; border-radius: 50%; border: 1px solid var(--profile-color); color: var(--profile-color); background: var(--night-field); margin-inline-end: 10px; }
 .night-profiles-body button[data-profile-id] { display: flex; align-items: center; }
 #night-sidebar #night-together-watch { border: 1px solid var(--night-line); border-radius: var(--night-pill); width: 100%; padding: 9px 12px; margin-bottom: 7px; background: var(--night-field); color: var(--night-text); text-align: start; font: 12px var(--night-font); }
+
+.night-avatar-image{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}.profile-badge:has(.night-avatar-image){overflow:hidden}#night-profile-button .night-avatar-image{width:26px;height:26px;border-radius:50%}

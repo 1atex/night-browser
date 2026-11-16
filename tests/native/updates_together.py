@@ -21,7 +21,7 @@ def run(binary,app_ini,output):
     try:
         b.start_session();b.set_window_rect(width=1280,height=900);wait_for(lambda:chrome('return !!w.gNightBrowser;'))
         b.set_context('content');b.navigate('about:preferences#updates');wait_for(lambda:content('return !!document.getElementById("night-update-check");'))
-        assert content('return document.body.textContent.includes("Night 0.17.0");')
+        assert content('return document.body.textContent.includes("Night 0.18.0");')
         chrome('Services.prefs.setStringPref("night.updates.seen-version","0.12.0");ChromeUtils.importESModule("resource:///modules/night/NightUpdates.sys.mjs").NightUpdates.startup(w);')
         wait_for(lambda:chrome('return w.gBrowser.tabs.some(t=>t.linkedBrowser.currentURI.spec.endsWith("/night/changes.html"));'))
         count=chrome('return w.gBrowser.tabs.length;')

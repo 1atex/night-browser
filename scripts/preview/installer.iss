@@ -1,4 +1,4 @@
-#define ProductVersion "0.17.0"
+#define ProductVersion "0.18.0"
 [Setup]
 AppId={{7BFD9F1C-A0E3-48D2-A517-116CD33D6D80}
 AppName=Night Browser
