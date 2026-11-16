@@ -128,7 +128,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
    wait_for(lambda:'не управляет' in text(guest,'room-status'))
    chrome(guest,'d.getElementById("Tools:PrivateBrowsing").doCommand();')
    wait_for(lambda:chrome(guest,'return [...Services.wm.getEnumerator("navigator:browser")].length===2&&!!w.gNightBrowser;'))
-   assert chrome(guest,'return d.getElementById("night-together-dock").hidden;')
+   assert chrome(guest,'const dock=d.getElementById("night-together-dock");return dock.hidden&&w.getComputedStyle(dock).display==="none";')
    navigate(guest,'/room');wait_for(lambda:'обычном окне' in text(guest,'room-status'))
    chrome(host,'w.gBrowser.selectedTab.splitview?.unsplitTabs();')
    navigate(host,'/');wait_for(lambda:content(host,'return !!document.querySelector(".browser-preview");'))
