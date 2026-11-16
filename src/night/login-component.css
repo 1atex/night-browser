@@ -1,0 +1,10 @@
+.filter[type="text"] {
+  border: 1px solid var(--night-line);
+  border-radius: var(--night-pill);
+  background-color: var(--night-field);
+  color: var(--night-text);
+  padding-block: 8px;
+  outline: none;
+  box-shadow: none;
+}
+.filter[type="text"]:focus-visible { outline: 1px solid var(--night-accent); outline-offset: 1px; }

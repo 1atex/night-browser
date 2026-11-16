@@ -1,0 +1,29 @@
+@import url("chrome://browser/content/night/theme.css");
+@import url("chrome://browser/content/night/internal.css");
+:root[night-surface] { background: var(--night-page); color: var(--night-text); font: 13px/1.5 var(--night-font); }
+:root[night-surface] body { font-family: var(--night-font); }
+:root[night-surface] :is(h1, h2) { letter-spacing: -.02em; }
+:root[night-surface] h1 { font-size: 24px; font-weight: 600; }
+:root[night-surface] h2 { font-size: 17px; font-weight: 600; }
+:root[night-surface] :is(.card, .section, .addon.card, .info-box-container) { border-radius: var(--night-radius); box-shadow: none; }
+:root[night-surface] :is(.category, richlistitem)[selected] { background: var(--night-selected) !important; color: var(--night-text) !important; border-radius: var(--night-pill); }
+:root[night-surface] :is(button, input, select, textarea) { font-family: var(--night-font); }
+:root[night-surface] :is(.main-content, #main, #categories, .navigation, #preferences-body) { background-color: var(--night-page); }
+:root[night-surface] :is(.login-list, .login-item, #logins-list, .meta) { --in-content-box-background: var(--night-surface); }
+:root[night-surface] .logo-and-wordmark { display: none; }
+:root[night-surface] .promo { display: none !important; }
+:root[night-surface] .private .search-inner-wrapper { border-radius: var(--night-pill); }
+:root[night-surface] :is(tree, richlistbox) { background: var(--night-page); color: var(--night-text); border-color: var(--night-line); }
+:root[night-surface] treechildren::-moz-tree-row(selected) { background: var(--night-selected); }
+:root[night-surface] treechildren::-moz-tree-cell-text(selected) { color: var(--night-text); }
+:root[night-surface] :is(#placesToolbar, #detailsPane, #permList, #viewGroup) { background: var(--night-surface); color: var(--night-text); border-color: var(--night-line); }
+:root[night-surface][data-motion="false"] *, :root[night-surface][data-motion="false"] *::before { transition-duration: 0s !important; animation-duration: 0s !important; }
+@media (forced-colors: active) {
+  :root[night-surface] { --night-page: Canvas; --night-surface: Canvas; --night-text: CanvasText; --night-secondary: CanvasText; --night-accent: LinkText; --night-selected: Highlight; --night-line: ButtonBorder; }
+}
+:root[night-surface] { --page-nav-button-background-color: transparent !important; --page-nav-button-background-color-hover: var(--night-hover) !important; --page-nav-button-background-color-selected: var(--night-selected) !important; --page-nav-button-text-color: var(--night-secondary) !important; --page-nav-button-text-color-selected: var(--night-text) !important; --page-nav-button-border-radius: var(--night-pill); }
+:root[night-surface] { --theme-body-background: var(--night-page); --theme-sidebar-background: var(--night-background); --theme-toolbar-background: var(--night-surface); --theme-toolbar-alternate-background: var(--night-panel); --theme-toolbar-color: var(--night-text); --theme-body-color: var(--night-text); --theme-comment: var(--night-secondary); --theme-selection-background: var(--night-selected); --theme-selection-color: var(--night-text); --theme-splitter-color: var(--night-line); --theme-toolbar-hover: var(--night-hover); --theme-accordion-header-background: var(--night-surface); }
+:root[night-surface] #aboutDialogContainer { background: var(--night-page); color: var(--night-text); }
+:root[night-surface] #bottomBox { background: var(--night-field); }
+:root[night-surface] #trademark { color: var(--night-secondary); }
+:root[night-surface] { --theme-toolbar-selected-color: var(--night-text); --theme-toolbar-selected-hover-color: var(--night-text); --tab-line-selected-color: var(--night-accent); --tab-line-hover-color: var(--night-muted); }

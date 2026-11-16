@@ -1,0 +1,50 @@
+name: night-together
+services:
+  together:
+    build: .
+    ports:
+      - "127.0.0.1:8787:8787"
+    restart: unless-stopped
+    environment:
+      NIGHT_TURN_SECRET: ${NIGHT_TURN_SECRET:-}
+      NIGHT_TURN_URL: ${NIGHT_TURN_URL:-}
+    volumes:
+      - together_data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    mem_limit: 384m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+  caddy:
+    profiles:
+      - standalone
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      together:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+volumes:
+  together_data:
+  caddy_data:
+  caddy_config:

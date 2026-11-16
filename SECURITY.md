@@ -1,11 +1,7 @@
-<!--
-   - This Source Code Form is subject to the terms of the Mozilla Public
-   - License, v. 2.0. If a copy of the MPL was not distributed with this
-   - file, You can obtain one at http://mozilla.org/MPL/2.0/.
-   -->
+# Security
 
-# Security Policy
+Report Night-specific vulnerabilities through the repository's private security reporting when available: https://github.com/1atex/night-browser/security/advisories/new
 
-## Reporting a Vulnerability
+For vulnerabilities in unmodified Firefox/Gecko, follow Mozilla's reporting process: https://www.mozilla.org/security/bugs/
 
-Please report security vulnerabilities [here](https://github.com/zen-browser/desktop/security/advisories/new)
+Preview builds have no automatic updater. Rebuild against a current supported Firefox runtime before using a preview for sensitive daily browsing. The pinned version and source revision are recorded in scripts/preview/runtime.json and in every package's BUILD.json.

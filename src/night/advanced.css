@@ -1,0 +1,27 @@
+@import url("chrome://browser/content/night/surfaces.css");
+#category-more-from-mozilla,
+#category-experimental,
+#category-ai-features,
+#category-ai,
+#firefoxAccountCategory,
+#fxaCategory,
+#policies-container,
+#searchInput,
+#helpButton,
+#category-browser-icon {
+  display: none !important;
+}
+body {
+  font-family: var(--night-font) !important;
+}
+#categories > richlistitem[selected] {
+  background: var(--night-selected) !important;
+  color: var(--night-text) !important;
+  border-radius: 9px !important;
+}
+.main-content {
+  background: var(--night-page) !important;
+}
+.category-icon {
+  filter: grayscale(1);
+}

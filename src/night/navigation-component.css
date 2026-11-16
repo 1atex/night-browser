@@ -1,0 +1,13 @@
+:host {
+  --page-nav-button-background-color: transparent;
+  --page-nav-button-background-color-hover: var(--night-hover);
+  --page-nav-button-background-color-active: var(--night-selected);
+  --page-nav-button-background-color-selected: var(--night-selected);
+  --page-nav-button-text-color: var(--night-secondary);
+  --page-nav-button-text-color-hover: var(--night-text);
+  --page-nav-button-text-color-selected: var(--night-text);
+  --page-nav-button-border-radius: var(--night-pill);
+}
+button, a[href] { background: transparent; color: var(--night-secondary); border-radius: var(--night-pill); }
+button:hover, a[href]:hover { background: var(--night-hover); color: var(--night-text); }
+button[selected] { background: var(--night-selected); color: var(--night-text); }

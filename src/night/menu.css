@@ -1,0 +1,135 @@
+:root[night-browser] #PanelUI-menu-button {
+  display: none !important;
+}
+#night-menu-button {
+  list-style-image: url("chrome://browser/content/night/icons/more.svg");
+  -moz-user-focus: normal;
+}
+#night-main-menu {
+  --panel-padding: 0;
+  --panel-border-radius: 12px;
+  --panel-background: var(--night-panel);
+  --panel-border-color: #ffffff17;
+  --panel-shadow: 0 16px 48px #0006;
+}
+.night-menu-body {
+  width: 304px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 8px;
+  color: var(--night-text);
+  font: 13px var(--night-font);
+}
+.night-menu-body * {
+  box-sizing: border-box;
+}
+.night-menu-body button {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.night-menu-body button:hover {
+  background: color-mix(in srgb, var(--night-accent) 28%, transparent);
+}
+.night-menu-body button:active {
+  background: #c3ccd91c;
+}
+.night-menu-body button:focus-visible {
+  outline: 1px solid #c3ccd977;
+  outline-offset: -1px;
+  background: #c3ccd90b;
+}
+.night-menu-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  background: currentColor;
+  mask: var(--menu-icon) center/contain no-repeat;
+  opacity: .75;
+}
+.night-menu-label {
+  flex: 1;
+  white-space: nowrap;
+}
+.night-menu-body kbd {
+  color: var(--night-muted);
+  font: 10px "Segoe UI", system-ui, sans-serif;
+}
+.night-menu-windows {
+  display: flex;
+  gap: 5px;
+  padding: 2px 2px 8px;
+}
+.night-menu-windows button {
+  background: var(--night-field);
+  border-color: transparent;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--night-pill);
+}
+.night-menu-group {
+  padding: 5px 0;
+  border-top: 1px solid #ffffff09;
+}
+.night-menu-zoom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 6px 7px 12px;
+  border-top: 1px solid #ffffff09;
+}
+.night-menu-zoom > span {
+  flex: 1;
+  color: #aeb3bf;
+}
+.night-menu-zoom button {
+  width: 30px;
+  min-height: 29px;
+  justify-content: center;
+  padding: 6px;
+  background: var(--night-field);
+}
+#night-menu-zoom-reset {
+  width: 54px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.night-menu-body button[role="switch"]::after {
+  content: "";
+  width: 20px;
+  height: 12px;
+  border-radius: 8px;
+  background: radial-gradient(circle at 6px 6px, #a4aab7 3px, transparent 3.5px), #ffffff12;
+}
+.night-menu-body button[aria-checked="true"]::after {
+  background: radial-gradient(circle at 14px 6px, #252832 3px, transparent 3.5px), #b6c1d2;
+}
+.night-menu-footer {
+  display: flex;
+  border-top: 1px solid #ffffff09;
+  padding-top: 5px;
+}
+.night-menu-footer button {
+  color: #a5aab5;
+  font-size: 11px;
+  width: auto;
+}
+.night-menu-footer button:last-child {
+  margin-left: auto;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[night-motion] .night-menu-body button {
+    transition: background-color 120ms ease;
+  }
+}

@@ -1,0 +1,87 @@
+name: Island connection check
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/night-product]
+    paths:
+      - "scripts/preview/island.json"
+      - "src/night/*Island*"
+      - "src/night/island-pipe.js"
+      - "tests/native/island.py"
+      - "tests/native/island_hub.py"
+      - ".github/workflows/island-check.yml"
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install -r tests/native/requirements.txt
+      - name: Download pinned native runtime
+        run: |
+          $pin = Get-Content scripts/preview/runtime.json -Raw | ConvertFrom-Json
+          $installer = Join-Path $env:RUNNER_TEMP "firefox-upstream.exe"
+          Invoke-WebRequest -Uri $pin.windows_x64.url -OutFile $installer
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLower() -ne $pin.windows_x64.sha256) {
+            throw "Upstream checksum mismatch"
+          }
+          7z x -y "-o$env:RUNNER_TEMP\firefox-upstream" $installer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Assemble Night preview
+        run: |
+          python scripts/preview/package.py --runtime "$env:RUNNER_TEMP/firefox-upstream/core" --output dist/Night --archive "$env:RUNNER_TEMP/firefox-upstream.exe" --platform windows_x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          $source = (Resolve-Path scripts/preview/Launcher.cs).Path
+          $updateSource = (Resolve-Path scripts/preview/UpdateRunner.cs).Path
+          $importSource = (Resolve-Path scripts/preview/ProfileImport.cs).Path
+          $executable = Join-Path (Resolve-Path dist/Night).Path "Night.exe"
+          $icon = (Resolve-Path src/night/branding/night.ico).Path
+          & $csc /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll "/win32icon:$icon" "/out:$executable" $source $importSource $updateSource
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Read Island revision
+        id: island-pin
+        run: |
+          $pin = Get-Content scripts/preview/island.json -Raw | ConvertFrom-Json
+          "revision=$($pin.revision)" >> $env:GITHUB_OUTPUT
+      - uses: actions/checkout@v4
+        with:
+          repository: 1atex/night-island
+          ref: ${{ steps.island-pin.outputs.revision }}
+          fetch-depth: 0
+          path: test-island
+      - name: Verify Island foundation
+        run: |
+          $pin = Get-Content scripts/preview/island.json -Raw | ConvertFrom-Json
+          git -C test-island merge-base --is-ancestor $pin.foundation HEAD
+          if ($LASTEXITCODE -ne 0) { throw "Island does not include the required foundation" }
+      - uses: dtolnay/rust-toolchain@1.93.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: test-island -> target
+          cache-on-failure: true
+      - name: Build Island integration fixture
+        run: cargo build --manifest-path test-island/Cargo.toml --locked --features demo --bin night-island
+      - name: Test actual Island download controls
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/island.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --island test-island/target/debug/night-island.exe --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -u tests/native/island_hub.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --island test-island/target/debug/night-island.exe --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: island-connection-tests
+          path: test-artifacts/
+          retention-days: 14

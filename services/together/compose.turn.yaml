@@ -1,0 +1,32 @@
+services:
+  turn:
+    image: coturn/coturn:4.6.3-alpine@sha256:e2bca2f79a4269d7240de5872ab60a9305013ad37296d2acf14f9510874346be
+    restart: unless-stopped
+    environment:
+      NIGHT_TURN_SECRET: ${NIGHT_TURN_SECRET:?Set NIGHT_TURN_SECRET in .env}
+      NIGHT_TURN_PUBLIC_IP: ${NIGHT_TURN_PUBLIC_IP:?Set NIGHT_TURN_PUBLIC_IP in .env}
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49160-49200:49160-49200/udp"
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - |
+        umask 077
+        printf '%s\n' 'listening-port=3478' 'min-port=49160' 'max-port=49200' 'fingerprint' 'pidfile=/tmp/night-turn.pid' 'use-auth-secret' "static-auth-secret=$$NIGHT_TURN_SECRET" "external-ip=$$NIGHT_TURN_PUBLIC_IP" 'realm=browser.night-watchers.com' 'no-cli' 'no-tls' 'no-dtls' 'no-loopback-peers' 'no-multicast-peers' 'stale-nonce=600' 'user-quota=32' 'total-quota=128' 'max-bps=128000' 'denied-peer-ip=0.0.0.0-0.255.255.255' 'denied-peer-ip=10.0.0.0-10.255.255.255' 'denied-peer-ip=127.0.0.0-127.255.255.255' 'denied-peer-ip=169.254.0.0-169.254.255.255' 'denied-peer-ip=172.16.0.0-172.31.255.255' 'denied-peer-ip=192.168.0.0-192.168.255.255' 'denied-peer-ip=::1' 'log-file=stdout' > /tmp/night-turn.conf
+        exec turnserver -c /tmp/night-turn.conf
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

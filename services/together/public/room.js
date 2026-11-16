@@ -1,0 +1,180 @@
+const $=id=>document.getElementById(id), peers=new Map(), waiting=new Map();
+import {MicrophoneSession} from './microphone.mjs';
+import {CastReceiver} from './cast-receiver.mjs';
+import {AudioLevels} from './audio-levels.mjs';
+const capture=new MicrophoneSession(),levels=new AudioLevels(localStorage),memberRows=new Map();
+const cast=new CastReceiver($('cast-video'),(id,signal)=>bridge('action',{type:'room-signal',room:state.room.id,id,signal}),text=>{if(text)status(text);});
+const recentMessages=[];let lastSendError='';
+let capabilities=new Set(),uiSignature='',autoConnectAttempted=false;
+let serial=0,state=null,active=false,stream=null,cursor=0,timer,busy=false,available=false,rtcConfig,signature='';
+function bridge(method,body,waitMs=15000){return new Promise((resolve,reject)=>{const id=++serial,timeout=setTimeout(()=>{waiting.delete(id);reject(Error('Night не ответил. Проверь обновления браузера и сервера.'));},waitMs);waiting.set(id,{resolve,reject,timeout});document.dispatchEvent(new CustomEvent('NightRoom:Query',{detail:JSON.stringify({id,method,body})}));});}
+window.addEventListener('NightRoom:Reply',event=>{let v;try{v=JSON.parse(event.detail);}catch{return;}const p=waiting.get(v.id);if(!p)return;available=true;waiting.delete(v.id);clearTimeout(p.timeout);v.error?p.reject(Error(v.error)):p.resolve(v.result);});
+window.addEventListener('NightRoom:Available',()=>{available=true;refresh();});
+const status=text=>{if($('room-status').textContent!==text)$('room-status').textContent=text;};
+function publishUI(){if(!capabilities.has('room-controls'))return;const value={active,messages:recentMessages,lastSendError,microphone:!!capture.stream,microphonePending:capture.pending,peers:state?.room?.members.filter(id=>id!==state.id).map(id=>({id,volume:levels.get(id),state:peers.get(id)?.pc.connectionState??'waiting',chatReady:peers.get(id)?.channel?.readyState==='open'}))??[]};const next=JSON.stringify(value);if(next===uiSignature)return;uiSignature=next;bridge('ui-state',value).catch(()=>{uiSignature='';});}
+function setVolume(id,value){levels.set(id,value);const peer=peers.get(id);if(peer?.audio)peer.audio.volume=value;renderMembers();publishUI();}
+function random(){return crypto.randomUUID().replaceAll('-','');}
+function signal(peer,value){peer.sending=peer.sending.catch(()=>{}).then(()=>bridge('action',{type:'room-signal',room:peer.room,id:peer.id,signal:{session:peer.session,...value}}));return peer.sending;}
+function closePeer(id){const peer=peers.get(id);if(!peer)return;peers.delete(id);peer.pc.onconnectionstatechange=null;peer.pc.close();peer.audio?.remove();}
+function receiveChannel(peer,channel){
+ if(channel.label!=='night-chat'){channel.close();return;}
+ peer.channel=channel;
+ channel.onopen=()=>renderMembers();channel.onclose=()=>renderMembers();
+ channel.onmessage=event=>{
+  if(typeof event.data!=='string'||event.data.length>8192)return;
+  const now=Date.now();if(now-peer.rateAt>1000){peer.rateAt=now;peer.received=0;}if(++peer.received>20)return;
+  let value;try{value=JSON.parse(event.data);}catch{return;}
+  if(value.type!=='chat'||typeof value.text!=='string'||!value.text.trim()||value.text.length>2000||typeof value.id!=='string'||!/^[a-f0-9]{32}$/.test(value.id)||peer.seen.has(value.id))return;
+  peer.seen.add(value.id);if(peer.seen.size>500)peer.seen.delete(peer.seen.values().next().value);
+  message(peer.id,value.text,value.id);
+ };
+}
+function message(from,text,id=random()){if(recentMessages.some(item=>item.id===id))return;const name=from===state.id?state.self.name+' · ты':state.people[from]?.name??'Участник';const li=document.createElement('li'),label=document.createElement('strong'),body=document.createElement('p');label.textContent=name;body.textContent=text;li.append(label,body);$('messages').append(li);while($('messages').children.length>200)$('messages').firstChild.remove();recentMessages.push({id,from,text});while(recentMessages.length>20)recentMessages.shift();li.scrollIntoView({block:'nearest'});publishUI();}
+function makePeer(id,session=random(),offering=true){
+ closePeer(id);
+ const pc=new RTCPeerConnection({...rtcConfig,bundlePolicy:'max-bundle'}),transceiver=offering?pc.addTransceiver('audio',{direction:'sendrecv'}):null;
+ const peer={id,session,room:state.room.id,pc,sending:Promise.resolve(),transceiver,seen:new Set(),rateAt:0,received:0,started:Date.now()};peers.set(id,peer);
+ if(stream&&transceiver)transceiver.sender.replaceTrack(stream.getAudioTracks()[0]).catch(error=>status(error.message));
+ pc.ondatachannel=event=>receiveChannel(peer,event.channel);
+ pc.onconnectionstatechange=()=>renderMembers();
+ pc.ontrack=event=>{
+  if(event.track.kind!=='audio')return;
+  const audio=document.createElement('audio');audio.autoplay=true;audio.volume=levels.get(id);audio.srcObject=new MediaStream([event.track]);audio.dataset.peer=id;peer.audio?.remove();peer.audio=audio;$('audios').append(audio);
+  audio.play().catch(()=>status('Нажми «Разрешить звук», чтобы слышать участников.'));
+ };
+ return peer;
+}
+async function gathered(pc){if(pc.iceGatheringState==='complete')return;await new Promise(resolve=>{const done=()=>{if(pc.iceGatheringState==='complete'||pc.signalingState==='closed'){pc.removeEventListener('icegatheringstatechange',done);clearTimeout(timeout);resolve();}},timeout=setTimeout(()=>{pc.removeEventListener('icegatheringstatechange',done);resolve();},6000);pc.addEventListener('icegatheringstatechange',done);});}
+async function offer(id){const peer=makePeer(id);receiveChannel(peer,peer.pc.createDataChannel('night-chat',{ordered:true}));try{await peer.pc.setLocalDescription(await peer.pc.createOffer());await gathered(peer.pc);if(peers.get(id)===peer)await signal(peer,{kind:'description',description:{type:peer.pc.localDescription.type,sdp:peer.pc.localDescription.sdp}});}catch(error){if(peers.get(id)===peer)status('Соединение: '+error.message);}}
+async function incoming(item){
+ if(!active||!state.room.members.includes(item.from)||item.from===state.id)return;
+ const value=item.signal;if(value.channel==='cast'){if(state.room.mode==='cast'&&state.id!==state.room.owner)await cast.incoming(item);return;}let peer=peers.get(item.from);
+ if(value.kind==='bye'){if(peer?.session===value.session)closePeer(item.from);return;}
+ if(value.kind==='description'&&value.description.type==='offer'){
+  if(item.from>state.id)return;
+  if(peer?.session===value.session)return;
+  peer=makePeer(item.from,value.session,false);
+  await peer.pc.setRemoteDescription(value.description);
+  peer.transceiver=peer.pc.getTransceivers().find(t=>t.receiver.track.kind==='audio');
+  if(peer.transceiver){peer.transceiver.direction='sendrecv';if(stream)await peer.transceiver?.sender.replaceTrack(stream.getAudioTracks()[0]);}
+  await peer.pc.setLocalDescription(await peer.pc.createAnswer());await gathered(peer.pc);
+  if(peers.get(item.from)===peer)await signal(peer,{kind:'description',description:{type:peer.pc.localDescription.type,sdp:peer.pc.localDescription.sdp}});
+ }else if(peer?.session===value.session&&value.kind==='description'&&value.description.type==='answer'&&peer.pc.signalingState==='have-local-offer')await peer.pc.setRemoteDescription(value.description);
+ else if(peer?.session===value.session&&value.kind==='candidate'&&peer.pc.remoteDescription)await peer.pc.addIceCandidate(value.candidate);
+}
+function renderMembers(){
+ if(!state?.room)return;
+ const ids=state.room.members;
+ for(const [id,row]of memberRows)if(!ids.includes(id)){row.root.remove();memberRows.delete(id);}
+ for(const id of ids){
+  let row=memberRows.get(id);
+  if(!row){
+   const root=document.createElement('div'),name=document.createElement('span'),info=document.createElement('small'),controls=document.createElement('div'),volume=document.createElement('input'),level=document.createElement('output'),mute=document.createElement('button'),kick=document.createElement('button');
+   controls.className='member-audio';volume.type='range';volume.min='0';volume.max='100';volume.step='1';volume.dataset.volume=id;
+   volume.oninput=()=>setVolume(id,Number(volume.value)/100);mute.onclick=()=>setVolume(id,levels.get(id)>0?0:levels.toggle(id));
+   kick.textContent='Удалить';kick.dataset.roomKick=id;kick.onclick=()=>bridge('action',{type:'room-kick',room:state.room.id,id}).then(()=>refresh()).catch(error=>status(error.message));
+   controls.append(mute,volume,level);root.append(name,info,controls,kick);root.dataset.id=id;row={root,name,info,controls,volume,level,mute,kick};memberRows.set(id,row);$('members').append(root);
+  }
+  const self=id===state.id,peer=peers.get(id),level=levels.get(id),name=self?state.self.name:state.people[id]?.name??'Участник';
+  row.root.dataset.state=self?'self':peer?.pc.connectionState??'waiting';row.name.textContent=name+(self?' · ты':'');const avatar=(self?state.self:state.people[id])?.avatar;if(/^\/avatars\/[a-f0-9]{16}\/[a-f0-9]{64}\.png$/.test(avatar??'')){const image=document.createElement('img');image.src=avatar;image.alt='';image.className='member-avatar';row.name.prepend(image);}
+  row.info.textContent=self?'В комнате':peer?.pc.connectionState==='connected'?(peer.channel?.readyState==='open'?'Чат подключён':'Соединён'):peer?.pc.connectionState==='failed'?'Нет соединения':active?'Подключение…':'В комнате';
+  row.controls.hidden=self;row.volume.setAttribute('aria-label','Громкость: '+name);if(document.activeElement!==row.volume)row.volume.value=String(Math.round(level*100));row.level.textContent=Math.round(level*100)+'%';row.mute.textContent=level===0?'Включить звук':'Без звука';row.mute.setAttribute('aria-pressed',String(level===0));row.kick.hidden=state.room.owner!==state.id||self;if(row.kick.hidden)delete row.kick.dataset.roomKick;else row.kick.dataset.roomKick=id;
+ }
+ const connected=[...peers.values()].filter(p=>p.channel?.readyState==='open').length;
+ $('chat-state').textContent=active?(connected?`${connected} соединений`:'Соединение…'):'Не подключён';$('message').disabled=!connected;$('send').disabled=!connected;publishUI();
+}
+function renderRequests(){
+ const requests=state.room.requests??[],next=JSON.stringify(requests);if($('requests').dataset.value===next)return;$('requests').dataset.value=next;$('requests').replaceChildren();
+ for(const person of requests){const row=document.createElement('div'),name=document.createElement('span');name.textContent=person.name+' просится в комнату';row.append(name);for(const [text,type]of[['Принять','room-admit'],['Отклонить','room-deny']]){const b=document.createElement('button');b.textContent=text;b.onclick=()=>bridge('action',{type,room:state.room.id,id:person.id}).then(()=>refresh()).catch(error=>status(error.message));row.append(b);}$('requests').append(row);}
+}
+async function refresh(){
+ if(!available||busy)return;busy=true;
+ try{
+  const snapshot=await bridge('status');capabilities=new Set(snapshot.capabilities??[]);const next=snapshot.state;
+  if(!next?.room){stop();state=next;status('Комната закрыта или ты вышел. Создай новую в настройках Night.');$('watch').disabled=true;$('watch-split').disabled=true;$('connect').disabled=true;return;}
+  if(state?.room&&state.room.id!==next.room.id){stop();cursor=0;}
+  state=next;$('connect').disabled=false;$('watch').disabled=false;$('watch-split').disabled=false;$('invite').hidden=state.room.owner!==state.id;$('video-link').textContent=new URL(state.room.url).hostname;$('video-link').href=state.room.url;$('connection').textContent=`${state.room.members.length} в комнате`;
+  const receiving=state.room.mode==='cast'&&state.id!==state.room.owner;$('cast-player').hidden=!receiving;document.body.toggleAttribute('data-casting',receiving);if(!receiving)cast.stop();else if(rtcConfig)cast.configure(state.room.owner,rtcConfig);
+  renderMembers();renderRequests();
+  if(!autoConnectAttempted&&new URL(location.href).searchParams.get('connect')==='1'){autoConnectAttempted=true;setTimeout(startChat,0);}
+  if(!active){status('Пауза, продолжение и перемотка общие. Видео можно открыть в отдельной вкладке, а эту оставить для общения.');return;}
+  for(const id of [...peers.keys()])if(!state.room.members.includes(id))closePeer(id);
+  const batch=await bridge('signals',{after:cursor});cursor=batch.cursor;
+  const groups=new Map();
+  for(const item of batch.items){const previous=groups.get(item.from)??Promise.resolve();groups.set(item.from,previous.then(()=>incoming(item)).catch(error=>{closePeer(item.from);status('Не удалось подключить участника: '+error.message);}));}
+  await Promise.all(groups.values());
+  for(const id of state.room.members){if(id===state.id)continue;const peer=peers.get(id);if(peer&&(['failed','closed'].includes(peer.pc.connectionState)||Date.now()-peer.started>25000&&peer.pc.connectionState!=='connected'))closePeer(id);if(!peers.has(id)&&state.id<id)offer(id);}
+  const failed=[...peers.values()].some(p=>p.pc.connectionState==='failed'||Date.now()-p.started>15000&&p.pc.connectionState!=='connected');
+  const connected=[...peers.values()].some(p=>p.channel?.readyState==='open');
+  status(failed?'Прямое соединение не установилось. Для этой сети может понадобиться TURN-релей.':connected?(capture.stream?'Чат подключён. Микрофон включён.':'Чат подключён. Микрофон включается отдельно.'):state.room.members.length<2?'Ждём участника комнаты…':'Устанавливаем соединение с участниками…');
+ }catch(error){status(active?'Связь с сервером потеряна. Переподключаемся…':error.message);}finally{busy=false;}
+}
+async function microphone(){
+ if(capture.pending||capture.stream)return;
+ const room=state?.room?.id;let acquired;$('voice').disabled=true;
+ try{
+  if(!active)throw Error('Сначала подключи чат.');
+  const request=capture.start(()=>navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false}));publishUI();acquired=await request;
+  if(!acquired)return;
+  if(!active||state?.room?.id!==room){capture.stop();return;}
+  stream=acquired;stream.getAudioTracks()[0].onended=()=>{stopMicrophone();status('Микрофон отключён устройством.');};
+  for(const peer of peers.values()){
+   if(capture.stream!==acquired)break;
+   await peer.transceiver?.sender.replaceTrack(acquired.getAudioTracks()[0]);
+  }
+  if(capture.stream!==acquired){acquired.getTracks().forEach(t=>t.stop());return;}
+  $('voice').hidden=true;$('mute').hidden=false;status('Микрофон включён.');
+ }catch(error){
+  acquired?.getTracks().forEach(t=>t.stop());
+  if(capture.stream===acquired){capture.stop();stream=null;}
+  if(active)status(error.name==='NotAllowedError'?'Доступ к микрофону не разрешён. Чат продолжает работать.':error.message);
+ }finally{$('voice').disabled=!active||capture.pending;publishUI();}
+}
+function stopMicrophone(){capture.stop();stream=null;for(const p of peers.values())p.transceiver?.sender.replaceTrack(null).catch(()=>{});$('voice').hidden=false;$('mute').hidden=true;$('voice').disabled=!active;publishUI();}
+function stop(){if(active)bridge('session',{active:false}).catch(()=>{});active=false;stopMicrophone();for(const id of [...peers.keys()])closePeer(id);$('connect').textContent='Подключить чат';$('voice').disabled=true;signature='';cast.stop();renderMembers();}
+async function startChat(){if(active)return;try{rtcConfig=await bridge('rtc');await bridge('session',{active:true});active=true;$('connect').textContent='Отключить чат';$('voice').disabled=false;renderMembers();await refresh();}catch(error){status(error.message);}}
+$('connect').onclick=()=>{autoConnectAttempted=true;if(active){for(const p of peers.values())signal(p,{kind:'bye'}).catch(()=>{});stop();}else startChat();};
+window.addEventListener('NightRoom:Command',event=>{let value;try{value=JSON.parse(event.detail);}catch{return;}if(value.type==='connect')startChat();else if(value.type==='microphone-off')stopMicrophone();else if(value.type==='microphone-toggle'){if(capture.stream||capture.pending)stopMicrophone();else microphone();}else if(value.type==='volume'&&state?.room?.members.includes(value.id)&&value.id!==state.id&&Number.isFinite(value.volume)&&value.volume>=0&&value.volume<=1)setVolume(value.id,value.volume);else if(value.type==='chat-send')sendChat(value.text,value.id);else if(value.type==='disconnect')stop();});
+$('voice').onclick=microphone;$('mute').onclick=()=>{stopMicrophone();status('Микрофон выключен.');};
+const sound=document.createElement('button');sound.textContent='Разрешить звук';sound.onclick=()=>{for(const audio of [...$('audios').children,$('cast-video')])audio.play().catch(error=>status(error.message));};$('mute').after(sound);
+$('invite').onclick=async()=>{try{const next=await bridge('action',{type:'room-link',room:state.room.id});await navigator.clipboard.writeText(next.room.link);status('Приглашение скопировано. Вход подтверждаешь ты.');}catch(error){status(error.message);}};
+$('watch-split').onclick=()=>bridge('watch',{sideBySide:true}).catch(error=>status(error.message));
+$('watch').onclick=()=>bridge('watch').catch(error=>status(error.message));
+$('leave').onclick=()=>{stop();bridge('action',{type:'room-leave'}).then(()=>refresh()).catch(error=>status(error.message));};
+function sendChat(value,id=random()){
+ const text=typeof value==='string'?value.trim():'';if(!text||text.length>2000)return false;let count=0;
+ const payload=JSON.stringify({type:'chat',id,text});for(const p of peers.values())if(p.channel?.readyState==='open'&&p.channel.bufferedAmount<65536)try{p.channel.send(payload);count++;}catch{}
+ if(!count){lastSendError='Соединение потеряно. Сообщение осталось в поле ввода.';status(lastSendError);publishUI();return false;}lastSendError='';message(state.id,text,id);return true;
+}
+$('message-form').onsubmit=event=>{event.preventDefault();if(sendChat($('message').value))$('message').value='';};
+export async function connectionReport(){
+ const results=[];
+ for(const p of peers.values()){
+  let received=0,sent=0,route='unknown';const stats=await p.pc.getStats();
+  for(const stat of stats.values()){
+   if(stat.type==='inbound-rtp'&&stat.kind==='audio')received+=stat.bytesReceived??0;
+   if(stat.type==='outbound-rtp'&&stat.kind==='audio')sent+=stat.bytesSent??0;
+   if(stat.type==='transport'&&stat.selectedCandidatePairId){const pair=stats.get(stat.selectedCandidatePairId),local=stats.get(pair?.localCandidateId),remote=stats.get(pair?.remoteCandidateId);route=local?.candidateType==='relay'||remote?.candidateType==='relay'?'relay':'direct';}
+   if(route==='unknown'&&stat.type==='candidate-pair'&&stat.nominated&&stat.state==='succeeded'){const local=stats.get(stat.localCandidateId),remote=stats.get(stat.remoteCandidateId);route=local?.candidateType==='relay'||remote?.candidateType==='relay'?'relay':'direct';}
+  }
+  results.push({id:p.id,state:p.pc.connectionState,channel:p.channel?.readyState,received,sent,route,audio:p.pc.getTransceivers().map(t=>({direction:t.currentDirection,local:t.sender.track?.readyState??null,remote:t.receiver.track.readyState}))});
+ }return results;
+}
+export async function broadcastReport(){return cast.stats();}
+$('cast-fullscreen').onclick=()=>{$('cast-video').requestFullscreen().catch(error=>status(error.message));bridge('watch').catch(error=>status(error.message));};
+$('cast-volume').oninput=()=>$('cast-video').volume=Number($('cast-volume').value)/100;
+$('rtc-refresh').onclick=async()=>{try{const report=await connectionReport();$('cast-report').textContent=JSON.stringify(await cast.stats(),null,2);$('rtc-report').textContent=JSON.stringify(report,null,2);$('rtc-report').dataset.serial=String(Date.now());}catch(error){status(error.message);}};
+let bootstrapTimer,bootstrapAttempts=0,closed=false;
+async function bootstrap(){
+ if(closed||available)return;
+ try{await bridge('status',undefined,1500);}
+ catch(error){
+  if(closed)return;
+  if(!available){if(++bootstrapAttempts<8)bootstrapTimer=setTimeout(bootstrap,250);else status('Night не ответил. Открой комнату в обычном окне актуального Night.');return;}
+ }
+ if(!closed)refresh();
+}
+bootstrapTimer=setTimeout(bootstrap,0);
+timer=setInterval(()=>{if(!document.hidden||active)refresh();},1500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
+window.addEventListener('pagehide',()=>{closed=true;clearTimeout(bootstrapTimer);clearInterval(timer);stop();for(const p of waiting.values()){clearTimeout(p.timeout);p.reject(Error('Комната закрыта.'));}waiting.clear();});

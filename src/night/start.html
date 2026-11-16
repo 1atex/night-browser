@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src resource:; style-src resource:; img-src resource: data:; form-action https://www.google.com; base-uri 'none'"
+    />
+    <title>Новая вкладка</title>
+    <link
+      rel="stylesheet"
+      href="resource://newtab/prerendered/night-start.css"
+    />
+    <link
+      rel="icon"
+      href="resource://newtab/prerendered/night-newtab.svg"
+    />
+    <script src="resource://newtab/prerendered/night-start.js" defer></script>
+  </head>
+  <body>
+    <main aria-label="Новая вкладка">
+      <div class="home-time" id="home-clock"><div class="date" id="date"></div>
+      <div class="clock" id="clock" aria-label="Текущее время"></div></div>
+      <div class="home-search">
+      <form id="home-search-form" action="https://www.google.com/search" method="get">
+        <label for="query" class="sr-only">Поиск или адрес</label
+        ><svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m16 16 4 4" /></svg
+        ><input
+          id="query"
+          name="q"
+          placeholder="Поиск или адрес"
+          autocomplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls="suggestions"
+          aria-expanded="false"
+        /><button type="submit" aria-label="Искать">↗</button>
+      </form>
+      <div id="suggestions" role="listbox" aria-label="Подсказки" hidden></div>
+      </div>
+      <nav id="home-shortcuts" aria-label="Быстрые ссылки"></nav>
+      <div id="home-widgets" hidden="hidden">
+        <section class="home-widget" id="home-tabs" hidden="hidden" aria-labelledby="home-workspace-name">
+          <header><h2 id="home-workspace-name">Вкладки</h2><button type="button" class="widget-link" data-home-action="memory">Память</button></header>
+          <p class="widget-caption" id="home-tab-count"></p>
+          <div id="home-tab-items"></div>
+        </section>
+        <section class="home-widget" id="home-island" hidden="hidden" aria-labelledby="home-island-name">
+          <header><h2 id="home-island-name">Island</h2><button type="button" class="widget-link" data-home-action="integrations">Настроить</button></header>
+          <p class="widget-caption" id="home-island-status">Проверяем подключение</p>
+          <div class="widget-actions">
+            <button type="button" data-home-action="pocket" hidden="hidden">Карман</button>
+            <button type="button" data-home-action="browser" hidden="hidden">Вкладки</button>
+            <button type="button" data-home-action="downloads" hidden="hidden">Загрузки</button>
+          </div>
+        </section>
+      </div>
+      <details id="home-customize">
+        <summary>Настроить главную</summary>
+        <fieldset><legend class="sr-only">Показывать на главной</legend>
+          <label><input type="checkbox" data-widget="clock" checked="checked"/>Часы и дата</label>
+          <label><input type="checkbox" data-widget="shortcuts" checked="checked"/>Быстрые ссылки</label>
+          <label><input type="checkbox" data-widget="tabs"/>Текущее пространство</label>
+          <label><input type="checkbox" data-widget="island"/>Island</label>
+        </fieldset>
+        <section class="home-custom-section" aria-labelledby="home-links-heading">
+          <h2 id="home-links-heading">Быстрые ссылки <span id="home-links-count"></span></h2>
+          <div id="home-links-editor"></div>
+          <form id="home-link-form">
+            <label>Название<input id="home-link-name" maxlength="40" required="required" autocomplete="off" placeholder="Название сайта" /></label>
+            <label>Адрес<input id="home-link-url" type="text" inputmode="url" maxlength="2048" required="required" autocomplete="off" placeholder="https://example.com" /></label>
+            <div class="home-link-buttons"><button type="submit" id="home-link-save">Добавить</button><button type="button" id="home-link-cancel" hidden="hidden">Отмена</button></div>
+            <p id="home-link-error" role="status" hidden="hidden"></p>
+          </form>
+        </section>
+        <section class="home-custom-section" aria-labelledby="home-background-heading">
+          <h2 id="home-background-heading">Фон</h2>
+          <div id="home-gradient-presets" role="group" aria-label="Градиент фона">
+            <button type="button" data-gradient="none" aria-label="Без градиента" title="Без градиента"></button>
+            <button type="button" data-gradient="graphite" aria-label="Графит" title="Графит"></button>
+            <button type="button" data-gradient="dusk" aria-label="Сумерки" title="Сумерки"></button>
+            <button type="button" data-gradient="forest" aria-label="Лес" title="Лес"></button>
+            <button type="button" data-gradient="amber" aria-label="Тёплый" title="Тёплый"></button>
+            <button type="button" data-gradient="custom" aria-label="Свои цвета" title="Свои цвета">+</button>
+          </div>
+          <div id="home-gradient-options" hidden="hidden">
+            <div id="home-gradient-colors" hidden="hidden"><label>Первый цвет<input id="home-gradient-first" type="color" value="#5264ba" /></label><label>Второй цвет<input id="home-gradient-second" type="color" value="#8a557a" /></label></div>
+            <label class="home-intensity">Насыщенность<input id="home-gradient-intensity" type="range" min="0" max="35" value="18" /><output id="home-gradient-value">18%</output></label>
+          </div>
+        </section>
+      </details>
+    </main>
+  </body>
+</html>
