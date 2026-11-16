@@ -64,7 +64,7 @@ def run(binary, app_ini, island, output):
     server=ThreadingHTTPServer(('127.0.0.1',0),Site)
     threading.Thread(target=server.serve_forever,daemon=True).start()
     origin=f'http://127.0.0.1:{server.server_port}'
-    prefs={'night.onboarding.completed':True,'night.network.enabled':True, **{f'night.island.{key}':True for key in ['tabs','pocket','activity','requests']}}
+    prefs={'night.onboarding.completed':True,'night.home.widgets':'["clock","shortcuts","tabs","island"]','night.network.enabled':True, **{f'night.island.{key}':True for key in ['tabs','pocket','activity','requests']}}
     os.environ['MOZ_LOG']='WidgetDragService:5'
     b=Marionette(bin=binary,headless=False,prefs=prefs,app_args=['-app',app_ini,'-no-deelevate'],gecko_log=str(output/'hub-gecko.log'))
     process=None

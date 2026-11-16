@@ -124,6 +124,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -u tests/native/ux_details.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test personal home links and gradients
+        run: |
+          $output = (Resolve-Path dist/Night).Path
+          python -u tests/native/home_personalization.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test isolated Windows profiles
         run: |
           python -u tests/native/profiles.py --package dist/Night --output test-artifacts
@@ -261,6 +266,8 @@ jobs:
           Copy-Item test-artifacts/profiles-result.json dist/profiles-result.json
           Copy-Item test-artifacts/night-accounts.png dist/night-accounts.png
           Copy-Item test-artifacts/night-profile-switcher.png dist/night-profile-switcher.png
+          Copy-Item test-artifacts/home-personalization-result.json dist/home-personalization-result.json
+          Copy-Item test-artifacts/night-home-personalized.png dist/night-home-personalized.png
           Copy-Item test-artifacts/home-ux-result.json dist/home-ux-result.json
           Copy-Item test-artifacts/surfaces-result.json dist/surfaces-result.json
           Copy-Item test-artifacts/night-home-widgets.png dist/night-home-widgets.png
@@ -343,6 +350,8 @@ jobs:
             dist/night-profile-switcher.png
             dist/home-ux-result.json
             dist/surfaces-result.json
+            dist/home-personalization-result.json
+            dist/night-home-personalized.png
             dist/night-home-widgets.png
             dist/search-result.json
             dist/hub-result.json
@@ -450,6 +459,8 @@ jobs:
             release-assets/night-profile-switcher.png \
             release-assets/home-ux-result.json \
             release-assets/surfaces-result.json \
+            release-assets/home-personalization-result.json \
+            release-assets/night-home-personalized.png \
             release-assets/night-home-widgets.png \
             release-assets/search-result.json \
             release-assets/hub-result.json \

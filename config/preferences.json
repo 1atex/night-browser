@@ -93,7 +93,7 @@
   "night.ui.window-controls-autohide": true,
   "browser.startup.preXulSkeletonUI": false,
   "night.ui.address-details": false,
-  "night.home.widgets": "[\"clock\",\"shortcuts\",\"tabs\",\"island\"]",
+  "night.home.widgets": "[\"clock\",\"shortcuts\"]",
   "general.useragent.compatMode.firefox": true,
   "services.sync.prefs.sync.night.ui.palette": true,
   "services.sync.prefs.sync.night.ui.density": true,
@@ -110,5 +110,9 @@
   "night.together.compare-ad-blocking": true,
   "night.together.history": true,
   "night.together.notices": false,
-  "night.together.notice-preview": false
+  "night.together.notice-preview": false,
+  "night.home.shortcuts": "[]",
+  "night.home.gradient": "{\"preset\":\"none\"}",
+  "services.sync.prefs.sync.night.home.shortcuts": true,
+  "services.sync.prefs.sync.night.home.gradient": true
 }

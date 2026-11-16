@@ -13,7 +13,7 @@ class Site(BaseHTTPRequestHandler):
 def run(binary,app_ini,output):
     output.mkdir(parents=True,exist_ok=True)
     server=ThreadingHTTPServer(('127.0.0.1',0),Site);threading.Thread(target=server.serve_forever,daemon=True).start()
-    b=Marionette(bin=binary,headless=True,prefs={'night.onboarding.completed':True},app_args=['-app',app_ini],gecko_log=str(output/'home-ux-gecko.log'))
+    b=Marionette(bin=binary,headless=True,prefs={'night.onboarding.completed':True,'night.home.widgets':'["clock","shortcuts","tabs","island"]'},app_args=['-app',app_ini],gecko_log=str(output/'home-ux-gecko.log'))
     def chrome(script,*args):
         b.set_context('chrome');return b.execute_script("const w=Services.wm.getMostRecentWindow('navigator:browser'),d=w.document,s=w.gNightBrowser?.shell;"+script,script_args=list(args))
     def selected_content():

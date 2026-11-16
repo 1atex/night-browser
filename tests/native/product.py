@@ -84,6 +84,7 @@ def run(binary, app_ini, output):
           w.productOriginal = b.selectedTab;
           w.productPinned = s.workspaces.newTab(arguments[0] + '/pinned');
           b.pinTab(w.productPinned);
+          if(!s.workspaces.items.some(item=>item.id==='development'))s.workspaces.items.push({{id:'development',name:'Тесты'}});
           s.workspaces.switchTo('development');
           return {{active: s.workspaces.active, hidden: w.productOriginal.hidden, pinVisible: !w.productPinned.hidden,
             noZen: !w.gZenWorkspaces && !w.document.getElementById('zen-main-app-wrapper'),

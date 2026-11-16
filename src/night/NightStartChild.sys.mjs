@@ -1,3 +1,4 @@
+import {homeLinks, homeGradient} from "resource:///modules/night/HomeModel.mjs";
 import {applyIslandAppearance} from "resource:///modules/night/IslandAppearance.mjs";
 
 export class NightStartChild extends JSWindowActorChild {
@@ -6,6 +7,9 @@ export class NightStartChild extends JSWindowActorChild {
   #items = [];
   #selected = -1;
   #bound = false;
+  #links = [];
+  #editing = -1;
+  #gradient = homeGradient(null);
 
   #close() {
     this.#serial++;
@@ -82,9 +86,38 @@ export class NightStartChild extends JSWindowActorChild {
       if (doc.hidden) this.#close();
       this.sendAsyncMessage("NightStart:Visible", {visible: !doc.hidden});
     });
-    doc.getElementById("home-customize")?.addEventListener("change", () => {
+    doc.getElementById("home-customize")?.addEventListener("change", event => {
+      if (!event.target.matches("[data-widget]")) return;
       this.sendAsyncMessage("NightStart:Widgets", {enabled: [...doc.querySelectorAll("[data-widget]:checked")].map(node => node.dataset.widget)});
     });
+    doc.getElementById("home-shortcuts").addEventListener("click", event => {
+      if (event.target.closest("[data-add-link]")) this.#editLink(-1);
+    });
+    doc.getElementById("home-links-editor").addEventListener("click", event => {
+      const button = event.target.closest("[data-link-action]");
+      if (!button) return;
+      const index = Number(button.dataset.index);
+      if (button.dataset.linkAction === "edit") this.#editLink(index);
+      else {
+        this.#links.splice(index, 1); this.#editLink(-1, false);
+        this.sendAsyncMessage("NightStart:Shortcuts", {links: this.#links});
+      }
+    });
+    doc.getElementById("home-link-cancel").addEventListener("click", () => this.#editLink(-1));
+    doc.getElementById("home-gradient-presets").addEventListener("click", event => {
+      const button = event.target.closest("[data-gradient]");
+      if (!button) return;
+      this.#gradient = homeGradient({...this.#gradient, preset: button.dataset.gradient});
+      this.#paintGradient(); this.sendAsyncMessage("NightStart:Gradient", this.#gradient);
+    });
+    for (const id of ["first", "second", "intensity"]) {
+      const node = doc.getElementById(`home-gradient-${id}`);
+      node.addEventListener("input", () => {
+        this.#gradient = homeGradient({...this.#gradient, [id]: id === "intensity" ? Number(node.value) : node.value});
+        this.#paintGradient();
+      });
+      node.addEventListener("change", () => this.sendAsyncMessage("NightStart:Gradient", this.#gradient));
+    }
     doc.getElementById("home-widgets")?.addEventListener("click", event => {
       const button = event.target.closest("[data-home-action]");
       if (button) this.sendAsyncMessage("NightStart:HomeAction", {action: button.dataset.homeAction, id: button.dataset.tab});
@@ -127,7 +160,10 @@ export class NightStartChild extends JSWindowActorChild {
   handleEvent(event) {
     if (event.type === "DOMContentLoaded") this.#bind();
     if (event.type === "submit") {
-      if (event.target.localName !== "form") return;
+      if (event.target.id === "home-link-form") {
+        event.preventDefault(); this.#saveLink(); return;
+      }
+      if (event.target.id !== "home-search-form") return;
       event.preventDefault();
       this.#close();
       this.sendAsyncMessage("NightStart:Search", {query: this.document.getElementById("query")?.value ?? ""});
@@ -157,8 +193,76 @@ export class NightStartChild extends JSWindowActorChild {
     applyIslandAppearance(this.document.documentElement, message.data.appearance);
   }
 
+  #editLink(index, focus = true) {
+    this.#editing = index;
+    const doc = this.document, link = this.#links[index];
+    doc.getElementById("home-customize").open = true;
+    doc.getElementById("home-link-name").value = link?.name ?? "";
+    doc.getElementById("home-link-url").value = link?.url ?? "";
+    doc.getElementById("home-link-save").textContent = link ? "Сохранить" : "Добавить";
+    doc.getElementById("home-link-cancel").hidden = !link;
+    doc.getElementById("home-link-error").hidden = true;
+    if (focus) doc.getElementById("home-link-name").focus();
+  }
+
+  #saveLink() {
+    const doc = this.document, name = doc.getElementById("home-link-name").value.trim();
+    let url = doc.getElementById("home-link-url").value.trim();
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) url = `https://${url}`;
+    const link = homeLinks([{name, url}])[0];
+    const error = doc.getElementById("home-link-error");
+    let message = !link ? "Укажи название и адрес сайта с http:// или https://." : "";
+    if (link && this.#links.some((item, index) => index !== this.#editing && item.url === link.url)) message = "Эта ссылка уже добавлена.";
+    if (this.#editing < 0 && this.#links.length >= 12) message = "Можно добавить до 12 ссылок.";
+    if (message) { error.textContent = message; error.hidden = false; return; }
+    if (this.#editing >= 0) this.#links[this.#editing] = link; else this.#links.push(link);
+    this.sendAsyncMessage("NightStart:Shortcuts", {links: this.#links});
+    this.#editLink(-1);
+  }
+
+  #paintGradient() {
+    const doc = this.document, value = this.#gradient, root = doc.documentElement;
+    root.dataset.homeGradient = value.preset;
+    root.style.setProperty("--home-first", value.first);
+    root.style.setProperty("--home-second", value.second);
+    root.style.setProperty("--home-intensity", `${value.intensity}%`);
+    for (const button of doc.querySelectorAll("[data-gradient]")) button.setAttribute("aria-pressed", String(button.dataset.gradient === value.preset));
+    doc.getElementById("home-gradient-options").hidden = value.preset === "none";
+    doc.getElementById("home-gradient-colors").hidden = value.preset !== "custom";
+    for (const id of ["first", "second", "intensity"]) doc.getElementById(`home-gradient-${id}`).value = value[id];
+    doc.getElementById("home-gradient-value").textContent = `${value.intensity}%`;
+  }
+
+  #renderLinks(links) {
+    const doc = this.document, nav = doc.getElementById("home-shortcuts"), editor = doc.getElementById("home-links-editor"), key = JSON.stringify(links);
+    if (nav.dataset.items === key) return;
+    nav.dataset.items = key; this.#links = links.map(({name, url}) => ({name, url}));
+    nav.replaceChildren(); editor.replaceChildren();
+    doc.getElementById("home-links-count").textContent = `${links.length}/12`;
+    for (const [index, link] of links.entries()) {
+      const anchor = doc.createElement("a"); anchor.href = link.url; anchor.title = link.url;
+      const icon = doc.createElement("span"); icon.className = "tile-icon";
+      if (link.icon?.startsWith("data:image/")) { const img = doc.createElement("img"); img.src = link.icon; img.alt = ""; icon.append(img); }
+      else icon.textContent = link.name.slice(0, 1).toUpperCase();
+      const label = doc.createElement("span"); label.textContent = link.name; anchor.append(icon, label); nav.append(anchor);
+      const row = doc.createElement("div"); row.className = "home-link-row";
+      const copy = doc.createElement("span"); copy.textContent = link.name; copy.title = link.url; row.append(copy);
+      for (const [action, text] of [["edit", "Изменить"], ["remove", "Удалить"]]) {
+        const button = doc.createElement("button"); button.type = "button"; button.dataset.linkAction = action; button.dataset.index = index;
+        button.textContent = text; button.setAttribute("aria-label", `${text}: ${link.name}`); row.append(button);
+      }
+      editor.append(row);
+    }
+    if (links.length < 12) {
+      const add = doc.createElement("button"); add.type = "button"; add.dataset.addLink = "";
+      add.className = "home-add-link"; add.textContent = "+ Добавить ссылку"; nav.append(add);
+    }
+  }
+
   #renderHome(data) {
     const doc = this.document;
+    this.#renderLinks(data.links);
+    this.#gradient = homeGradient(data.gradient); this.#paintGradient();
     for (const id of ["clock", "shortcuts", "tabs", "island"]) {
       const show = data.enabled.includes(id);
       doc.getElementById(`home-${id}`).hidden = !show;
@@ -176,7 +280,12 @@ export class NightStartChild extends JSWindowActorChild {
         const button = doc.createElement("button");
         button.type = "button"; button.dataset.homeAction = "tab"; button.dataset.tab = tab.id;
         button.className = "home-tab"; button.toggleAttribute("data-sleeping", tab.sleeping);
-        button.textContent = tab.title;
+        const icon = doc.createElement("span"); icon.className = "home-tab-icon";
+        if (tab.icon?.startsWith("data:image/")) { const img = doc.createElement("img"); img.src = tab.icon; img.alt = ""; icon.append(img); }
+        else icon.textContent = tab.title.slice(0, 1).toUpperCase();
+        const title = doc.createElement("span"); title.className = "home-tab-title"; title.textContent = tab.title;
+        button.append(icon, title);
+        if (tab.sleeping) { const status = doc.createElement("span"); status.className = "home-tab-status"; status.textContent = "Спит"; button.append(status); }
         button.title = tab.sleeping ? `${tab.title} · загрузить вкладку` : tab.title;
         list.append(button);
       }
@@ -187,7 +296,7 @@ export class NightStartChild extends JSWindowActorChild {
       doc.querySelector('[data-home-action="integrations"]').textContent = data.island.connected ? "Настроить" : "Подключить";
       doc.getElementById("home-island").toggleAttribute("data-connected", data.island.connected);
       for (const action of ["pocket", "browser", "downloads"])
-        doc.querySelector(`[data-home-action="${action}"]`).disabled = !data.island[action === "browser" ? "tabs" : action];
+        doc.querySelector(`[data-home-action="${action}"]`).hidden = !data.island[action === "browser" ? "tabs" : action];
     }
     doc.dispatchEvent(new this.contentWindow.Event("NightHomeChanged"));
   }

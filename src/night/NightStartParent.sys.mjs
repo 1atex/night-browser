@@ -26,7 +26,7 @@ export class NightStartParent extends JSWindowActorParent {
       if (!message.data?.visible) this.#suggestions?.cancel();
       return;
     }
-    if (["NightStart:Widgets", "NightStart:HomeAction"].includes(message.name)) {
+    if (["NightStart:Widgets", "NightStart:HomeAction", "NightStart:Shortcuts", "NightStart:Gradient"].includes(message.name)) {
       this.#home?.receive(message.name, message.data); return;
     }
     if (message.name === "NightStart:Cancel") { this.#suggestions?.cancel(); return; }

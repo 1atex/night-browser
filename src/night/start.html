@@ -23,7 +23,7 @@
       <div class="home-time" id="home-clock"><div class="date" id="date"></div>
       <div class="clock" id="clock" aria-label="Текущее время"></div></div>
       <div class="home-search">
-      <form action="https://www.google.com/search" method="get">
+      <form id="home-search-form" action="https://www.google.com/search" method="get">
         <label for="query" class="sr-only">Поиск или адрес</label
         ><svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="10.5" cy="10.5" r="6.5" />
@@ -41,33 +41,20 @@
       </form>
       <div id="suggestions" role="listbox" aria-label="Подсказки" hidden></div>
       </div>
-      <nav id="home-shortcuts" aria-label="Быстрые ссылки">
-        <a href="https://www.youtube.com/"
-          ><span class="tile-icon youtube"><img src="resource://newtab/prerendered/sites/youtube.png" alt="" /></span><span>YouTube</span></a
-        >
-        <a href="https://chatgpt.com/"
-          ><span class="tile-icon chatgpt"><img src="resource://newtab/prerendered/sites/chatgpt.svg" alt="" /></span><span>ChatGPT</span></a
-        >
-        <a href="https://search.censys.io/"
-          ><span class="tile-icon censys">C</span><span>Censys</span></a
-        >
-        <a href="https://github.com/"
-          ><span class="tile-icon github"><img src="resource://newtab/prerendered/sites/github.ico" alt="" /></span><span>GitHub</span></a
-        >
-      </nav>
-      <div id="home-widgets">
-        <section class="home-widget" id="home-tabs" aria-labelledby="home-workspace-name">
+      <nav id="home-shortcuts" aria-label="Быстрые ссылки"></nav>
+      <div id="home-widgets" hidden="hidden">
+        <section class="home-widget" id="home-tabs" hidden="hidden" aria-labelledby="home-workspace-name">
           <header><h2 id="home-workspace-name">Вкладки</h2><button type="button" class="widget-link" data-home-action="memory">Память</button></header>
           <p class="widget-caption" id="home-tab-count"></p>
           <div id="home-tab-items"></div>
         </section>
-        <section class="home-widget" id="home-island" aria-labelledby="home-island-name">
+        <section class="home-widget" id="home-island" hidden="hidden" aria-labelledby="home-island-name">
           <header><h2 id="home-island-name">Island</h2><button type="button" class="widget-link" data-home-action="integrations">Настроить</button></header>
           <p class="widget-caption" id="home-island-status">Проверяем подключение</p>
           <div class="widget-actions">
-            <button type="button" data-home-action="pocket" disabled="disabled">Карман</button>
-            <button type="button" data-home-action="browser" disabled="disabled">Вкладки</button>
-            <button type="button" data-home-action="downloads" disabled="disabled">Загрузки</button>
+            <button type="button" data-home-action="pocket" hidden="hidden">Карман</button>
+            <button type="button" data-home-action="browser" hidden="hidden">Вкладки</button>
+            <button type="button" data-home-action="downloads" hidden="hidden">Загрузки</button>
           </div>
         </section>
       </div>
@@ -76,9 +63,34 @@
         <fieldset><legend class="sr-only">Показывать на главной</legend>
           <label><input type="checkbox" data-widget="clock" checked="checked"/>Часы и дата</label>
           <label><input type="checkbox" data-widget="shortcuts" checked="checked"/>Быстрые ссылки</label>
-          <label><input type="checkbox" data-widget="tabs" checked="checked"/>Текущее пространство</label>
-          <label><input type="checkbox" data-widget="island" checked="checked"/>Island</label>
+          <label><input type="checkbox" data-widget="tabs"/>Текущее пространство</label>
+          <label><input type="checkbox" data-widget="island"/>Island</label>
         </fieldset>
+        <section class="home-custom-section" aria-labelledby="home-links-heading">
+          <h2 id="home-links-heading">Быстрые ссылки <span id="home-links-count"></span></h2>
+          <div id="home-links-editor"></div>
+          <form id="home-link-form">
+            <label>Название<input id="home-link-name" maxlength="40" required="required" autocomplete="off" placeholder="Название сайта" /></label>
+            <label>Адрес<input id="home-link-url" type="text" inputmode="url" maxlength="2048" required="required" autocomplete="off" placeholder="https://example.com" /></label>
+            <div class="home-link-buttons"><button type="submit" id="home-link-save">Добавить</button><button type="button" id="home-link-cancel" hidden="hidden">Отмена</button></div>
+            <p id="home-link-error" role="status" hidden="hidden"></p>
+          </form>
+        </section>
+        <section class="home-custom-section" aria-labelledby="home-background-heading">
+          <h2 id="home-background-heading">Фон</h2>
+          <div id="home-gradient-presets" role="group" aria-label="Градиент фона">
+            <button type="button" data-gradient="none" aria-label="Без градиента" title="Без градиента"></button>
+            <button type="button" data-gradient="graphite" aria-label="Графит" title="Графит"></button>
+            <button type="button" data-gradient="dusk" aria-label="Сумерки" title="Сумерки"></button>
+            <button type="button" data-gradient="forest" aria-label="Лес" title="Лес"></button>
+            <button type="button" data-gradient="amber" aria-label="Тёплый" title="Тёплый"></button>
+            <button type="button" data-gradient="custom" aria-label="Свои цвета" title="Свои цвета">+</button>
+          </div>
+          <div id="home-gradient-options" hidden="hidden">
+            <div id="home-gradient-colors" hidden="hidden"><label>Первый цвет<input id="home-gradient-first" type="color" value="#5264ba" /></label><label>Второй цвет<input id="home-gradient-second" type="color" value="#8a557a" /></label></div>
+            <label class="home-intensity">Насыщенность<input id="home-gradient-intensity" type="range" min="0" max="35" value="18" /><output id="home-gradient-value">18%</output></label>
+          </div>
+        </section>
       </details>
     </main>
   </body>

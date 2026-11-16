@@ -2,6 +2,11 @@
 
 `npm test` checks unloading policy, request validation, bounded history, channel suspension/redirect behavior and module integration. These tests do not substitute for a browser runtime.
 
+## Personal home 0.18
+
+`home_personalization.py` проверяет новый профиль без заданных сайтов и пространства разработки; добавление, изменение и удаление ссылки; запрет javascript URL; свои цвета и сохранение градиента после новой вкладки и перезапуска. `watch.py` проверяет создание комнаты через приглашение и присоединение одной кнопкой.
+
+
 ## 0.18 checks
 
 `tests/native/split_navigation.py` tests a sleeping ordinary tab outside a split pair, verifies full-width rendering and removal of the split-layout flag, then reactivates the existing pair. The live social test repeats leaving/closing/returning while RTC remains active, then closes a saved watch tab. The earlier native suspend preserved the tabpanels splitview flag; the Night handler clears it only for a selected ordinary tab, using the native setter without deleting the pair.

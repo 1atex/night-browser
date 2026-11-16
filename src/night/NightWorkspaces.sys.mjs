@@ -10,7 +10,7 @@ export class NightWorkspaces {
   #window;
   #switching = false;
   #last = new Map();
-  items = [{ id: "personal", name: "Личное" }, { id: "development", name: "Разработка" }];
+  items = [{ id: "personal", name: "Личное" }];
   active = "personal";
   folders = [];
 
