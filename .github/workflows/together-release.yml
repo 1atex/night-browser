@@ -1,0 +1,66 @@
+name: Together server release
+on:
+  push:
+    tags: ["v*-together.*"]
+permissions:
+  contents: read
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm run test:night
+      - run: bash tests/server/docker.sh
+      - run: bash tests/server/nginx.sh
+      - run: python tests/server/turn.py
+      - name: Prepare pinned native client
+        run: |
+          python -m pip install -r tests/native/requirements.txt
+          python - <<'PY'
+          import hashlib,json,tarfile,urllib.request
+          from pathlib import Path
+          pin=json.loads(Path('scripts/preview/runtime.json').read_text())['linux_x64']
+          archive=Path('runtime.tar.xz');urllib.request.urlretrieve(pin['url'],archive)
+          assert hashlib.sha256(archive.read_bytes()).hexdigest()==pin['sha256']
+          with tarfile.open(archive) as source:source.extractall('runtime-source',filter='data')
+          PY
+          python scripts/preview/package.py --runtime runtime-source/firefox --output native-client --archive runtime.tar.xz --platform linux_x64
+      - name: Test normal and deferred page startup
+        run: |
+          python -u tests/native/social.py --binary "$PWD/native-client/runtime/firefox" --app-ini "$PWD/native-client/runtime/browser/application.ini" --output test-artifacts/normal
+          python -u tests/native/social.py --delayed-scripts --binary "$PWD/native-client/runtime/firefox" --app-ini "$PWD/native-client/runtime/browser/application.ini" --output test-artifacts/deferred
+      - name: Package tested server
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import hashlib,os,re,subprocess
+          from pathlib import Path
+          match=re.fullmatch(r'v(\d+\.\d+\.\d+)-together\.\d+',os.environ['RELEASE_TAG'])
+          assert match
+          output=Path('release-assets');output.mkdir()
+          archive=output/f'night-together-server-{match[1]}.zip'
+          subprocess.run(['python','scripts/preview/server_archive.py','--output',str(archive)],check=True)
+          (output/'SHA256SUMS.txt').write_text(hashlib.sha256(archive.read_bytes()).hexdigest()+'  '+archive.name+'\n')
+          PY
+          cp test-artifacts/deferred/social-result.json release-assets/deferred-startup-result.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: together-server-tests
+          path: test-artifacts/
+      - name: Publish server without rebuilding Windows
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" release-assets/* --verify-tag --prerelease --title "Night Together $RELEASE_TAG" --notes-file docs/night/TOGETHER_0_15_1.md
