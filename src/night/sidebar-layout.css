@@ -116,13 +116,7 @@
   order: 101;
 }
 :root[night-sidebar-navigation] #nav-bar-customization-target > #night-autohide-button { display: none; }
-:root[night-sidebar-navigation] #PanelUI-button {
-  position: fixed;
-  bottom: 12px;
-  left: calc(min(var(--night-sidebar-width), 45vw) - 47px);
-  top: auto;
-  right: auto;
-}
+:root[night-sidebar-navigation] #PanelUI-button { display: none; }
 :root[night-sidebar-navigation] #nav-bar-overflow-button { order: 102; }
 :root[night-sidebar-navigation] #browser { padding-top: 7px; }
 :root[night-sidebar-navigation] #night-sidebar { padding-top: var(--night-navigation-height); }

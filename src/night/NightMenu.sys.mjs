@@ -7,6 +7,7 @@ export class NightMenu {
   #panel;
   #zoom;
   #autohide;
+  #placementObserver;
 
   constructor(window, toolbar) {
     this.#window = window;
@@ -84,6 +85,18 @@ export class NightMenu {
     window.addEventListener("keydown", this, true);
     window.addEventListener("FullZoomChange", this);
     window.addEventListener("FullZoomReset", this);
+    this.#placementObserver = new window.MutationObserver(() => this.#placeButton());
+    this.#placementObserver.observe(doc.documentElement, {attributes: true, attributeFilter: ["night-sidebar-navigation"]});
+    this.#placeButton();
+  }
+
+  #placeButton() {
+    const doc = this.#window.document, sidebar = doc.documentElement.hasAttribute("night-sidebar-navigation");
+    const parent = sidebar ? doc.querySelector(".night-footer-actions") : doc.getElementById("PanelUI-button");
+    if (parent && this.#button.parentElement !== parent) {
+      if (["open", "showing"].includes(this.#panel.state)) this.#panel.hidePopup();
+      parent.append(this.#button);
+    }
   }
 
   #element(tag, text, attributes = {}) {
@@ -132,7 +145,8 @@ export class NightMenu {
     }
     this.#toolbar.reveal();
     this.#update();
-    this.#panel.openPopup(this.#button, "bottomright topright", 0, 7);
+    const sidebar = this.#button.closest(".night-footer-actions");
+    this.#panel.openPopup(this.#button, sidebar ? "before_start" : "bottomright topright", 0, sidebar ? -7 : 7);
   }
 
   handleEvent(event) {
@@ -166,6 +180,7 @@ export class NightMenu {
   }
 
   destroy() {
+    this.#placementObserver.disconnect();
     this.#window.removeEventListener("keydown", this, true);
     this.#window.removeEventListener("FullZoomChange", this);
     this.#window.removeEventListener("FullZoomReset", this);

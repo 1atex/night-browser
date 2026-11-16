@@ -205,23 +205,23 @@ export class NightShell {
     const actions = this.#element("div", "", { class: "night-footer-actions" });
     this.#profiles = new NightProfilesView(this.#window, actions);
     actions.append(
-      this.#button("◫", "Разделить экран · Alt+S", () => this.split(), {
+      this.#button("", "Разделить экран · Alt+S", () => this.split(), {
         id: "night-split-button",
       }),
       this.#button(
-        "⌘",
+        "",
         "Запросы · Repeater и перехват",
         () => this.#owner.toggle("network"),
         { id: "night-network-button" },
       ),
       this.#button(
-        "◇",
+        "",
         "Управление памятью",
         () => this.#owner.toggle("memory"),
         { id: "night-tools-button" },
       ),
       this.#button(
-        "⚙",
+        "",
         "Настройки браузера",
         () => this.#owner.openSettings("appearance"),
         { id: "night-settings-button" },

@@ -249,6 +249,7 @@ jobs:
           Copy-Item test-artifacts/split-navigation-result.json dist/split-navigation-result.json
           Copy-Item test-artifacts/ux-details-result.json dist/ux-details-result.json
           Copy-Item test-artifacts/night-split-navigation.png dist/night-split-navigation.png
+          Copy-Item test-artifacts/night-footer.png dist/night-footer.png
           Copy-Item test-artifacts/night-changes.png dist/night-changes.png
           Copy-Item test-artifacts/night-update-progress.png dist/night-update-progress.png
           Copy-Item test-artifacts/social-result.json dist/social-result.json
@@ -331,6 +332,7 @@ jobs:
             dist/split-navigation-result.json
             dist/ux-details-result.json
             dist/night-split-navigation.png
+            dist/night-footer.png
             dist/night-changes.png
             dist/night-update-progress.png
             dist/social-result.json
@@ -440,6 +442,7 @@ jobs:
             release-assets/split-navigation-result.json \
             release-assets/ux-details-result.json \
             release-assets/night-split-navigation.png \
+            release-assets/night-footer.png \
             release-assets/night-changes.png \
             release-assets/night-update-progress.png \
             release-assets/social-result.json \

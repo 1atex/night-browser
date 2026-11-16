@@ -147,8 +147,8 @@
 #night-workspace-select option { background: var(--night-panel); }
 .night-workspace-row button { width: 28px; height: 28px; font-size: 17px !important; color: var(--night-muted) !important; }
 #night-sidebar footer { display: flex; flex-direction: column; margin-top: auto; padding-top: 5px; gap: 3px; }
-.night-footer-actions { display:grid; grid-template-columns:repeat(4,34px) 1fr 34px; align-items:center; gap:2px; min-height:34px; padding:0 34px 0 0; }
-.night-footer-actions button { width: 34px; height: 34px; font-size: 0 !important; display: grid; place-items: center; color: var(--night-secondary) !important; }
+.night-footer-actions { display:grid; grid-template-columns:repeat(4,34px) minmax(0,1fr) repeat(2,34px); align-items:center; justify-items:center; gap:2px; height:34px; padding:0; }
+.night-footer-actions button { box-sizing:border-box; margin:0; padding:0; width: 34px; height: 34px; font-size: 0 !important; display: grid; place-items: center; color: var(--night-secondary) !important; }
 .night-footer-actions #night-settings-button { grid-column:6; margin:0; }
 .night-footer-actions button::before { content: ""; display: block; width: 18px; height: 18px; background: currentColor; mask: var(--night-icon) center/contain no-repeat; }
 .night-footer-actions button[aria-pressed="true"] { background: var(--night-selected) !important; color: white !important; }
@@ -197,3 +197,11 @@
 #night-sidebar[data-workspace-collapsed] :is(#night-folder-tree, #night-tab-list) { display: none; }
 
 .night-emoji-picker{display:grid;grid-template-columns:repeat(4,38px);gap:4px;padding:6px}.night-emoji-picker button{width:38px;height:38px;padding:0;font:20px "Segoe UI Emoji",system-ui!important}.night-tab[data-pinned] .night-tab-close{position:absolute;right:0;top:0;width:18px;height:18px;margin:0;font-size:14px!important;background:var(--night-panel)!important}.night-tab[data-selected] .night-tab-close{opacity:1}
+
+#night-sidebar .night-footer-actions #night-menu-button { grid-column:7; appearance:none; box-sizing:border-box; display:grid; place-items:center; width:34px; height:34px; min-width:0; margin:0; padding:0; border:0; border-radius:var(--night-pill); color:var(--night-secondary); background:transparent; cursor:pointer; }
+#night-sidebar .night-footer-actions #night-menu-button > :is(.toolbarbutton-icon,.toolbarbutton-text,.toolbarbutton-badge-stack) { display:none; }
+#night-sidebar .night-footer-actions #night-menu-button::before { content:""; display:block; width:18px; height:18px; background:currentColor; mask:url("chrome://browser/content/night/icons/more.svg") center/contain no-repeat; }
+#night-sidebar .night-footer-actions #night-menu-button:is(:hover,[open]) { background:var(--night-hover); color:var(--night-text); }
+#night-sidebar .night-footer-actions #night-menu-button:focus-visible { outline:2px solid var(--night-accent); outline-offset:-2px; }
+
+:root:not([night-sidebar-navigation]) .night-footer-actions #night-settings-button { grid-column:7; }
