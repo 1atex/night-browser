@@ -239,8 +239,8 @@ export class NightShell {
     if (!Services.prefs.getBoolPref("night.import.completed", false))
       footer.append(
         this.#button(
-          "Импорт из Zen",
-          "Импортировать данные Zen",
+          "Импорт данных",
+          "Перенести данные из другого браузера",
           () => this.#owner.openSettings("import"),
           { id: "night-import-button" },
         ),

@@ -12,7 +12,7 @@ internal static class ProfileImport
         "parent.lock", "lock", ".parentlock", "cache2", "startupCache", "shader-cache", "thumbnails",
         "crashes", "minidumps", "datareporting", "safebrowsing", "chrome", "zen-themes", "user.js",
         "compatibility.ini", "addonStartup.json.lz4", "xulstore.json", "sessionCheckpoints.json",
-        "signedInUser.json", "weave", "night-together.json"
+        "signedInUser.json", "weave", "night-together.json", "night-notices.json", "night-watch-history.json"
     };
     private static void Write(string path, object value)
     {
@@ -55,7 +55,7 @@ internal static class ProfileImport
         try
         {
             source = Path.GetFullPath(source).TrimEnd('\\', '/');
-            if (Contains(root, source) || Contains(source, root) || Contains(applicationRoot, source) || Contains(source, applicationRoot)) throw new IOException("Выбери профиль Zen вне папки Night.");
+            if (Contains(root, source) || Contains(source, root) || Contains(applicationRoot, source) || Contains(source, applicationRoot)) throw new IOException("Выбери профиль исходного браузера вне папки Night.");
             Regular(source);
             if (!File.Exists(Path.Combine(source, "prefs.js")) || !File.Exists(Path.Combine(source, "places.sqlite")))
                 throw new IOException("В папке нет профиля браузера: нужны prefs.js и places.sqlite.");
@@ -63,7 +63,7 @@ internal static class ProfileImport
             using (var profileLock = new FileStream(Path.Combine(source, "parent.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
             {
                 if (EngineVersion(Path.Combine(source, "compatibility.ini"), "LastVersion") > EngineVersion(Path.Combine(applicationRoot, "runtime", "browser", "application.ini"), "MaxVersion"))
-                    throw new IOException("Профиль Zen новее движка Night. Сначала обнови Night.");
+                    throw new IOException("Профиль исходного браузера новее движка Night. Сначала обнови Night.");
                 string sourceTree = LongPath(source);
                 string stageTree = LongPath(stage);
                 Directory.CreateDirectory(stageTree);
@@ -99,7 +99,7 @@ internal static class ProfileImport
         catch (Exception error)
         {
             try { if (Directory.Exists(LongPath(stage))) Directory.Delete(LongPath(stage), true); } catch { }
-            Write(report, new { status = "error", message = "Не удалось скопировать профиль. Закрой Zen и проверь свободное место и доступ к папке. " + error.Message, detail = error.StackTrace });
+            Write(report, new { status = "error", message = "Не удалось скопировать профиль. Закрой исходный браузер и проверь свободное место и доступ к папке. " + error.Message, detail = error.StackTrace });
             return 1;
         }
     }

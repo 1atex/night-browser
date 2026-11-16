@@ -54,7 +54,7 @@ window.addEventListener(
       ],
       search: ["Поиск", "Поисковая система и подсказки.", "search"],
       import: [
-        "Импорт из Zen",
+        "Импорт данных",
         "Перенос данных с резервной копией.",
         "import",
       ],
@@ -511,7 +511,18 @@ window.addEventListener(
         true,
       );
     }
+    let importSource="zen";
     async function importData() {
+      const {PrivateBrowsingUtils}=ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs");
+      if(PrivateBrowsingUtils.isWindowPrivate(browserWindow)){card("Приватное окно","Импорт выполняется в обычном профиле браузера.");return;}
+      const {importBrowsers,browserImportSource}=ChromeUtils.importESModule("resource:///modules/night/BrowserImportModel.mjs");
+      const picker=card("Откуда перенести данные"),sourceSelect=element("select","",{id:"browser-import-source"});
+      for(const [key,name]of importBrowsers)sourceSelect.append(element("option",name,{value:key}));sourceSelect.value=importSource;
+      row(picker,"Браузер","Исходные данные остаются в другом браузере.",sourceSelect);
+      sourceSelect.addEventListener("change",()=>{importSource=sourceSelect.value;render();});
+      const selectedSource=browserImportSource(importSource);
+      if(selectedSource.mode==="native"){await importOtherBrowser(selectedSource);return;}
+      if(importSource!=="zen"){await importProfileBrowser(selectedSource);return;}
       const { NightImport } = ChromeUtils.importESModule(
         "resource:///modules/night/NightImport.sys.mjs",
       );
@@ -674,6 +685,28 @@ window.addEventListener(
       consent.addEventListener("change", enable);
       select.addEventListener("change", enable);
       details.append(label, action, progress);
+    }
+    async function importProfileBrowser(source){
+      const {NightImport}=ChromeUtils.importESModule("resource:///modules/night/NightImport.sys.mjs");
+      if(!NightImport.supported){card("Импорт профиля","Перенос полного профиля доступен в Windows.");return;}
+      if(await NightImport.pending()){card("Импорт подготовлен").append(button("Перезапустить",()=>NightImport.restart(),"button primary"));return;}
+      const info=card("Профиль "+source.name,"Перенос заменит данные текущего профиля с резервной копией. Друзья, ключ уведомлений и история совместных просмотров Night сохраняются. Учётная запись Sync не копируется.");
+      const profiles=await NightImport.discover(source.key),select=element("select","",{id:"browser-profile-import"});for(const profile of profiles)select.append(element("option",profile.name,{value:profile.path}));
+      row(info,"Профиль","Закрой исходный браузер перед копированием.",select);
+      info.append(button("Указать папку…",async()=>{const chooser=Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);chooser.init(browserWindow.browsingContext,"Профиль "+source.name,Ci.nsIFilePicker.modeGetFolder);if(await new Promise(resolve=>chooser.open(resolve))!==Ci.nsIFilePicker.returnOK)return;await NightImport.inspect(chooser.file.path);select.append(element("option",chooser.file.leafName,{value:chooser.file.path}));select.value=chooser.file.path;action.disabled=!consent.checked||!select.value;}));
+      const consent=element("input","",{type:"checkbox",id:"browser-profile-consent"}),label=element("label","",{class:"import-consent"});label.append(consent,element("span","Заменить текущие данные, сохранив резервную копию"));info.append(label);
+      const action=button("Перенести профиль",async()=>{if(!consent.checked||!select.value)return;action.disabled=true;status("Копирование профиля…");try{const result=await NightImport.stage(select.value,source.name);status(`Готово: ${result.tabs} вкладок. Данные применятся после перезапуска.`);info.append(button("Перезапустить",()=>NightImport.restart(),"button primary"));}catch(error){status(error.message);action.disabled=false;}},"button primary");action.disabled=true;consent.onchange=()=>action.disabled=!consent.checked||!select.value;select.onchange=consent.onchange;info.append(action);
+    }
+    async function importOtherBrowser(source){
+      const {NightBrowserImport}=ChromeUtils.importESModule("resource:///modules/night/NightBrowserImport.sys.mjs");
+      const section=card(source.name,"Доступные данные добавляются в текущий профиль. Закрой исходный браузер, чтобы получить актуальную копию его баз данных.");
+      const snapshot=await NightBrowserImport.inspect(source.key);if(!section.isConnected)return;
+      if(!snapshot.available){section.append(element("p","Профили не найдены или доступ к ним ограничен ОС. Запусти и закрой этот браузер, затем обнови список."),button("Обновить список",()=>render()));return;}
+      const select=element("select","",{id:"other-browser-profile"});for(const profile of snapshot.profiles)select.append(element("option",profile.name,{value:profile.id}));row(section,"Профиль","Выбери источник данных.",select);
+      const fields=element("div"),progress=element("p","",{role:"status",id:"browser-import-progress"});section.append(fields,progress);
+      const options=()=>{fields.replaceChildren();const profile=snapshot.profiles.find(value=>value.id===select.value);for(const type of profile?.types??[]){const input=element("input","",{type:"checkbox",value:type.name});input.checked=!["EXTENSIONS","PAYMENT_METHODS"].includes(type.name);const label=element("label","",{class:"import-consent"});label.append(input,element("span",type.label));fields.append(label);}};options();select.onchange=options;
+      section.append(element("p","Пароли переносятся только при доступе к хранилищу ОС. Защита новых версий Chrome может потребовать экспорт CSV. Выбор расширений отправляет их ID в каталог Mozilla для поиска совместимых аналогов; настройки и входы в них могут не перенестись. Cookies и сеансы сайтов Chromium здесь не копируются.",{class:"card-caption"}));
+      const action=button("Импортировать выбранное",async()=>{const selected=[...fields.querySelectorAll("input:checked")].map(input=>input.value);action.disabled=true;progress.textContent="Импортируем…";try{const result=await NightBrowserImport.migrate(browserWindow,source.key,select.value,selected,item=>progress.textContent=item.name+": "+(item.success?"готово":"не удалось перенести"));progress.textContent=result.results.map(item=>item.name+": "+(item.success?"готово":"ошибка")).join(" · ");}catch(error){progress.textContent=error.message;}finally{action.disabled=false;}},"button primary");section.append(action,button("Импорт паролей из CSV…",async()=>{const result=await NightBrowserImport.importPasswords(browserWindow);if(result)progress.textContent=`Пароли: добавлено или обновлено ${result.imported}, без изменений ${result.unchanged}, ошибок ${result.errors}.`;}));
     }
     function about() {
       const info = card("");

@@ -30,12 +30,14 @@ export const NightImport = {
     return Services.appinfo.OS === "WINNT";
   },
 
-  async discover() {
+  async discover(kind="zen") {
     if (!this.supported) return [];
     const base = Services.dirsvc.get("AppData", Ci.nsIFile).path;
     const result = [];
-    for (const name of ["zen", "Zen", "zen-twilight"]) {
-      const directory = PathUtils.join(base, name);
+    const roots={zen:["zen","Zen","zen-twilight"],firefox:["Mozilla/Firefox"],librewolf:["librewolf"],floorp:["Floorp"],waterfox:["Waterfox"]};
+    if(!roots[kind])throw Error("Источник профиля не поддерживается.");
+    for (const name of roots[kind]) {
+      const directory = PathUtils.join(base, ...name.split("/"));
       const ini = parseIni(
         await readText(PathUtils.join(directory, "profiles.ini")),
       );
@@ -65,14 +67,14 @@ export const NightImport = {
       !(await IOUtils.exists(PathUtils.join(path, "places.sqlite"))) ||
       !(await IOUtils.exists(PathUtils.join(path, "prefs.js")))
     )
-      throw new Error("Выбери папку профиля Zen с prefs.js и places.sqlite.");
+      throw new Error("Выбери папку профиля браузера с prefs.js и places.sqlite.");
     const compatibility = parseIni(
       await readText(PathUtils.join(path, "compatibility.ini")),
     );
     const version = compatibility.Compatibility?.LastVersion?.split("_")[0];
     if (!version || !/^\d/.test(version))
       throw new Error(
-        "Не удалось определить версию профиля. Запусти и закрой Zen, затем повтори импорт.",
+        "Не удалось определить версию профиля. Запусти и закрой исходный браузер, затем повтори импорт.",
       );
     if (Services.vc.compare(version, Services.appinfo.platformVersion) > 0)
       throw new Error(
@@ -85,7 +87,7 @@ export const NightImport = {
     return IOUtils.exists(PathUtils.join(this.root, "night-import.json"));
   },
 
-  async stage(source) {
+  async stage(source,sourceName="Zen") {
     if (!this.supported)
       throw new Error("Импорт доступен в версии для Windows.");
     if (["copying", "preparing"].includes(this.status.phase))
@@ -135,12 +137,13 @@ export const NightImport = {
         files: copied.files,
         bytes: copied.bytes,
       };
-      const summary = await this.prepare(destination, source);
+      for(const name of ["night-together.json","night-notices.json","night-watch-history.json"]){const current=PathUtils.join(PathUtils.profileDir,name);if(await IOUtils.exists(current))await IOUtils.copy(current,PathUtils.join(destination,name));}
+      const summary = await this.prepare(destination, source,sourceName);
       await IOUtils.writeJSON(
         PathUtils.join(destination, "night-import-report.json"),
         {
           ...summary,
-          source: "Zen",
+          source: sourceName,
           importedAt: new Date().toISOString(),
           backup,
         },
@@ -183,7 +186,7 @@ export const NightImport = {
     }).join("\n") + '\nuser_pref("night.onboarding.completed", true);\n';
   },
 
-  async prepare(destination, source) {
+  async prepare(destination, source,sourceName="Zen") {
     const warnings = [];
     const readSession = async (paths) => {
       for (const name of paths) {
@@ -253,6 +256,7 @@ export const NightImport = {
       }
     }
     const converted = convertZenSession(session, sidebar, legacy);
+    if(sourceName!=="Zen")for(const window of converted.session.windows){const meta=JSON.parse(window.extData["night-workspaces"]);for(const item of meta.items)if(item.name==="Из Zen")item.name="Из "+sourceName;window.extData["night-workspaces"]=JSON.stringify(meta);}
     await IOUtils.writeJSON(PathUtils.join(destination, "night-zen-source.jsonlz4"), {session, sidebar, legacy}, {compress: true});
     await IOUtils.writeJSON(
       PathUtils.join(destination, "sessionstore.jsonlz4"),
