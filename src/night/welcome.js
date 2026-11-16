@@ -42,6 +42,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   };
   $("next").onclick = () => show(1);
   $("back").onclick = () => show(0);
+  $("other-browser").onclick = () => { Services.prefs.setBoolPref("night.onboarding.completed",true); owner.openPreferences("import"); };
   $("skip").onclick = () => show(2);
   $("profiles").onchange = selection;
   $("consent").onchange = selection;

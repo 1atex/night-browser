@@ -1,14 +1,17 @@
 const $=id=>document.getElementById(id), peers=new Map(), waiting=new Map();
 import {MicrophoneSession} from './microphone.mjs';
+import {CastReceiver} from './cast-receiver.mjs';
 import {AudioLevels} from './audio-levels.mjs';
 const capture=new MicrophoneSession(),levels=new AudioLevels(localStorage),memberRows=new Map();
+const cast=new CastReceiver($('cast-video'),(id,signal)=>bridge('action',{type:'room-signal',room:state.room.id,id,signal}),text=>{if(text)status(text);});
+const recentMessages=[];let lastSendError='';
 let capabilities=new Set(),uiSignature='',autoConnectAttempted=false;
 let serial=0,state=null,active=false,stream=null,cursor=0,timer,busy=false,available=false,rtcConfig,signature='';
 function bridge(method,body,waitMs=15000){return new Promise((resolve,reject)=>{const id=++serial,timeout=setTimeout(()=>{waiting.delete(id);reject(Error('Night не ответил. Проверь обновления браузера и сервера.'));},waitMs);waiting.set(id,{resolve,reject,timeout});document.dispatchEvent(new CustomEvent('NightRoom:Query',{detail:JSON.stringify({id,method,body})}));});}
 window.addEventListener('NightRoom:Reply',event=>{let v;try{v=JSON.parse(event.detail);}catch{return;}const p=waiting.get(v.id);if(!p)return;available=true;waiting.delete(v.id);clearTimeout(p.timeout);v.error?p.reject(Error(v.error)):p.resolve(v.result);});
 window.addEventListener('NightRoom:Available',()=>{available=true;refresh();});
 const status=text=>{if($('room-status').textContent!==text)$('room-status').textContent=text;};
-function publishUI(){if(!capabilities.has('room-controls'))return;const value={active,microphone:!!capture.stream,microphonePending:capture.pending,peers:state?.room?.members.filter(id=>id!==state.id).map(id=>({id,volume:levels.get(id),state:peers.get(id)?.pc.connectionState??'waiting'}))??[]};const next=JSON.stringify(value);if(next===uiSignature)return;uiSignature=next;bridge('ui-state',value).catch(()=>{uiSignature='';});}
+function publishUI(){if(!capabilities.has('room-controls'))return;const value={active,messages:recentMessages,lastSendError,microphone:!!capture.stream,microphonePending:capture.pending,peers:state?.room?.members.filter(id=>id!==state.id).map(id=>({id,volume:levels.get(id),state:peers.get(id)?.pc.connectionState??'waiting',chatReady:peers.get(id)?.channel?.readyState==='open'}))??[]};const next=JSON.stringify(value);if(next===uiSignature)return;uiSignature=next;bridge('ui-state',value).catch(()=>{uiSignature='';});}
 function setVolume(id,value){levels.set(id,value);const peer=peers.get(id);if(peer?.audio)peer.audio.volume=value;renderMembers();publishUI();}
 function random(){return crypto.randomUUID().replaceAll('-','');}
 function signal(peer,value){peer.sending=peer.sending.catch(()=>{}).then(()=>bridge('action',{type:'room-signal',room:peer.room,id:peer.id,signal:{session:peer.session,...value}}));return peer.sending;}
@@ -23,10 +26,10 @@ function receiveChannel(peer,channel){
   let value;try{value=JSON.parse(event.data);}catch{return;}
   if(value.type!=='chat'||typeof value.text!=='string'||!value.text.trim()||value.text.length>2000||typeof value.id!=='string'||!/^[a-f0-9]{32}$/.test(value.id)||peer.seen.has(value.id))return;
   peer.seen.add(value.id);if(peer.seen.size>500)peer.seen.delete(peer.seen.values().next().value);
-  message(state.people[peer.id]?.name??peer.id,value.text);
+  message(peer.id,value.text,value.id);
  };
 }
-function message(name,text){const li=document.createElement('li'),label=document.createElement('strong'),body=document.createElement('p');label.textContent=name;body.textContent=text;li.append(label,body);$('messages').append(li);while($('messages').children.length>200)$('messages').firstChild.remove();li.scrollIntoView({block:'nearest'});}
+function message(from,text,id=random()){if(recentMessages.some(item=>item.id===id))return;const name=from===state.id?state.self.name+' · ты':state.people[from]?.name??'Участник';const li=document.createElement('li'),label=document.createElement('strong'),body=document.createElement('p');label.textContent=name;body.textContent=text;li.append(label,body);$('messages').append(li);while($('messages').children.length>200)$('messages').firstChild.remove();recentMessages.push({id,from,text});while(recentMessages.length>20)recentMessages.shift();li.scrollIntoView({block:'nearest'});publishUI();}
 function makePeer(id,session=random(),offering=true){
  closePeer(id);
  const pc=new RTCPeerConnection({...rtcConfig,bundlePolicy:'max-bundle'}),transceiver=offering?pc.addTransceiver('audio',{direction:'sendrecv'}):null;
@@ -45,8 +48,8 @@ async function gathered(pc){if(pc.iceGatheringState==='complete')return;await ne
 async function offer(id){const peer=makePeer(id);receiveChannel(peer,peer.pc.createDataChannel('night-chat',{ordered:true}));try{await peer.pc.setLocalDescription(await peer.pc.createOffer());await gathered(peer.pc);if(peers.get(id)===peer)await signal(peer,{kind:'description',description:{type:peer.pc.localDescription.type,sdp:peer.pc.localDescription.sdp}});}catch(error){if(peers.get(id)===peer)status('Соединение: '+error.message);}}
 async function incoming(item){
  if(!active||!state.room.members.includes(item.from)||item.from===state.id)return;
- const value=item.signal;let peer=peers.get(item.from);
- if(value.kind==='bye'){closePeer(item.from);return;}
+ const value=item.signal;if(value.channel==='cast'){if(state.room.mode==='cast'&&state.id!==state.room.owner)await cast.incoming(item);return;}let peer=peers.get(item.from);
+ if(value.kind==='bye'){if(peer?.session===value.session)closePeer(item.from);return;}
  if(value.kind==='description'&&value.description.type==='offer'){
   if(item.from>state.id)return;
   if(peer?.session===value.session)return;
@@ -91,6 +94,7 @@ async function refresh(){
   if(!next?.room){stop();state=next;status('Комната закрыта или ты вышел. Создай новую в настройках Night.');$('watch').disabled=true;$('watch-split').disabled=true;$('connect').disabled=true;return;}
   if(state?.room&&state.room.id!==next.room.id){stop();cursor=0;}
   state=next;$('connect').disabled=false;$('watch').disabled=false;$('watch-split').disabled=false;$('invite').hidden=state.room.owner!==state.id;$('video-link').textContent=new URL(state.room.url).hostname;$('video-link').href=state.room.url;$('connection').textContent=`${state.room.members.length} в комнате`;
+  const receiving=state.room.mode==='cast'&&state.id!==state.room.owner;$('cast-player').hidden=!receiving;if(!receiving)cast.stop();else if(rtcConfig)cast.configure(state.room.owner,rtcConfig);
   renderMembers();renderRequests();
   if(!autoConnectAttempted&&new URL(location.href).searchParams.get('connect')==='1'){autoConnectAttempted=true;setTimeout(startChat,0);}
   if(!active){status('Пауза, продолжение и перемотка общие. Видео можно открыть в отдельной вкладке, а эту оставить для общения.');return;}
@@ -103,7 +107,7 @@ async function refresh(){
   const failed=[...peers.values()].some(p=>p.pc.connectionState==='failed'||Date.now()-p.started>15000&&p.pc.connectionState!=='connected');
   const connected=[...peers.values()].some(p=>p.channel?.readyState==='open');
   status(failed?'Прямое соединение не установилось. Для этой сети может понадобиться TURN-релей.':connected?(capture.stream?'Чат подключён. Микрофон включён.':'Чат подключён. Микрофон включается отдельно.'):state.room.members.length<2?'Ждём участника комнаты…':'Устанавливаем соединение с участниками…');
- }catch(error){status(error.message);if(active)stop();}finally{busy=false;}
+ }catch(error){status(active?'Связь с сервером потеряна. Переподключаемся…':error.message);}finally{busy=false;}
 }
 async function microphone(){
  if(capture.pending||capture.stream)return;
@@ -127,17 +131,22 @@ async function microphone(){
  }finally{$('voice').disabled=!active||capture.pending;publishUI();}
 }
 function stopMicrophone(){capture.stop();stream=null;for(const p of peers.values())p.transceiver?.sender.replaceTrack(null).catch(()=>{});$('voice').hidden=false;$('mute').hidden=true;$('voice').disabled=!active;publishUI();}
-function stop(){if(active)bridge('session',{active:false}).catch(()=>{});active=false;stopMicrophone();for(const id of [...peers.keys()])closePeer(id);$('connect').textContent='Подключить чат';$('voice').disabled=true;signature='';renderMembers();}
+function stop(){if(active)bridge('session',{active:false}).catch(()=>{});active=false;stopMicrophone();for(const id of [...peers.keys()])closePeer(id);$('connect').textContent='Подключить чат';$('voice').disabled=true;signature='';cast.stop();renderMembers();}
 async function startChat(){if(active)return;try{rtcConfig=await bridge('rtc');await bridge('session',{active:true});active=true;$('connect').textContent='Отключить чат';$('voice').disabled=false;renderMembers();await refresh();}catch(error){status(error.message);}}
 $('connect').onclick=()=>{autoConnectAttempted=true;if(active){for(const p of peers.values())signal(p,{kind:'bye'}).catch(()=>{});stop();}else startChat();};
-window.addEventListener('NightRoom:Command',event=>{let value;try{value=JSON.parse(event.detail);}catch{return;}if(value.type==='connect')startChat();else if(value.type==='microphone-off')stopMicrophone();else if(value.type==='microphone-toggle'){if(capture.stream||capture.pending)stopMicrophone();else microphone();}else if(value.type==='volume'&&state?.room?.members.includes(value.id)&&value.id!==state.id&&Number.isFinite(value.volume)&&value.volume>=0&&value.volume<=1)setVolume(value.id,value.volume);else if(value.type==='disconnect')stop();});
+window.addEventListener('NightRoom:Command',event=>{let value;try{value=JSON.parse(event.detail);}catch{return;}if(value.type==='connect')startChat();else if(value.type==='microphone-off')stopMicrophone();else if(value.type==='microphone-toggle'){if(capture.stream||capture.pending)stopMicrophone();else microphone();}else if(value.type==='volume'&&state?.room?.members.includes(value.id)&&value.id!==state.id&&Number.isFinite(value.volume)&&value.volume>=0&&value.volume<=1)setVolume(value.id,value.volume);else if(value.type==='chat-send')sendChat(value.text,value.id);else if(value.type==='disconnect')stop();});
 $('voice').onclick=microphone;$('mute').onclick=()=>{stopMicrophone();status('Микрофон выключен.');};
-const sound=document.createElement('button');sound.textContent='Разрешить звук';sound.onclick=()=>{for(const audio of $('audios').children)audio.play().catch(error=>status(error.message));};$('mute').after(sound);
+const sound=document.createElement('button');sound.textContent='Разрешить звук';sound.onclick=()=>{for(const audio of [...$('audios').children,$('cast-video')])audio.play().catch(error=>status(error.message));};$('mute').after(sound);
 $('invite').onclick=async()=>{try{const next=await bridge('action',{type:'room-link',room:state.room.id});await navigator.clipboard.writeText(next.room.link);status('Приглашение скопировано. Вход подтверждаешь ты.');}catch(error){status(error.message);}};
 $('watch-split').onclick=()=>bridge('watch',{sideBySide:true}).catch(error=>status(error.message));
 $('watch').onclick=()=>bridge('watch').catch(error=>status(error.message));
 $('leave').onclick=()=>{stop();bridge('action',{type:'room-leave'}).then(()=>refresh()).catch(error=>status(error.message));};
-$('message-form').onsubmit=event=>{event.preventDefault();const text=$('message').value.trim();if(!text)return;const payload=JSON.stringify({type:'chat',id:random(),text});let count=0;for(const p of peers.values())if(p.channel?.readyState==='open'&&p.channel.bufferedAmount<65536){try{p.channel.send(payload);count++;}catch{}}if(!count){status('Нет соединений: сообщение не отправлено.');return;}message(state.self.name+' · ты',text);$('message').value='';};
+function sendChat(value,id=random()){
+ const text=typeof value==='string'?value.trim():'';if(!text||text.length>2000)return false;let count=0;
+ const payload=JSON.stringify({type:'chat',id,text});for(const p of peers.values())if(p.channel?.readyState==='open'&&p.channel.bufferedAmount<65536)try{p.channel.send(payload);count++;}catch{}
+ if(!count){lastSendError='Соединение потеряно. Сообщение осталось в поле ввода.';status(lastSendError);publishUI();return false;}lastSendError='';message(state.id,text,id);return true;
+}
+$('message-form').onsubmit=event=>{event.preventDefault();if(sendChat($('message').value))$('message').value='';};
 export async function connectionReport(){
  const results=[];
  for(const p of peers.values()){
@@ -151,7 +160,10 @@ export async function connectionReport(){
   results.push({id:p.id,state:p.pc.connectionState,channel:p.channel?.readyState,received,sent,route,audio:p.pc.getTransceivers().map(t=>({direction:t.currentDirection,local:t.sender.track?.readyState??null,remote:t.receiver.track.readyState}))});
  }return results;
 }
-$('rtc-refresh').onclick=async()=>{try{const report=await connectionReport();$('rtc-report').textContent=JSON.stringify(report,null,2);$('rtc-report').dataset.serial=String(Date.now());}catch(error){status(error.message);}};
+export async function broadcastReport(){return cast.stats();}
+$('cast-fullscreen').onclick=()=>$('cast-video').requestFullscreen().catch(error=>status(error.message));
+$('cast-volume').oninput=()=>$('cast-video').volume=Number($('cast-volume').value)/100;
+$('rtc-refresh').onclick=async()=>{try{const report=await connectionReport();$('cast-report').textContent=JSON.stringify(await cast.stats(),null,2);$('rtc-report').textContent=JSON.stringify(report,null,2);$('rtc-report').dataset.serial=String(Date.now());}catch(error){status(error.message);}};
 let bootstrapTimer,bootstrapAttempts=0,closed=false;
 async function bootstrap(){
  if(closed||available)return;

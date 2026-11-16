@@ -2,13 +2,15 @@ const states=new Set(['new','connecting','connected','disconnected','failed','cl
 export function communicationState(value,state){
   if(!value||value.active!==true||!state?.room)return null;
   const reported=new Map((Array.isArray(value.peers)?value.peers:[]).slice(0,8).filter(p=>p&&typeof p.id==='string').map(p=>[p.id,p]));
-  return {active:true,microphone:value.microphone===true,microphonePending:value.microphonePending===true,members:state.room.members.length,participants:state.room.members.filter(id=>id!==state.id).slice(0,7).map(id=>{
+  const admitted=new Set(state.room.members),messages=(Array.isArray(value.messages)?value.messages:[]).slice(-20).filter(m=>m&&/^[a-f0-9]{32}$/.test(m.id)&&admitted.has(m.from)&&typeof m.text==='string'&&m.text.length>0&&m.text.length<=2000).map(m=>({id:m.id,from:m.from,name:(m.from===state.id?state.self?.name:state.people?.[m.from]?.name)?.slice(0,40)??'Участник',text:m.text}));
+  return {room:state.room.id,self:state.id,messages,lastSendError:typeof value.lastSendError==='string'?value.lastSendError.slice(0,160):'',active:true,microphone:value.microphone===true,microphonePending:value.microphonePending===true,members:state.room.members.length,participants:state.room.members.filter(id=>id!==state.id).slice(0,7).map(id=>{
     const peer=reported.get(id),profile=state.people?.[id];
-    return {id,name:typeof profile?.name==='string'?profile.name.slice(0,40):'Участник',volume:Number.isFinite(peer?.volume)&&peer.volume>=0&&peer.volume<=1?peer.volume:1,state:states.has(peer?.state)?peer.state:'waiting'};
+    return {id,name:typeof profile?.name==='string'?profile.name.slice(0,40):'Участник',volume:Number.isFinite(peer?.volume)&&peer.volume>=0&&peer.volume<=1?peer.volume:1,state:states.has(peer?.state)?peer.state:'waiting',chatReady:peer?.chatReady===true};
   })};
 }
 export function roomCommand(value,communication){
   if(!value||typeof value!=='object')return null;
+  if(value.type==='chat-send'&&typeof value.id==='string'&&/^[a-f0-9]{32}$/.test(value.id)&&typeof value.text==='string'&&value.text.trim()&&value.text.length<=2000)return {type:'chat-send',id:value.id,text:value.text.trim()};
   if(['microphone-toggle','microphone-off','disconnect'].includes(value.type))return {type:value.type};
   if(value.type==='volume'&&communication?.participants?.some(p=>p.id===value.id)&&Number.isFinite(value.volume)&&value.volume>=0&&value.volume<=1)return {type:'volume',id:value.id,volume:value.volume};
   return null;

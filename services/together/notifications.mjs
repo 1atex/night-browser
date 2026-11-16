@@ -1,6 +1,7 @@
 const validId=value=>typeof value==='string'&&/^[a-f0-9]{16}$/.test(value);
 const fail=(status,message)=>{throw Object.assign(Error(message),{status});};
 export function notificationAction(state,user,body,now){
+  if(body.type==='notice-disable'){user.noticeKey=null;user.notifications=[];return;}
   if(body.type==='notice-key'){
     if(typeof body.publicKey!=='string'||!/^[A-Za-z0-9_-]{87}$/.test(body.publicKey))fail(400,'Неверный публичный ключ.');
     const key=Buffer.from(body.publicKey,'base64url');if(key.length!==65||key[0]!==4)fail(400,'Неверный публичный ключ.');

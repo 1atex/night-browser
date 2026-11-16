@@ -104,5 +104,11 @@
   "night.together.server": "https://browser.night-watchers.com",
   "night.together.fullscreen-controls": true,
   "night.together.glass": true,
-  "night.together.microphone-shortcut": true
+  "night.together.microphone-shortcut": true,
+  "night.together.sounds": true,
+  "night.together.sound-volume": 25,
+  "night.together.compare-ad-blocking": true,
+  "night.together.history": true,
+  "night.together.notices": false,
+  "night.together.notice-preview": false
 }

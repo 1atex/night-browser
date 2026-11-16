@@ -2,6 +2,14 @@
 
 `npm test` checks unloading policy, request validation, bounded history, channel suspension/redirect behavior and module integration. These tests do not substitute for a browser runtime.
 
+## Together and import 0.17 checks
+
+Local Node suite: 91 checks. Native two-client tests additionally exercise trusted fullscreen chat with keyboard events hidden from the source page; overlay play/seek; ad-marker hold/resume; P2P captureStream video/audio RTP and guest controls of the owner player. No physical microphone, protected subscription service, eight-client load or WAN/TURN is asserted.
+
+`tests/native/notices.py` checks actual OSKeyStore protection and two-client encrypted delivery, offline queue/ack, key-change blocking with draft retention, disable and key-box removal on Windows. The Linux cloud has no usable OS keystore: it checks failure without plaintext fallback; successful Windows delivery must be confirmed by CI before release.
+
+`tests/native/import_browsers.py` uses synthetic Chrome/Edge/Brave profiles read by native Gecko migrators, verifies bookmarks and unchanged source hashes, settings selection and private exclusion. Native WebCrypto tests verify encrypted roundtrip and authenticated metadata. This fixture does not validate installed-browser discovery on every machine, app-bound password decryption or every listed browser.
+
 ## Together 0.16 checks
 
 `tests/native/watch.py` creates and joins a room from the sidebar panel, then holds an unrelated HTTP image request open while both HTML5 videos are ready. Play must reach the other browser within eight seconds while both tabs still carry `busy`. The remaining checks exercise shared pause/seek/rate, source changes, backend restart and private exclusion.

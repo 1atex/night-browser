@@ -1,8 +1,11 @@
+import {NightCastSource} from "resource:///modules/night/NightCastSource.sys.mjs";
 import {playbackCorrection} from "resource:///modules/night/WatchModel.mjs";
 import {NightWatchOverlay} from "resource:///modules/night/NightWatchOverlay.sys.mjs";
 export class NightWatchChild extends JSWindowActorChild {
   #active = false;
   #overlay=null;
+  #cast=null;
+  #viewer=false;
   #video = null;
   #nominalRate=null;
   #advertising=false;
@@ -33,18 +36,23 @@ export class NightWatchChild extends JSWindowActorChild {
     }
     if(event.type==='ratechange'){this.#nominalRate=this.#video?.playbackRate??null;sample=this.#sample();}
     if(sample?.ad||Date.now()<this.#quietUntil)return;
+    if(this.#viewer)return;
     if (!this.#applying) this.sendAsyncMessage('NightWatch:Media', {sample,event:event.type, control:['play','pause','seeked','ratechange'].includes(event.type)});
   }
   #expect(name, matches) { this.#expected.set(name,{until:Date.now()+2000,matches}); }
   async receiveMessage({name, data}) {
     if (name === 'NightWatch:Stop') { this.didDestroy(); return null; }
     if (name === 'NightWatch:Start' && !this.#active) {
-      this.#active = true;
+      this.#active = true;this.#viewer=data?.viewer===true;
       this.#observer = new this.contentWindow.MutationObserver(() => this.#find());
       this.#observer.observe(this.document, {childList: true, subtree: true});
       this.#find();
     }
     if (!this.#active) return null;
+    if(name==='NightWatch:CastStart'){this.#find();this.#cast??=new NightCastSource(this.contentWindow,value=>this.sendAsyncMessage('NightWatch:CastSignal',value));return this.#cast.start(this.#video,data);}
+    if(name==='NightWatch:CastUpdate'){await this.#cast?.update(data.members);for(const item of data.signals??[])await this.#cast?.incoming(item);return this.#cast?.stats()??{active:false};}
+    if(name==='NightWatch:CastStop'){this.#cast?.stop();this.#cast=null;return {active:false};}
+    if(name==='NightWatch:CastStats')return this.#cast?.stats()??{active:false};
     if(name==='NightWatch:Status'){this.#find();return {sample:this.#sample(),ad:this.#ad(),ready:(this.#video?.readyState??0)>=2};}
     if(name==='NightWatch:OverlayState')return this.#overlay?.state()??{visible:false};
     if(name==='NightWatch:Overlay'){if(!data?.enabled){this.#overlay?.destroy();this.#overlay=null;return;}this.#overlay??=new NightWatchOverlay(this.contentWindow,value=>this.sendAsyncMessage('NightWatch:Control',value));this.#overlay.update(data);return;}
@@ -75,5 +83,5 @@ export class NightWatchChild extends JSWindowActorChild {
       return {status: 'connected', drift};
     } finally { this.#applying = false; }
   }
-  didDestroy() { try{this.#overlay?.destroy();}catch{}this.#overlay=null;this.#active = false;if(this.#video&&this.#nominalRate!==null)try{this.#video.playbackRate=this.#nominalRate;}catch{} this.#observer?.disconnect(); this.#observer = null; this.#unbind(); this.#expected.clear(); }
+  didDestroy() {this.#cast?.stop();this.#cast=null; try{this.#overlay?.destroy();}catch{}this.#overlay=null;this.#active = false;if(this.#video&&this.#nominalRate!==null)try{this.#video.playbackRate=this.#nominalRate;}catch{} this.#observer?.disconnect(); this.#observer = null; this.#unbind(); this.#expected.clear(); }
 }

@@ -111,6 +111,30 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
    wait_for(lambda:chrome(host,'return ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.communication.participants[0].volume>.5;'))
    content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(size['width']/2,size['height']/2).perform()
    wait_for(lambda:not overlay()['visible'],timeout=7);assert content(host,'return !!document.fullscreenElement;')
+   content(host,'const page=window.wrappedJSObject??window;page.__nightKeys=[];document.addEventListener("keydown",event=>page.__nightKeys.push(event.key),true);')
+   size=content(host,'return {width:innerWidth,height:innerHeight};');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(size['width']-20,20).perform();wait_for(lambda:overlay()['visible'])
+   position=overlay()['chatButton'];content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(position['x'],position['y']).pointer_down().pointer_up().perform()
+   wait_for(lambda:chrome(host,'return d.getElementById("night-room-chat")?.matches(":popover-open");'))
+   assert content(host,'return !!document.fullscreenElement;')
+   host.set_context('chrome');host.find_element('id','night-room-chat-input').send_keys('Overlay hello')
+   host.actions.sequence('key','overlay-chat-keys').key_down('\ue007').key_up('\ue007').perform()
+   wait_for(lambda:'Overlay hello' in text(guest,'messages'))
+   wait_for(lambda:chrome(host,'return d.getElementById("night-room-chat-input").value==="";'))
+   content(guest,'document.getElementById("message").value="Reply in overlay";document.getElementById("message-form").requestSubmit();')
+   wait_for(lambda:chrome(host,'return d.getElementById("night-room-chat").textContent.includes("Reply in overlay");'))
+   assert content(host,'return (window.wrappedJSObject??window).__nightKeys.length;')==0
+   capture(host,'night-fullscreen-chat.png')
+   host.set_context('chrome');host.actions.sequence('key','overlay-chat-keys').key_down('\ue00c').key_up('\ue00c').perform()
+   wait_for(lambda:chrome(host,'return !d.getElementById("night-room-chat").matches(":popover-open");'));assert content(host,'return !!document.fullscreenElement;')
+
+   content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(size['width']-20,20).perform();wait_for(lambda:overlay()['visible'])
+   previous=content(host,'return document.querySelector("video").paused;')
+   position=overlay()['playButton'];content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(position['x'],position['y']).pointer_down().pointer_up().perform()
+   wait_for(lambda:content(host,'return document.querySelector("video").paused;')!=previous)
+   position=overlay()['playButton'];content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(position['x'],position['y']).pointer_down().pointer_up().perform()
+   wait_for(lambda:content(host,'return document.querySelector("video").paused;')==previous)
+   slider=overlay()['seekBar'];content(host,'return innerWidth;');host.actions.sequence('pointer','room-mouse',{'pointerType':'mouse'}).pointer_move(slider['x']+slider['width']*.5,slider['y']+slider['height']/2).pointer_down().pointer_up().perform()
+   wait_for(lambda:content(host,'return document.querySelector("video").currentTime>10;'))
    content(host,'document.exitFullscreen();');wait_for(lambda:not content(host,'return !!document.fullscreenElement;'))
    chrome(host,'Services.prefs.setBoolPref("night.together.fullscreen-controls",false);')
    wait_for(lambda:overlay()=={'visible':False})
@@ -142,7 +166,7 @@ $b=New-Object Drawing.Bitmap(($r.r-$r.l),($r.b-$r.t));$g=[Drawing.Graphics]::Fro
    host.set_window_rect(width=660,height=900)
    assert content(host,'return document.documentElement.scrollWidth<=document.documentElement.clientWidth+2;')
    host.set_window_rect(width=1280,height=900)
-   result={'passed':True,'button_accents_and_icons':True,'glass_toggle':True,'quick_microphone_and_shortcut':True,'participant_volume_web_and_browser':True,'fullscreen_controls_autohide':True,'delayed_scripts':delayed_scripts,'leave_during_microphone_request_keeps_capture_off':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
+   result={'passed':True,'fullscreen_shared_play_and_seek':True,'fullscreen_chat_bidirectional':True,'chat_keys_hidden_from_video_page':True,'button_accents_and_icons':True,'glass_toggle':True,'quick_microphone_and_shortcut':True,'participant_volume_web_and_browser':True,'fullscreen_controls_autohide':True,'delayed_scripts':delayed_scripts,'leave_during_microphone_request_keeps_capture_off':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
    (output/'social-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
   except Exception:
    for i,b in enumerate(drivers):

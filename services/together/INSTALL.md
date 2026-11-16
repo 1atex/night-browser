@@ -1,4 +1,4 @@
-# Night Together 0.16.0: Docker и существующий reverse proxy
+# Night Together 0.17.0: Docker и существующий reverse proxy
 
 Команды рассчитаны на пользователя noon, rootless Docker и каталог `/home/noon/night-together`. Входящий домен уже обслуживает nginx/Caddy на хосте; приложение слушает только `127.0.0.1:8787`. Для обновления работающего сервиса права администратора не нужны.
 
@@ -6,15 +6,15 @@
 
 ```sh
 cd /home/noon
-curl -fL https://github.com/1atex/night-browser/releases/download/v0.16.0-preview.3/night-together-server-0.16.0.zip -o night-together-server-0.16.0.zip
-unzip -o night-together-server-0.16.0.zip -d /home/noon/night-together
+curl -fL https://github.com/1atex/night-browser/releases/download/v0.17.0-preview.1/night-together-server-0.17.0.zip -o night-together-server-0.17.0.zip
+unzip -o night-together-server-0.17.0.zip -d /home/noon/night-together
 cd /home/noon/night-together/services/together
 docker compose -f compose.yaml -f compose.proxy.yaml up -d --build together
 curl -f http://127.0.0.1:8787/health
 curl -f https://browser.night-watchers.com/health
 ```
 
-Для быстрых кнопок звука и полноэкранной панели обнови оба Night до 0.16 через Настройки → Обновления и этот Docker-сервис до 0.16. После обновления контейнера перезагрузи страницу комнаты Ctrl+Shift+R. Сервер сохраняет совместимость со старым клиентом 0.15; новая панель требует 0.16.
+Для уведомлений, проверки рекламы и трансляции плеера обнови оба Night и этот Docker-сервис до 0.17. После обновления контейнера перезагрузи страницу комнаты Ctrl+Shift+R. Сервер сохраняет старые ID и друзей; исходный volume и Compose-проект не меняй.
 
 Оба запроса должны вернуть `{"ok":true}`. Если на ПК ещё версия ниже 0.15, обнови Night через Настройки → Обновления. Само обновление сервера не меняет ID и список друзей: имя Compose-проекта и volume `night-together_together_data` сохранены. Клиент 0.13 продолжает видеть друзей, но для синхронизации видео обоим нужен 0.15.
 

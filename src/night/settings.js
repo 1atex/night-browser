@@ -962,6 +962,14 @@ window.addEventListener(
       toggle(controls,"Микрофон: Ctrl+Alt+M","Переключает микрофон текущей комнаты, когда подключён чат.","night.together.microphone-shortcut",true);
       toggle(controls,"Прозрачность и размытие оверлея","Полупрозрачное стекло поверх видео. Выключи, чтобы получить сплошной фон.","night.together.glass",true);
       toggle(controls,"Управление поверх полноэкранного видео","Появляется при наведении в правый верхний угол; можно выключить микрофон и настроить громкость.","night.together.fullscreen-controls",true);
+      toggle(controls,"Звуки входа и выхода","Короткие сигналы подключения участников. Не воспроизводятся постоянно.","night.together.sounds",true);
+      choice(controls,"Громкость сигналов","Не меняет громкость собеседников.","night.together.sound-volume",[[0,"Без звука"],[15,"Тихо"],[25,"Обычно"],[50,"Громче"],[100,"Максимум"]],25,true);
+      toggle(controls,"Сравнивать блокировку рекламы","Участникам комнаты передаётся только статус поддерживаемого блокировщика, без списка расширений.","night.together.compare-ad-blocking",true);
+      toggle(controls,"Запоминать просмотренное","Ссылки и позиции сохраняются только в этом профиле Night.","night.together.history",true);
+      const history=card("История совместного просмотра","Последние 50 видео. Записи можно открыть из панели «Вместе».");history.append(button("Очистить историю",async()=>{await ChromeUtils.importESModule("resource:///modules/night/NightWatchHistory.sys.mjs").NightWatchHistory.clear();status("История просмотров очищена.");}));
+      const notices=card("Зашифрованные уведомления","Кнопка колокольчика в боковой панели открывает отправку и входящие. Сервер хранит зашифрованную очередь не дольше суток; текст расшифровывается на устройстве получателя.");
+      notices.append(button("Открыть уведомления",()=>ChromeUtils.importESModule("resource:///modules/night/NightFriendNoticesView.sys.mjs").NightFriendNoticeViews.open(browserWindow)));
+      toggle(notices,"Показывать текст в уведомлениях Windows","Иначе системный баннер показывает только имя отправителя. В полноэкранном режиме баннеры не открываются автоматически.","night.together.notice-preview",false);
       const section = card("Night Together", "Добавь друга, создай комнату со ссылкой на видео и пригласи его. Участники нажимают «Смотреть вместе»; пауза, продолжение и перемотка общие.");
       const credentials = await NightTogether.credentials();
       if (!section.isConnected) return;

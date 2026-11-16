@@ -85,7 +85,7 @@ export async function createService({path, now = Date.now, releases, iceServers,
     if (request.url !== '/v1/action' || request.method !== 'POST') fail(404, 'Не найдено.');
     const peer = state.users[body.id];
     switch (body.type) {
-      case 'notice-key':case 'notice-send':case 'notice-ack':notificationAction(state,user,body,now());break;
+      case 'notice-key':case 'notice-send':case 'notice-ack':case 'notice-disable':notificationAction(state,user,body,now());break;
       case 'room-ready': {
         const room=state.rooms[body.room];if(!room?.members.includes(user.id))fail(403,'Комната недоступна.');
         if(typeof body.ready!=='boolean'||typeof body.ad!=='boolean'||!['enabled','none','unknown'].includes(body.blocker))fail(400,'Неверное состояние готовности.');
@@ -175,7 +175,7 @@ export async function createService({path, now = Date.now, releases, iceServers,
       case 'room-source': {
         const room = state.rooms[body.room];
         if (room?.owner !== user.id) fail(403, 'Видео меняет создатель комнаты.');
-        readiness.remove(room);Object.assign(room, {mode:'local',url: safeURL(body.url), position: 0, paused: true, rate: 1, buffering: false, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id}); break;
+        const sourceURL=safeURL(body.url);readiness.remove(room);Object.assign(room, {mode:'local',url: sourceURL, position: 0, paused: true, rate: 1, buffering: false, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id}); break;
       }
       case 'room-control':
       case 'room-state': {
@@ -187,6 +187,7 @@ export async function createService({path, now = Date.now, releases, iceServers,
         if (!Number.isFinite(body.position) || body.position < 0 || body.position > 604800 || typeof body.paused !== 'boolean') fail(400, 'Некорректная позиция.');
         const rate = body.rate ?? 1;
         if (!Number.isFinite(rate) || rate < 0.25 || rate > 4 || (body.buffering !== undefined && typeof body.buffering !== 'boolean')) fail(400, 'Некорректная скорость.');
+        if(body.type==='room-state'&&Number.isFinite(body.duration)&&body.duration>0&&body.duration<=604800)room.duration=body.duration;
         if(body.type==='room-control'){room.controlRevision=(room.controlRevision??0)+1;room.command=['play','pause','seek','rate'].includes(body.command)?body.command:'state';}
         Object.assign(room, {position: body.position, paused: body.paused, rate, buffering: body.buffering === true, revision: room.revision + 1, updatedAt: now(), controlledBy:user.id});if(body.type==='room-control')readiness.control(room); break;
       }

@@ -37,3 +37,51 @@
 .night-together-person output { text-align:right; color:var(--night-secondary); font-size:11px; }
 .night-together-hint { font-size:10px!important; }
 .night-together-status { min-height:18px; }
+#night-room-chat { position:fixed; inset:124px 16px auto auto; margin:0; padding:16px; width:330px; max-height:calc(100vh - 100px); display:flex; flex-direction:column; gap:12px; border:1px solid var(--night-line); border-radius:18px; background:var(--night-panel); color:var(--night-text); box-shadow:var(--night-shadow); font:12px var(--night-font); }
+#night-room-chat[hidden] { display:none!important; }
+#night-room-chat header { display:flex; align-items:center; gap:12px; }
+#night-room-chat header strong { flex:1; font-size:14px; }
+#night-room-chat button { border:1px solid var(--night-line); border-radius:var(--night-pill); background:var(--night-field); color:var(--night-text); padding:7px 11px; font:inherit; cursor:pointer; }
+#night-room-chat header button { border:0; background:transparent; }
+#night-room-chat button:disabled { opacity:.4; cursor:default; }
+#night-room-chat .room-chat-status { margin:0; color:var(--night-secondary); font-size:11px; }
+#night-room-chat ol { list-style:none; display:flex; flex-direction:column; gap:12px; padding:0; margin:0; min-height:110px; max-height:280px; overflow:auto; }
+#night-room-chat li { padding:10px 12px; border-radius:12px; background:var(--night-field); overflow-wrap:anywhere; }
+#night-room-chat li strong { color:var(--night-secondary); font-size:10px; font-weight:500; }
+#night-room-chat li p { margin:5px 0 0; line-height:1.5; white-space:pre-wrap; user-select:text; }
+#night-room-chat form { display:flex; gap:7px; }
+#night-room-chat input { min-width:0; flex:1; padding:10px 12px; border:1px solid var(--night-line); border-radius:var(--night-pill); background:var(--night-field); color:var(--night-text); font:inherit; }
+#night-room-chat form button { background:var(--night-accent); color:var(--night-on-accent); font-size:17px; }
+#night-room-chat :focus-visible { outline:1px solid var(--night-accent); outline-offset:2px; }
+#night-room-chat .room-chat-full { align-self:flex-start; color:var(--night-secondary); border:0; background:transparent; padding:2px 0; font-size:11px; }
+#night-room-chat .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+#night-friend-notices { position:fixed; inset:70px 16px auto auto; margin:0; padding:18px; width:350px; max-height:calc(100vh - 95px); overflow:auto; display:flex; flex-direction:column; gap:12px; border:1px solid var(--night-line); border-radius:18px; background:var(--night-panel); color:var(--night-text); box-shadow:var(--night-shadow); font:12px var(--night-font); }
+#night-friend-notices[hidden],#night-friend-notices [hidden] { display:none!important; }
+#night-friend-notices header { display:flex; align-items:center; gap:12px; }
+#night-friend-notices header strong { flex:1; font-size:14px; }
+#night-friend-notices :is(button,input,select,textarea) { border:1px solid var(--night-line); border-radius:12px; padding:9px 11px; background:var(--night-field); color:var(--night-text); font:inherit; }
+#night-friend-notices button { cursor:pointer; }
+#night-friend-notices button:disabled { opacity:.45; }
+#night-friend-notices header button { border:0; background:transparent; }
+#night-friend-notices .notice-primary { background:var(--night-accent); color:var(--night-on-accent); font-weight:600; }
+#night-friend-notices p { margin:0; line-height:1.5; }
+#night-friend-notices .notice-status,#night-friend-notices details { color:var(--night-secondary); font-size:11px; }
+#night-friend-notices .notice-fingerprint { overflow-wrap:anywhere; padding:8px 0; }
+#night-friend-notices ol { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; max-height:230px; overflow:auto; }
+#night-friend-notices li { padding:11px; border-radius:12px; background:var(--night-field); overflow-wrap:anywhere; }
+#night-friend-notices li strong { display:block; margin-bottom:6px; font-size:11px; color:var(--night-secondary); }
+#night-friend-notices li p { white-space:pre-wrap; }
+#night-friend-notices :focus-visible { outline:1px solid var(--night-accent); outline-offset:2px; }
+#night-sidebar #night-together-notices { width:32px; height:32px; flex:0 0 32px; padding:0; border:1px solid var(--night-line); border-radius:var(--night-pill); background:var(--night-field); position:relative; }
+#night-together-notices::before { content:""; display:block; width:15px; height:15px; margin:auto; background:var(--night-text); mask:url('chrome://browser/content/night/icons/bell.svg') center/contain no-repeat; }
+#night-together-notices[data-unread]::after { content:""; position:absolute; top:5px; right:6px; width:5px; height:5px; border-radius:50%; background:var(--night-accent); }
+.night-together-friends { padding-top:8px; border-top:1px solid var(--night-line); }
+.night-together-friends summary { color:var(--night-secondary); padding:4px 0 8px; cursor:pointer; }
+.night-together-friends .night-together-line { margin-top:8px; }
+.night-together-friends input { width:160px; flex:1; }
+#night-cast-indicator { position:fixed; inset:12px 16px auto auto; margin:0; display:flex; align-items:center; gap:12px; padding:6px 7px 6px 12px; border:1px solid #b9dbcb40; border-radius:var(--night-pill); background:#18241f; color:#c5e6d7; font:11px var(--night-font); box-shadow:0 4px 18px #0004; }
+#night-cast-indicator[hidden] { display:none!important; }
+#night-cast-indicator span::before { content:""; display:inline-block; width:5px; height:5px; margin-right:7px; border-radius:50%; background:#b9dbcb; }
+#night-cast-indicator button { border:0; border-radius:var(--night-pill); padding:6px 9px; color:inherit; background:#ffffff12; font:inherit; cursor:pointer; }
+#night-cast-indicator button:hover { background:#ffffff22; }
+#night-cast-indicator button:focus-visible { outline:1px solid #c5e6d7; }

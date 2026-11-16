@@ -76,7 +76,16 @@ def run(binary,app_ini,output):
         busy_control_seconds=time.monotonic()-control_start
         assert chrome(host,'return w.gBrowser.selectedTab.hasAttribute("busy");') and chrome(guest,'return w.gBrowser.selectedTab.hasAttribute("busy");')
         RESOURCE_RELEASE.set()
+        wait_for(lambda:abs(player(host)['time']-player(guest)['time'])<1.3,timeout=20)
         drift=abs(player(host)['time']-player(guest)['time']);assert drift<1.3,drift
+        content(guest,'document.querySelector("video").classList.add("ad-showing");')
+        wait_for(lambda:state(host)['room']['readiness']['hold'] is not None,timeout=10)
+        wait_for(lambda:player(host)['paused'],timeout=10)
+        assert not player(guest)['paused']
+        content(guest,'document.querySelector("video").classList.remove("ad-showing");')
+        wait_for(lambda:state(host)['room']['readiness']['hold'] is None,timeout=10)
+        wait_for(lambda:not player(host)['paused'] and not player(guest)['paused'],timeout=10)
+        wait_for(lambda:abs(player(host)['time']-player(guest)['time'])<1.3)
         content(host,'document.querySelector("video").pause();')
         wait_for(lambda:player(guest)['paused'],timeout=10)
         wait_for(lambda:abs(player(host)['time']-player(guest)['time'])<.5)
@@ -111,7 +120,7 @@ def run(binary,app_ini,output):
         wait_for(lambda:chrome(guest,'return [...Services.wm.getEnumerator("navigator:browser")].length===2&&!!w.gNightBrowser;'))
         private=async_chrome(guest,'try{await ChromeUtils.importESModule("resource:///modules/night/NightTogether.sys.mjs").NightTogether.watch(w);return false;}catch{return true;}')
         assert private
-        result={'passed':True,'quick_panel_create_invite_join_watch':True,'controls_while_page_still_loading':True,'busy_control_seconds':round(busy_control_seconds,3),'actual_video_play_pause_seek_rate':True,'host_changes_video':True,'guest_follows_host':True,'guest_can_pause_play_seek':True,'drift_seconds':round(drift,3),'disconnect_pauses_without_reset':True,'server_restart_preserves_id_and_name':True,'tab_close_stops_sync':True,'private_excluded':True,'social_profile_visible_to_friend':True,'autoplay_note':'Fixture explicitly allows autoplay; real websites may require pressing Play once.'}
+        result={'ad_fixture_holds_and_resumes_both':True,'passed':True,'quick_panel_create_invite_join_watch':True,'controls_while_page_still_loading':True,'busy_control_seconds':round(busy_control_seconds,3),'actual_video_play_pause_seek_rate':True,'host_changes_video':True,'guest_follows_host':True,'guest_can_pause_play_seek':True,'drift_seconds':round(drift,3),'disconnect_pauses_without_reset':True,'server_restart_preserves_id_and_name':True,'tab_close_stops_sync':True,'private_excluded':True,'social_profile_visible_to_friend':True,'autoplay_note':'Fixture explicitly allows autoplay; real websites may require pressing Play once.'}
         (output/'watch-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
     except Exception:
         for i,b in enumerate(drivers):
