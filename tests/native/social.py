@@ -3,12 +3,14 @@ from pathlib import Path
 from marionette_driver.marionette import Marionette
 from smoke import wait_for
 
-def run(binary,app_ini,output):
+def run(binary,app_ini,output,delayed_scripts=False):
  output.mkdir(parents=True,exist_ok=True);drivers=[]
  fixture=[{'tag_name':'v0.15.0-preview.3','assets':[{'name':'night-browser-0.15.0-preview-windows-x64-setup.exe','download_count':42,'browser_download_url':'https://github.com/1atex/night-browser/releases/download/v0.15.0-preview.3/night-browser-0.15.0-preview-windows-x64-setup.exe'}]}]
  module=(Path(__file__).resolve().parents[2]/'services/together/server.mjs').as_uri()
  with tempfile.TemporaryDirectory(prefix='night-social-') as temp:
   script=f'import {{createService}} from {json.dumps(module)};const s=await createService({{path:{json.dumps(str(Path(temp)/"state.json"))},iceServers:[],releases:async()=>{json.dumps(fixture,ensure_ascii=False)}}});s.listen(0,"127.0.0.1",()=>console.log(s.address().port));const other=await createService();other.listen(0,"127.0.0.1",()=>console.log(other.address().port));'
+  if delayed_scripts:
+   script=script.replace('s.listen(0,', 'const serve=s.listeners("request")[0];s.removeAllListeners("request");s.on("request",(req,res)=>{const path=req.url.split("?")[0];if(path==="/room"||path.startsWith("/join/")){const end=res.end.bind(res);res.end=(body,...args)=>end(body?Buffer.from(body.toString().replace(/<script /g,"<script async ").replace(/ defer/g,"")):body,...args);}if(path==="/room.js"||path==="/site.js")setTimeout(()=>serve(req,res),600);else serve(req,res);});s.listen(0,')
   backend=subprocess.Popen(['node','--input-type=module','-e',script],stdout=subprocess.PIPE,text=True);endpoint='http://127.0.0.1:'+backend.stdout.readline().strip();other_endpoint='http://127.0.0.1:'+backend.stdout.readline().strip()
   def chrome(b,script,*args):b.set_context('chrome');return b.execute_script('const w=Services.wm.getMostRecentWindow("navigator:browser"),d=w.document;'+script,script_args=list(args))
   def async_chrome(b,script,*args):
@@ -88,7 +90,7 @@ def run(binary,app_ini,output):
    host.set_window_rect(width=660,height=900)
    assert content(host,'return document.documentElement.scrollWidth<=document.documentElement.clientWidth+2;')
    host.set_window_rect(width=1280,height=900)
-   result={'passed':True,'leave_during_microphone_request_keeps_capture_off':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
+   result={'passed':True,'delayed_scripts':delayed_scripts,'leave_during_microphone_request_keeps_capture_off':True,'website_counter_fixture':True,'website_responsive':True,'duplicate_active_chat_rejected':True,'owner_kick_stops_guest_microphone':True,'room_protected_only_while_connected':True,'video_and_chat_split':True,'bridge_rejects_other_origin_and_private_windows':True,'link_request_requires_owner_approval':True,'new_guest_id_without_friendship':True,'real_rtc_data_channel_bidirectional_chat':True,'real_rtc_audio_both_directions':True,'fake_microphone_fixture':True,'microphone_explicit_and_stopped':True,'leave_closes_peer_audio':True,'host_stats':host_stats,'guest_stats':guest_stats,'wan_turn_unverified':True}
    (output/'social-result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print(json.dumps(result,ensure_ascii=False),flush=True)
   except Exception:
    for i,b in enumerate(drivers):
@@ -101,4 +103,4 @@ def run(binary,app_ini,output):
     except Exception:pass
    backend.terminate();backend.wait(timeout=10)
 if __name__=='__main__':
- p=argparse.ArgumentParser();p.add_argument('--binary',required=True);p.add_argument('--app-ini',required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();run(a.binary,a.app_ini,a.output)
+ p=argparse.ArgumentParser();p.add_argument('--binary',required=True);p.add_argument('--app-ini',required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--delayed-scripts',action='store_true');a=p.parse_args();run(a.binary,a.app_ini,a.output,a.delayed_scripts)

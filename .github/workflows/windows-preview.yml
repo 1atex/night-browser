@@ -103,6 +103,8 @@ jobs:
           $output = (Resolve-Path dist/Night).Path
           python -u tests/native/social.py --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -u tests/native/social.py --delayed-scripts --binary "$output/runtime/NightBrowser.exe" --app-ini "$output/runtime/browser/application.ini" --output test-artifacts/delayed-room
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test isolated Windows profiles
         run: |
           python -u tests/native/profiles.py --package dist/Night --output test-artifacts

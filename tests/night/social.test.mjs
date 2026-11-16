@@ -43,7 +43,7 @@ test('public landing, invitation privacy, real GitHub counters and cache',async(
  const server=await createService({releases:async()=>{calls++;return[{tag_name:tag,assets:[{name,download_count:42,browser_download_url:`https://github.com/1atex/night-browser/releases/download/${tag}/${name}`},{name:'night-together-server-0.14.0.zip',download_count:9999,browser_download_url:'https://evil.test'}]}];}});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
  try{const page=await fetch(base+'/');assert.equal(page.status,200);assert.match(await page.text(),/Night Browser/);
- const invite=await fetch(base+'/join/'+'a'.repeat(64));assert.equal(invite.headers.get('cache-control'),'no-store');assert.doesNotMatch(await invite.text(),/token|Bearer/);
+ const invite=await fetch(base+'/join/'+'a'.repeat(64));assert.equal(invite.headers.get('cache-control'),'no-store, no-transform');assert.doesNotMatch(await invite.text(),/token|Bearer/);
  const info=await fetch(base+'/api/releases').then(r=>r.json());assert.equal(info.downloads,42);
  assert.equal((await fetch(base+'/download',{redirect:'manual'})).headers.get('location'),info.installer);assert.equal(calls,1);
  assert.equal((await fetch(base+'/../server.mjs')).status,401);
@@ -63,4 +63,14 @@ test('GitHub outage keeps a usable download path and does not invent counters',a
  const server=await createService({releases:async()=>{throw Error('Fixture API outage');}});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
  try{const info=await fetch(base+'/api/releases');assert.equal(info.status,503);assert.equal((await info.json()).downloads,undefined);const link=await fetch(base+'/download',{redirect:'manual'});assert.equal(link.status,302);assert.equal(link.headers.get('location'),'https://github.com/1atex/night-browser/releases');}
  finally{await new Promise(r=>server.close(r));}
+});
+test('room and invitation assets resist intermediary rewriting without weakening CSP',async()=>{
+ const server=await createService();await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
+ try{for(const path of ['/','/room','/join/'+'a'.repeat(64)]){
+  const response=await fetch(base+path),html=await response.text();assert.equal(response.status,200);assert.match(response.headers.get('cache-control'),/no-transform/);
+  assert.equal(response.headers.get('content-security-policy').includes('unsafe-inline'),false);
+  const scripts=[...html.matchAll(/<script[^>]+>/g)].map(m=>m[0]);assert.ok(scripts.length);assert.ok(scripts.every(s=>s.includes('data-cfasync="false"')&&s.indexOf('data-cfasync')<s.indexOf('src=')));
+  assert.ok(scripts.every(s=>s.includes('?v=0.15.1')));
+  if(path!=='/')assert.match(response.headers.get('cache-control'),/no-store/);
+ }}finally{await new Promise(r=>server.close(r));}
 });

@@ -2,8 +2,8 @@ const $=id=>document.getElementById(id), peers=new Map(), waiting=new Map();
 import {MicrophoneSession} from './microphone.mjs';
 const capture=new MicrophoneSession();
 let serial=0,state=null,active=false,stream=null,cursor=0,timer,busy=false,available=false,rtcConfig,signature='';
-function bridge(method,body){return new Promise((resolve,reject)=>{const id=++serial,timeout=setTimeout(()=>{waiting.delete(id);reject(Error('Night не ответил. Проверь обновления браузера и сервера.'));},15000);waiting.set(id,{resolve,reject,timeout});document.dispatchEvent(new CustomEvent('NightRoom:Query',{detail:JSON.stringify({id,method,body})}));});}
-window.addEventListener('NightRoom:Reply',event=>{let v;try{v=JSON.parse(event.detail);}catch{return;}const p=waiting.get(v.id);if(!p)return;waiting.delete(v.id);clearTimeout(p.timeout);v.error?p.reject(Error(v.error)):p.resolve(v.result);});
+function bridge(method,body,waitMs=15000){return new Promise((resolve,reject)=>{const id=++serial,timeout=setTimeout(()=>{waiting.delete(id);reject(Error('Night не ответил. Проверь обновления браузера и сервера.'));},waitMs);waiting.set(id,{resolve,reject,timeout});document.dispatchEvent(new CustomEvent('NightRoom:Query',{detail:JSON.stringify({id,method,body})}));});}
+window.addEventListener('NightRoom:Reply',event=>{let v;try{v=JSON.parse(event.detail);}catch{return;}const p=waiting.get(v.id);if(!p)return;available=true;waiting.delete(v.id);clearTimeout(p.timeout);v.error?p.reject(Error(v.error)):p.resolve(v.result);});
 window.addEventListener('NightRoom:Available',()=>{available=true;refresh();});
 const status=text=>{$('room-status').textContent=text;};
 function random(){return crypto.randomUUID().replaceAll('-','');}
@@ -57,11 +57,11 @@ async function incoming(item){
 }
 function renderMembers(){
  if(!state?.room)return;
- const ids=state.room.members,next=JSON.stringify(ids.map(id=>[id,state.people[id]?.name??state.self.name,peers.get(id)?.pc.connectionState,peers.get(id)?.channel?.readyState]));
+ const ids=state.room.members,next=JSON.stringify([active,ids.map(id=>[id,state.people[id]?.name??state.self.name,peers.get(id)?.pc.connectionState,peers.get(id)?.channel?.readyState])]);
  if(next===signature)return;signature=next;$('members').replaceChildren();
  for(const id of ids){const row=document.createElement('div'),name=document.createElement('span'),info=document.createElement('small');row.dataset.id=id;row.dataset.state=id===state.id?'self':peers.get(id)?.pc.connectionState??'waiting';name.textContent=id===state.id?state.self.name+' · ты':state.people[id]?.name??id;const p=peers.get(id);info.textContent=id===state.id?'В комнате':p?.pc.connectionState==='connected'?(p.channel?.readyState==='open'?'Чат подключён':'Соединён'):p?.pc.connectionState==='failed'?'Сеть не пропускает связь':active?'Подключение…':'В комнате';row.append(name,info);if(state.room.owner===state.id&&id!==state.id){const kick=document.createElement('button');kick.textContent='Удалить';kick.onclick=()=>bridge('action',{type:'room-kick',room:state.room.id,id}).then(()=>refresh()).catch(error=>status(error.message));row.append(kick);}$('members').append(row);}
  const connected=[...peers.values()].filter(p=>p.channel?.readyState==='open').length;
- $('chat-state').textContent=active?`${connected} соединений`:'Не подключён';$('message').disabled=!connected;$('send').disabled=!connected;
+ $('chat-state').textContent=active?(connected?`${connected} соединений`:'Соединение…'):'Не подключён';$('message').disabled=!connected;$('send').disabled=!connected;
 }
 function renderRequests(){
  const requests=state.room.requests??[],next=JSON.stringify(requests);if($('requests').dataset.value===next)return;$('requests').dataset.value=next;$('requests').replaceChildren();
@@ -73,7 +73,7 @@ async function refresh(){
   const next=(await bridge('status')).state;
   if(!next?.room){stop();state=next;status('Комната закрыта или ты вышел. Создай новую в настройках Night.');$('watch').disabled=true;$('watch-split').disabled=true;$('connect').disabled=true;return;}
   if(state?.room&&state.room.id!==next.room.id){stop();cursor=0;}
-  state=next;$('invite').hidden=state.room.owner!==state.id;$('video-link').textContent=new URL(state.room.url).hostname;$('video-link').href=state.room.url;$('connection').textContent=`${state.room.members.length} в комнате`;
+  state=next;$('connect').disabled=false;$('watch').disabled=false;$('watch-split').disabled=false;$('invite').hidden=state.room.owner!==state.id;$('video-link').textContent=new URL(state.room.url).hostname;$('video-link').href=state.room.url;$('connection').textContent=`${state.room.members.length} в комнате`;
   renderMembers();renderRequests();
   if(!active){status('Пауза, продолжение и перемотка общие. Видео можно открыть в отдельной вкладке, а эту оставить для общения.');return;}
   for(const id of [...peers.keys()])if(!state.room.members.includes(id))closePeer(id);
@@ -83,7 +83,8 @@ async function refresh(){
   await Promise.all(groups.values());
   for(const id of state.room.members){if(id===state.id)continue;const peer=peers.get(id);if(peer&&(['failed','closed'].includes(peer.pc.connectionState)||Date.now()-peer.started>25000&&peer.pc.connectionState!=='connected'))closePeer(id);if(!peers.has(id)&&state.id<id)offer(id);}
   const failed=[...peers.values()].some(p=>p.pc.connectionState==='failed'||Date.now()-p.started>15000&&p.pc.connectionState!=='connected');
-  status(failed?'Прямое соединение не установилось. Для этой сети может понадобиться TURN-релей.':'Общение подключено. Микрофон включается отдельно.');
+  const connected=[...peers.values()].some(p=>p.channel?.readyState==='open');
+  status(failed?'Прямое соединение не установилось. Для этой сети может понадобиться TURN-релей.':connected?(capture.stream?'Чат подключён. Микрофон включён.':'Чат подключён. Микрофон включается отдельно.'):state.room.members.length<2?'Ждём участника комнаты…':'Устанавливаем соединение с участниками…');
  }catch(error){status(error.message);if(active)stop();}finally{busy=false;}
 }
 async function microphone(){
@@ -131,6 +132,17 @@ export async function connectionReport(){
  }return results;
 }
 $('rtc-refresh').onclick=async()=>{try{const report=await connectionReport();$('rtc-report').textContent=JSON.stringify(report,null,2);$('rtc-report').dataset.serial=String(Date.now());}catch(error){status(error.message);}};
+let bootstrapTimer,bootstrapAttempts=0,closed=false;
+async function bootstrap(){
+ if(closed||available)return;
+ try{await bridge('status',undefined,1500);}
+ catch(error){
+  if(closed)return;
+  if(!available){if(++bootstrapAttempts<8)bootstrapTimer=setTimeout(bootstrap,250);else status('Night не ответил. Открой комнату в обычном окне актуального Night.');return;}
+ }
+ if(!closed)refresh();
+}
+bootstrapTimer=setTimeout(bootstrap,0);
 timer=setInterval(()=>{if(!document.hidden||active)refresh();},1500);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
-window.addEventListener('pagehide',()=>{clearInterval(timer);stop();for(const p of waiting.values()){clearTimeout(p.timeout);p.reject(Error('Комната закрыта.'));}waiting.clear();});
+window.addEventListener('pagehide',()=>{closed=true;clearTimeout(bootstrapTimer);clearInterval(timer);stop();for(const p of waiting.values()){clearTimeout(p.timeout);p.reject(Error('Комната закрыта.'));}waiting.clear();});

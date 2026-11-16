@@ -34,7 +34,7 @@ export function publicWeb({releases = async () => {
     }
     const file = /^\/join\/[a-f0-9]{64}$/.test(path) ? ['join.html','text/html'] : files[path];
     if (!file) return false;
-    response.writeHead(200,{'Content-Type':file[1]+'; charset=utf-8','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",'Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','Cache-Control':path.startsWith('/join/')?'no-store':'public, max-age=60'});
+    response.writeHead(200,{'Content-Type':file[1]+'; charset=utf-8','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",'Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','Cache-Control':path==='/room'||path.startsWith('/join/')?'no-store, no-transform':'public, max-age=60, no-transform'});
     response.end(request.method==='HEAD'?undefined:await readFile(new URL(file[0],root))); return true;
   };
 }
